@@ -1,0 +1,533 @@
+/*
+ * @NOTE: Prepend a `~` to css file paths that are in your node_modules
+ *        See https://github.com/webpack-contrib/sass-loader#imports
+ */
+
+/* CSS Custom Properties for better performance */
+:root {
+  --primary-color: #4f5bd5;
+  --secondary-color: #009688;
+  --background-gradient: linear-gradient(200.96deg, #fedc2a -29.09%, #dd5789 51.77%, #7a2c9e 129.35%);
+  --border-radius: 6px;
+  --transition-fast: 0.15s ease-in-out;
+  --transition-medium: 0.2s ease-in-out;
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --scrollbar-width: 8px;
+  --scrollbar-color: rgba(0, 0, 0, 0.2);
+  --scrollbar-hover-color: rgba(0, 0, 0, 0.4);
+  --scrollbar-track: transparent;
+  
+  /* Layout stability variables */
+  --app-height: 100vh;
+  --app-width: 100vw;
+  --sidebar-width: 240px;
+  --topbar-height: 64px;
+  
+  /* Dynamic background - can be overridden by JavaScript */
+  --dynamic-background: var(--background-gradient);
+}
+
+/* Global reset for layout stability */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* HTML and body foundation */
+html {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Body styling with proper containment - now supports dynamic backgrounds */
+body {
+  height: 100vh;
+  width: 100vw;
+  background: var(--dynamic-background);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 0;
+  color: white;
+  contain: layout style paint;
+  transition: background 0.3s ease-in-out; /* Smooth background transitions */
+}
+
+/* Root container - absolute stability */
+#root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  contain: layout style paint;
+  /* Ensure proper stacking context */
+  z-index: 0;
+  /* Prevent flash of unstyled content */
+  visibility: hidden;
+}
+
+/* Show content after layout is ready */
+#root.layout-ready {
+  visibility: visible;
+}
+
+/* Allow text selection in most content areas by default (body no longer prevents it) */
+/* But prevent text selection for UI controls and interactive elements */
+button, 
+.MuiButton-root,
+.MuiIconButton-root,
+.MuiTab-root,
+.MuiMenuItem-root,
+.MuiListItem-root,
+.MuiChip-root,
+.MuiSlider-root,
+.MuiSwitch-root,
+.MuiCheckbox-root,
+.MuiRadio-root,
+.app-sidebar,
+.app-topbar,
+[role="button"],
+[role="tab"],
+[role="menuitem"] {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+/* Explicitly allow text selection for content areas */
+input, 
+textarea, 
+[contenteditable], 
+.markdown-body,
+p,
+span:not(.MuiButton-root span):not(.MuiIconButton-root span),
+div[role="textbox"],
+.MuiTypography-root,
+.content-text,
+.selectable-text {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+}
+
+/* Layout utility classes for consistent behavior */
+.app-container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.app-flex-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.app-flex-row {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  width: 100%;
+}
+
+.app-flex-grow {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.app-no-shrink {
+  flex-shrink: 0;
+}
+
+.app-scroll-container {
+  overflow: auto;
+  height: 100%;
+  width: 100%;
+}
+
+.app-hidden-overflow {
+  overflow: hidden;
+}
+
+/* Three.js canvas specific fixes */
+.threejs-canvas-container {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden;
+}
+
+.threejs-canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Prevent layout shifts during loading */
+.app-loading-stable {
+  min-height: 100vh;
+  min-width: 100vw;
+  position: relative;
+}
+
+/* Material-UI overrides for better layout */
+.MuiBox-root {
+  /* Ensure MUI Box respects our layout system */
+  box-sizing: border-box;
+}
+
+.MuiPaper-root {
+  /* Prevent Paper components from breaking layout */
+  box-sizing: border-box;
+}
+
+.MuiDrawer-paper {
+  /* Ensure drawer doesn't interfere with main layout */
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Fix for Electron app specific issues */
+.electron-app {
+  /* Prevent any electron-specific layout issues */
+  -webkit-app-region: no-drag;
+  position: relative;
+}
+
+/* Ensure proper font rendering in all contexts */
+body, input, textarea, button, select {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Custom Scrollbar Styles for AppLayout */
+.app-layout-scrollbar::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+.app-layout-scrollbar::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: calc(var(--scrollbar-width) / 2);
+}
+
+.app-layout-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-color);
+  border-radius: calc(var(--scrollbar-width) / 2);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color var(--transition-fast);
+}
+
+.app-layout-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover-color);
+  background-clip: content-box;
+}
+
+.app-layout-scrollbar::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
+}
+
+/* Enhanced theme toggle animations */
+.theme-toggle-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-toggle-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.theme-toggle-button:hover::before {
+  opacity: 1;
+}
+
+/* Smooth icon transitions */
+.theme-icon-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+.theme-icon-transition:hover {
+  transform: rotate(180deg) scale(1.1);
+}
+
+/* Firefox scrollbar */
+.app-layout-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-color) var(--scrollbar-track);
+}
+
+/* Smooth scrolling for better UX */
+.app-layout-scrollbar {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  /* Improve scroll performance */
+  will-change: scroll-position;
+  transform: translateZ(0);
+}
+
+/* Performance optimizations for animations */
+.app-animated {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Responsive design helpers */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 200px;
+    --scrollbar-width: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --sidebar-width: 180px;
+    --scrollbar-width: 4px;
+  }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  body {
+    /* Improve text rendering on high DPI displays */
+    -webkit-font-smoothing: subpixel-antialiased;
+  }
+}
+
+/* Focus management for accessibility */
+*:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Prevent layout shifts from images */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Ensure proper containment for all major layout blocks */
+.app-main-layout,
+.app-sidebar,
+.app-content,
+.app-topbar {
+  contain: layout style;
+  box-sizing: border-box;
+}
+
+/* Fix for potential z-index issues */
+.app-overlay {
+  z-index: 1000;
+  position: fixed;
+}
+
+.app-modal {
+  z-index: 1300;
+  position: fixed;
+}
+
+.app-tooltip {
+  z-index: 1500;
+  position: fixed;
+}
+
+/* Optimized button styles with proper containment */
+button {
+  background-color: white;
+  padding: 10px 20px;
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  appearance: none;
+  font-size: 1.3rem;
+  transition: all var(--transition-medium);
+  cursor: pointer;
+  opacity: 0.95;
+  /* Use transform3d for hardware acceleration */
+  transform: translate3d(0, 0, 0);
+  /* Improve text rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent layout shifts */
+  contain: layout style;
+  box-sizing: border-box;
+}
+
+button:hover {
+  background-color: #f8f9fa;
+  border-color: rgba(0, 0, 0, 0.15);
+  opacity: 1;
+}
+
+button:active {
+  background-color: #e9ecef;
+  transform: translate3d(0, 1px, 0);
+}
+
+li {
+  list-style: none;
+}
+
+a {
+  text-decoration: none;
+  height: fit-content;
+  width: fit-content;
+  margin: 10px;
+}
+
+a:hover {
+  opacity: 1;
+  text-decoration: none;
+}
+
+.Hello {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0;
+}
+
+/* Optimize markdown rendering with containment */
+.markdown-body {
+  color: #333;
+  font-size: 0.97rem;
+  line-height: 1.7;
+  word-break: break-word;
+  background: transparent;
+  contain: layout style;
+}
+
+/* Use more efficient selectors */
+.markdown-body p { margin: 0.5em 0; }
+.markdown-body ul, .markdown-body ol { margin: 0.5em 0 0.5em 1.5em; padding-left: 0; }
+.markdown-body ul { list-style-type: disc; padding-left: 1em; }
+.markdown-body ul li { list-style: disc; padding-left: 0.2em; }
+
+/* Optimize code blocks with better containment */
+.markdown-body pre {
+  background: #f5f5f5;
+  color: #222;
+  border-radius: var(--border-radius);
+  padding: 1em;
+  margin: 1em 0;
+  font-size: 0.95em;
+  overflow-x: auto;
+  box-shadow: var(--shadow-subtle);
+  contain: layout style;
+  /* Improve scrolling performance */
+  -webkit-overflow-scrolling: touch;
+}
+
+.markdown-body code {
+  background: #f5f5f5;
+  color: #c7254e;
+  border-radius: 4px;
+  padding: 0.2em 0.4em;
+  font-size: 0.95em;
+  font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+}
+
+.markdown-body pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+
+.markdown-body a {
+  color: #1976d2;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.markdown-body a:hover {
+  color: #1565c0;
+  text-decoration: underline;
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+  font-size: 0.97em;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid var(--border-color, #e0e0e0);
+  padding: 0.5em 0.8em;
+  text-align: left;
+}
+
+.markdown-body th {
+  background: #f0f0f0;
+  font-weight: 600;
+}
+
+/* Optimize images with better loading */
+.markdown-body img {
+  max-width: 100%;
+  border-radius: 4px;
+  margin: 0.5em 0;
+  display: block;
+  /* Images should use loading="lazy" and decoding="async" as HTML attributes */
+}
+
+.markdown-body ol li {
+  list-style: none;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}

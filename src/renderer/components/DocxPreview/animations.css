@@ -1,0 +1,194 @@
+/* DocxPreview Highlight Animations */
+
+/* Keyframes for left-to-right highlight animation */
+@keyframes highlightSlideIn {
+  0% {
+    background-size: 0% 100%;
+    background-position: left center;
+  }
+  100% {
+    background-size: 100% 100%;
+    background-position: left center;
+  }
+}
+
+@keyframes highlightSlideInRed {
+  0% {
+    background-size: 0% 100%;
+    background-position: left center;
+    box-shadow: none;
+  }
+  30% {
+    background-size: 60% 100%;
+    background-position: left center;
+    box-shadow: 0 0 0 1px rgba(244, 67, 54, 0.2);
+  }
+  100% {
+    background-size: 100% 100%;
+    background-position: left center;
+    box-shadow: 0 0 0 1px rgba(244, 67, 54, 0.3);
+  }
+}
+
+@keyframes highlightSlideInGreen {
+  0% {
+    background-size: 0% 100%;
+    background-position: left center;
+    box-shadow: none;
+  }
+  30% {
+    background-size: 60% 100%;
+    background-position: left center;
+    box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.2);
+  }
+  100% {
+    background-size: 100% 100%;
+    background-position: left center;
+    box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.3);
+  }
+}
+
+@keyframes highlightSlideInYellow {
+  0% {
+    background-size: 0% 100%;
+    background-position: left center;
+    box-shadow: none;
+  }
+  30% {
+    background-size: 60% 100%;
+    background-position: left center;
+    box-shadow: 0 0 0 1px rgba(255, 193, 7, 0.2);
+  }
+  100% {
+    background-size: 100% 100%;
+    background-position: left center;
+    box-shadow: 0 0 0 1px rgba(255, 193, 7, 0.3);
+  }
+}
+
+/* Base highlight styles with animation support */
+.docx-highlight-base {
+  position: relative;
+  display: inline-block;
+  padding: 2px 4px;
+  margin: 1px 0;
+  border-radius: 2px;
+  cursor: help;
+  background-repeat: no-repeat;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Red highlight animations - more balanced for light/dark themes */
+.docx-highlight-red {
+  background-image: linear-gradient(90deg, rgba(244, 67, 54, 0.15), rgba(244, 67, 54, 0.15));
+  background-size: 0% 100%;
+  background-position: left center;
+  background-repeat: no-repeat;
+  border-left: 2px solid rgba(244, 67, 54, 0.4);
+}
+
+.docx-highlight-red.animate {
+  animation: highlightSlideInRed 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.docx-highlight-red.complete {
+  background-size: 100% 100%;
+  background-image: linear-gradient(90deg, rgba(244, 67, 54, 0.15), rgba(244, 67, 54, 0.15));
+}
+
+/* Green highlight animations - more balanced for light/dark themes */
+.docx-highlight-green {
+  background-image: linear-gradient(90deg, rgba(76, 175, 80, 0.15), rgba(76, 175, 80, 0.15));
+  background-size: 0% 100%;
+  background-position: left center;
+  background-repeat: no-repeat;
+  border-left: 2px solid rgba(76, 175, 80, 0.4);
+}
+
+.docx-highlight-green.animate {
+  animation: highlightSlideInGreen 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.docx-highlight-green.complete {
+  background-size: 100% 100%;
+  background-image: linear-gradient(90deg, rgba(76, 175, 80, 0.15), rgba(76, 175, 80, 0.15));
+}
+
+/* Yellow highlight animations - more balanced for light/dark themes */
+.docx-highlight-yellow {
+  background-image: linear-gradient(90deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.15));
+  background-size: 0% 100%;
+  background-position: left center;
+  background-repeat: no-repeat;
+  border-left: 2px solid rgba(255, 193, 7, 0.4);
+}
+
+.docx-highlight-yellow.animate {
+  animation: highlightSlideInYellow 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.docx-highlight-yellow.complete {
+  background-size: 100% 100%;
+  background-image: linear-gradient(90deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.15));
+}
+
+/* Hover effects for highlighted elements - no visual changes */
+.docx-highlight-red:hover,
+.docx-highlight-green:hover,
+.docx-highlight-yellow:hover {
+  cursor: help;
+}
+
+/* Animation delay classes for staggered animations */
+.docx-highlight-delay-0 { animation-delay: 0ms; }
+.docx-highlight-delay-1 { animation-delay: 100ms; }
+.docx-highlight-delay-2 { animation-delay: 200ms; }
+.docx-highlight-delay-3 { animation-delay: 300ms; }
+.docx-highlight-delay-4 { animation-delay: 400ms; }
+.docx-highlight-delay-5 { animation-delay: 500ms; }
+.docx-highlight-delay-6 { animation-delay: 600ms; }
+.docx-highlight-delay-7 { animation-delay: 700ms; }
+.docx-highlight-delay-8 { animation-delay: 800ms; }
+.docx-highlight-delay-9 { animation-delay: 900ms; }
+
+/* Pulsing effect for newly added highlights */
+@keyframes highlightPulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.docx-highlight-pulse {
+  animation: highlightPulse 0.5s ease-in-out 2;
+}
+
+/* Special effect for comment highlights */
+.docx-highlight-with-comment::after {
+  content: "💬";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.docx-highlight-with-comment:hover::after {
+  opacity: 1;
+}
+
+/* Fade in animation for comments */
+@keyframes commentFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.docx-highlight-comment-visible::after {
+  animation: commentFadeIn 0.3s ease-out;
+}

@@ -1,0 +1,1099 @@
+import { create } from 'zustand';
+import { devtools, persist } from 'zustand/middleware';
+import type { MoodleAssignment, MoodleUser } from './useMoodleStore';
+import { useChatStore } from './useChatStore';
+
+// Define types for submissions and grades
+interface MoodleSubmission {
+  userid: string;
+  status: string;
+  timemodified?: number;
+  attemptnumber?: number;
+}
+
+interface MoodleGrade {
+  userid: string;
+  grade: number;
+  timemodified?: number;
+  feedback?: string;
+}
+
+// Student submission data type
+interface StudentSubmissionData {
+  student: MoodleUser;
+  submission?: MoodleSubmission;
+  grade?: MoodleGrade;
+  currentGrade: string;
+  feedback: string;
+  isEditing: boolean;
+}
+
+// Statistics interface
+interface GradingStats {
+  totalStudents: number;
+  submitted: number;
+  pending: number;
+  graded: number;
+  ungraded: number;
+  published: number;
+  unpublished: number;
+}
+
+// AI grading result interface
+interface AIGradeResult {
+  grade: number;
+  feedback: string;
+}
+
+// Detailed AI grading result interface
+interface DetailedAIGradeResult {
+  comments: Array<{
+    elementType: string;
+    elementIndex: string;
+    color: 'red' | 'yellow' | 'green';
+    comment: string;
+  }>;
+  overallScore: number;
+  shortFeedback: string;
+}
+
+// Rubric content interface
+interface RubricContent {
+  text: string;
+  html: string;
+  wordCount: number;
+  characterCount: number;
+  filename: string;
+  filePath?: string; // Path to the saved file for persistence
+  elementCounts?: {
+    paragraph: number;
+    heading1: number;
+    heading2: number;
+    heading3: number;
+    heading4: number;
+    heading5: number;
+    heading6: number;
+    list: number;
+    listItem: number;
+    table: number;
+    tableRow: number;
+    tableCell: number;
+  };
+}
+
+// Assignment rubric mapping
+interface AssignmentRubric {
+  assignmentId: string;
+  rubricContent: RubricContent;
+  uploadedAt: number;
+}
+
+// Grading status for student-assignment combination
+interface GradingRecord {
+  assignmentId: string;
+  studentId: string;
+  aiGradeResult: AIGradeResult | null;
+  detailedAIGradeResult: DetailedAIGradeResult | null; // Store detailed AI grading results
+  isAIGraded: boolean;
+  gradedAt?: number;
+  finalGrade?: string;
+  finalFeedback?: string;
+}
+
+// Persisted grading data per session
+interface PersistedGradingData {
+  selectedAssignment: string;
+  selectedSubmission: string | null;
+  assignmentRubrics: AssignmentRubric[];
+  gradingRecords: GradingRecord[];
+}
+
+interface GradingState {
+  // Assignment selection
+  selectedAssignment: string;
+  selectedSubmission: string | null;
+  
+  // File upload
+  uploadedFile: File | null;
+  
+  // Rubric management
+  rubricFile: File | null;
+  rubricContent: RubricContent | null;
+  rubricLoading: boolean;
+  rubricError: string | null;
+  assignmentRubrics: AssignmentRubric[];
+  gradingRecords: GradingRecord[];
+  
+  // Data arrays
+  studentData: StudentSubmissionData[];
+  submissions: MoodleSubmission[];
+  grades: MoodleGrade[];
+  
+  // UI state
+  loading: boolean;
+  isGrading: boolean;
+  
+  // AI grading results
+  aiGradeResult: AIGradeResult | null;
+  detailedAIGradeResult: DetailedAIGradeResult | null;
+  finalGrade: string;
+  finalFeedback: string;
+  
+  // Grading progress tracking
+  gradingInProgress: Set<string>; // Set of student IDs currently being graded
+  batchGradingActive: boolean;
+  batchGradingProgress: {
+    total: number;
+    completed: number;
+    failed: number;
+    currentStudent: string | null;
+  };
+  activeGradingStudent: string | null; // The student whose grading process should be displayed
+  
+  // Actions
+  setSelectedAssignment: (assignmentId: string) => Promise<void>;
+  setSelectedSubmission: (submissionId: string | null) => void;
+  setUploadedFile: (file: File | null) => void;
+  
+  // Rubric actions
+  setRubricFile: (file: File | null) => void;
+  setRubricContent: (content: RubricContent | null) => void;
+  setRubricLoading: (loading: boolean) => void;
+  setRubricError: (error: string | null) => void;
+  loadRubricContent: (file: File) => Promise<void>;
+  reloadRubricFromPath: (assignmentId: string) => Promise<void>;
+  getRubricForAssignment: (assignmentId: string) => RubricContent | null;
+  saveRubricForAssignment: (assignmentId: string, rubricContent: RubricContent) => void;
+  clearRubricForAssignment: (assignmentId: string) => void;
+  
+  // Grading status actions
+  getGradingRecord: (assignmentId: string, studentId: string) => GradingRecord | null;
+  saveGradingRecord: (assignmentId: string, studentId: string, aiGradeResult: AIGradeResult) => void;
+  saveDetailedGradingRecord: (assignmentId: string, studentId: string, detailedResult: DetailedAIGradeResult) => void;
+  getDetailedAIGradeResult: (assignmentId: string, studentId: string) => DetailedAIGradeResult | null;
+  clearAIGradingResults: (assignmentId: string, studentId: string) => void;
+  updateFinalGrading: (assignmentId: string, studentId: string, finalGrade: string, finalFeedback: string) => void;
+  clearGradingRecord: (assignmentId: string, studentId: string) => void;
+  isStudentAIGraded: (assignmentId: string, studentId: string) => boolean;
+  setStudentData: (data: StudentSubmissionData[]) => void;
+  setSubmissions: (submissions: MoodleSubmission[]) => void;
+  setGrades: (grades: MoodleGrade[]) => void;
+  setLoading: (loading: boolean) => void;
+  setIsGrading: (isGrading: boolean) => void;
+  setAiGradeResult: (result: AIGradeResult | null) => void;
+  setDetailedAIGradeResult: (result: DetailedAIGradeResult | null) => void;
+  setFinalGrade: (grade: string) => void;
+  setFinalFeedback: (feedback: string) => void;
+  
+  // Computed getters
+  getStats: () => GradingStats;
+  getSelectedSubmissionData: () => StudentSubmissionData | undefined;
+  
+  // Complex actions
+  processStudentData: (students: MoodleUser[]) => void;
+  clearGradingData: () => void;
+  resetToAssignmentSelection: () => void;
+  
+  // API actions
+  loadAssignmentData: (assignmentId: string, config: { baseUrl: string; apiKey: string }) => Promise<void>;
+  submitGrade: (assignmentId: string, userId: string, grade: number, feedback: string, config: { baseUrl: string; apiKey: string }) => Promise<{ success: boolean; error?: string }>;
+  
+  // Initialization
+  initializeFromPersistedData: () => void;
+  
+  // Grading progress actions
+  startGrading: (studentId: string) => void;
+  finishGrading: (studentId: string) => void;
+  setGradingError: (studentId: string) => void;
+  isStudentBeingGraded: (studentId: string) => boolean;
+  startBatchGrading: (totalStudents: number) => void;
+  updateBatchGradingProgress: (completed: number, failed: number, currentStudent: string | null) => void;
+  endBatchGrading: () => void;
+  clearAllGradingProgress: () => void;
+  setActiveGradingStudent: (studentId: string | null) => void;
+}
+
+export const useGradingStore = create<GradingState>()(
+  devtools(
+    persist(
+      (set, get) => ({
+      // Initial state
+      selectedAssignment: '',
+      selectedSubmission: null,
+      uploadedFile: null,
+      rubricFile: null,
+      rubricContent: null,
+      rubricLoading: false,
+      rubricError: null,
+      assignmentRubrics: [],
+      gradingRecords: [],
+      studentData: [],
+      submissions: [],
+      grades: [],
+      loading: false,
+      isGrading: false,
+      aiGradeResult: null,
+      detailedAIGradeResult: null,
+      finalGrade: '',
+      finalFeedback: '',
+      gradingInProgress: new Set<string>(),
+      batchGradingActive: false,
+      batchGradingProgress: {
+        total: 0,
+        completed: 0,
+        failed: 0,
+        currentStudent: null
+      },
+      activeGradingStudent: null,
+
+      // Basic setters
+      setSelectedAssignment: async (assignmentId: string) => {
+        const { getRubricForAssignment, reloadRubricFromPath, selectedAssignment } = get();
+        
+        // Load rubric for this assignment if it exists
+        const existingRubric = getRubricForAssignment(assignmentId);
+        
+        // Only reset submission if assignment actually changed
+        const shouldResetSubmission = selectedAssignment !== assignmentId;
+        
+        set({ 
+          selectedAssignment: assignmentId,
+          selectedSubmission: shouldResetSubmission ? null : get().selectedSubmission,
+          studentData: shouldResetSubmission ? [] : get().studentData, // Reset student data only if assignment changed
+          submissions: shouldResetSubmission ? [] : get().submissions,
+          grades: shouldResetSubmission ? [] : get().grades,
+          aiGradeResult: null,
+          detailedAIGradeResult: null,
+          finalGrade: '',
+          finalFeedback: '',
+          uploadedFile: null,
+          // Load existing rubric for this assignment
+          rubricContent: existingRubric,
+          rubricFile: null, // Don't restore file object
+          rubricError: null,
+        });
+        
+        // If rubric exists and has a file path, try to reload from path
+        if (existingRubric && existingRubric.filePath) {
+          await reloadRubricFromPath(assignmentId);
+        }
+      },
+
+      setSelectedSubmission: (submissionId: string | null) => {
+        // When switching students, clear AI grading results but keep confirmation status
+        // The confirmation will be checked again when accessing AI grading tab
+        set({ 
+          selectedSubmission: submissionId,
+          aiGradeResult: null,
+          detailedAIGradeResult: null,
+          finalGrade: '',
+          finalFeedback: ''
+        });
+      },
+
+      setUploadedFile: (file: File | null) => {
+        set({ uploadedFile: file });
+      },
+
+      setStudentData: (data: StudentSubmissionData[]) => {
+        set({ studentData: data });
+      },
+
+      setSubmissions: (submissions: MoodleSubmission[]) => {
+        set({ submissions });
+      },
+
+      setGrades: (grades: MoodleGrade[]) => {
+        set({ grades });
+      },
+
+      setLoading: (loading: boolean) => {
+        set({ loading });
+      },
+
+      setIsGrading: (isGrading: boolean) => {
+        set({ isGrading });
+      },
+
+      setAiGradeResult: (result: AIGradeResult | null) => {
+        set({ aiGradeResult: result });
+      },
+
+      setDetailedAIGradeResult: (result: DetailedAIGradeResult | null) => {
+        set({ detailedAIGradeResult: result });
+      },
+
+      setFinalGrade: (grade: string) => {
+        set({ finalGrade: grade });
+      },
+
+      setFinalFeedback: (feedback: string) => {
+        set({ finalFeedback: feedback });
+      },
+
+      // Rubric management
+      setRubricFile: (file: File | null) => {
+        set({ rubricFile: file });
+      },
+
+      setRubricContent: (content: RubricContent | null) => {
+        set({ rubricContent: content });
+      },
+
+      setRubricLoading: (loading: boolean) => {
+        set({ rubricLoading: loading });
+      },
+
+      setRubricError: (error: string | null) => {
+        set({ rubricError: error });
+      },
+
+      loadRubricContent: async (file: File) => {
+        const { selectedAssignment, saveRubricForAssignment } = get();
+        set({ rubricLoading: true, rubricError: null });
+        
+        try {
+          // Save file to temp location first
+          const arrayBuffer = await file.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
+          
+          // Use IPC to save and parse the file
+          const saveResult = await window.electron.ipcRenderer.invoke('fileio:save-temp-file', {
+            filename: file.name,
+            data: Array.from(uint8Array)
+          });
+          
+          if (!saveResult.success) {
+            throw new Error(saveResult.error || 'Failed to save rubric file');
+          }
+          
+          // Add a small delay before parsing to ensure file is fully written
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Parse the DOCX file with retry logic
+          let parseResult;
+          let parseSuccess = false;
+          const maxParseRetries = 2;
+          
+          for (let attempt = 1; attempt <= maxParseRetries && !parseSuccess; attempt++) {
+            parseResult = await window.electron.ipcRenderer.invoke('docx:parse-file', {
+              filePath: saveResult.filePath
+            });
+            
+            if (parseResult.success) {
+              parseSuccess = true;
+            } else if (parseResult.error.includes('Corrupted zip') || parseResult.error.includes('End of data reached')) {
+              // Wait before retry
+              if (attempt < maxParseRetries) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+              }
+            } else {
+              // Non-corruption error, don't retry
+              break;
+            }
+          }
+          
+          if (!parseSuccess) {
+            throw new Error(parseResult?.error || 'Failed to parse rubric file');
+          }
+          
+          const rubricContent: RubricContent = {
+            ...parseResult.content,
+            filename: file.name,
+            filePath: saveResult.filePath // Store the file path for persistence
+          };
+          
+          // Save rubric for the current assignment
+          if (selectedAssignment) {
+            saveRubricForAssignment(selectedAssignment, rubricContent);
+          }
+          
+          set({ rubricContent, rubricError: null });
+        } catch (error: any) {
+          console.error('[GradingStore] Error loading rubric:', error);
+          set({ rubricError: error.message || 'Failed to load rubric file' });
+        } finally {
+          set({ rubricLoading: false });
+        }
+      },
+
+      // Assignment-specific rubric management
+      getRubricForAssignment: (assignmentId: string): RubricContent | null => {
+        const { assignmentRubrics } = get();
+        const rubric = assignmentRubrics.find(r => r.assignmentId === assignmentId);
+        return rubric ? rubric.rubricContent : null;
+      },
+
+      saveRubricForAssignment: (assignmentId: string, rubricContent: RubricContent) => {
+        const { assignmentRubrics } = get();
+        
+        const newRubric: AssignmentRubric = {
+          assignmentId,
+          rubricContent,
+          uploadedAt: Date.now()
+        };
+        
+        // Remove existing rubric for this assignment and add new one
+        const updatedRubrics = assignmentRubrics.filter(r => r.assignmentId !== assignmentId);
+        updatedRubrics.push(newRubric);
+        
+        set({ assignmentRubrics: updatedRubrics });
+      },
+
+      reloadRubricFromPath: async (assignmentId: string) => {
+        const { getRubricForAssignment } = get();
+        const existingRubric = getRubricForAssignment(assignmentId);
+        
+        if (!existingRubric || !existingRubric.filePath) {
+          return;
+        }
+        set({ rubricLoading: true, rubricError: null });
+        
+        try {
+          // Check if file still exists and re-parse it
+          const parseResult = await window.electron.ipcRenderer.invoke('docx:parse-file', {
+            filePath: existingRubric.filePath
+          });
+          
+          if (parseResult.success) {
+            const updatedRubricContent: RubricContent = {
+              ...parseResult.content,
+              filename: existingRubric.filename,
+              filePath: existingRubric.filePath
+            };
+            
+            // Update the stored rubric content
+            const { saveRubricForAssignment } = get();
+            saveRubricForAssignment(assignmentId, updatedRubricContent);
+            
+            set({ rubricContent: updatedRubricContent, rubricError: null });
+          } else {
+            console.warn('[GradingStore] Could not reload rubric from path:', existingRubric.filePath, parseResult.error);
+            set({ rubricError: 'Rubric file no longer available. Please re-upload.' });
+          }
+        } catch (error: any) {
+          console.error('[GradingStore] Error reloading rubric from path:', error);
+          set({ rubricError: 'Failed to reload rubric file. Please re-upload.' });
+        } finally {
+          set({ rubricLoading: false });
+        }
+      },
+
+      clearRubricForAssignment: (assignmentId: string) => {
+        const { assignmentRubrics } = get();
+        const updatedRubrics = assignmentRubrics.filter(r => r.assignmentId !== assignmentId);
+        set({ 
+          assignmentRubrics: updatedRubrics,
+          rubricContent: null,
+          rubricFile: null,
+          rubricError: null
+        });
+      },
+
+      // Grading status management
+      getGradingRecord: (assignmentId: string, studentId: string): GradingRecord | null => {
+        const { gradingRecords } = get();
+        return gradingRecords.find(r => r.assignmentId === assignmentId && r.studentId === studentId) || null;
+      },
+
+      saveGradingRecord: (assignmentId: string, studentId: string, aiGradeResult: AIGradeResult) => {
+        const { gradingRecords, getGradingRecord } = get();
+        
+        // Get existing record to preserve confirmation status
+        const existingRecord = getGradingRecord(assignmentId, studentId);
+        
+        const newRecord: GradingRecord = {
+          assignmentId,
+          studentId,
+          aiGradeResult,
+          detailedAIGradeResult: existingRecord?.detailedAIGradeResult || null, // Preserve detailed results
+          isAIGraded: true,
+          gradedAt: Date.now(),
+          finalGrade: String(aiGradeResult.grade),
+          finalFeedback: aiGradeResult.feedback
+        };
+        
+        // Remove existing record for this assignment-student combination and add new one
+        const updatedRecords = gradingRecords.filter(r => !(r.assignmentId === assignmentId && r.studentId === studentId));
+        updatedRecords.push(newRecord);
+        
+        set({ 
+          gradingRecords: updatedRecords,
+          aiGradeResult,
+          finalGrade: String(aiGradeResult.grade),
+          finalFeedback: aiGradeResult.feedback
+        });
+      },
+
+      updateFinalGrading: (assignmentId: string, studentId: string, finalGrade: string, finalFeedback: string) => {
+        const { gradingRecords } = get();
+        
+        const updatedRecords = gradingRecords.map(record => {
+          if (record.assignmentId === assignmentId && record.studentId === studentId) {
+            return {
+              ...record,
+              finalGrade,
+              finalFeedback
+            };
+          }
+          return record;
+        });
+        
+        set({ gradingRecords: updatedRecords });
+      },
+
+      saveDetailedGradingRecord: (assignmentId: string, studentId: string, detailedResult: DetailedAIGradeResult) => {
+        const { gradingRecords, getGradingRecord } = get();
+        
+        // Get existing record to preserve other data
+        const existingRecord = getGradingRecord(assignmentId, studentId);
+        
+        const newRecord: GradingRecord = existingRecord ? {
+          ...existingRecord,
+          detailedAIGradeResult: detailedResult,
+          isAIGraded: true,
+          gradedAt: Date.now(),
+          // Update basic AI result from detailed result
+          aiGradeResult: {
+            grade: detailedResult.overallScore,
+            feedback: detailedResult.shortFeedback
+          },
+          finalGrade: String(detailedResult.overallScore),
+          finalFeedback: detailedResult.shortFeedback
+        } : {
+          assignmentId,
+          studentId,
+          aiGradeResult: {
+            grade: detailedResult.overallScore,
+            feedback: detailedResult.shortFeedback
+          },
+          detailedAIGradeResult: detailedResult,
+          isAIGraded: true,
+          gradedAt: Date.now(),
+          finalGrade: String(detailedResult.overallScore),
+          finalFeedback: detailedResult.shortFeedback
+        };
+        
+        // Remove existing record and add updated one
+        const updatedRecords = gradingRecords.filter(r => !(r.assignmentId === assignmentId && r.studentId === studentId));
+        updatedRecords.push(newRecord);
+        
+        set({ 
+          gradingRecords: updatedRecords,
+          aiGradeResult: newRecord.aiGradeResult,
+          detailedAIGradeResult: detailedResult,
+          finalGrade: String(detailedResult.overallScore),
+          finalFeedback: detailedResult.shortFeedback
+        });
+      },
+
+      getDetailedAIGradeResult: (assignmentId: string, studentId: string): DetailedAIGradeResult | null => {
+        const { gradingRecords } = get();
+        const record = gradingRecords.find(r => r.assignmentId === assignmentId && r.studentId === studentId);
+        return record ? record.detailedAIGradeResult : null;
+      },
+
+      clearAIGradingResults: (assignmentId: string, studentId: string) => {
+        const { gradingRecords, getGradingRecord } = get();
+        
+        // Get existing record to preserve non-AI data
+        const existingRecord = getGradingRecord(assignmentId, studentId);
+        
+        if (existingRecord) {
+          // Clear only AI-related data, preserve confirmation status
+          const clearedRecord: GradingRecord = {
+            ...existingRecord,
+            aiGradeResult: null,
+            detailedAIGradeResult: null,
+            isAIGraded: false,
+            gradedAt: undefined,
+            finalGrade: '',
+            finalFeedback: ''
+          };
+          
+          // Update record
+          const updatedRecords = gradingRecords.filter(r => !(r.assignmentId === assignmentId && r.studentId === studentId));
+          updatedRecords.push(clearedRecord);
+          
+          set({ 
+            gradingRecords: updatedRecords,
+            aiGradeResult: null,
+            detailedAIGradeResult: null,
+            finalGrade: '',
+            finalFeedback: ''
+          });
+        } else {
+          // No existing record, just clear current state
+          set({ 
+            aiGradeResult: null,
+            detailedAIGradeResult: null,
+            finalGrade: '',
+            finalFeedback: ''
+          });
+        }
+      },
+
+      clearGradingRecord: (assignmentId: string, studentId: string) => {
+        console.log('🗑️ [Store] clearGradingRecord called:', { assignmentId, studentId });
+        const { gradingRecords } = get();
+        console.log('📊 [Store] Before clear - gradingRecords count:', gradingRecords.length);
+        
+        const updatedRecords = gradingRecords.filter(r => !(r.assignmentId === assignmentId && r.studentId === studentId));
+        console.log('📊 [Store] After filter - gradingRecords count:', updatedRecords.length);
+        
+        set({ 
+          gradingRecords: updatedRecords,
+          aiGradeResult: null,
+          detailedAIGradeResult: null,
+          finalGrade: '',
+          finalFeedback: ''
+        });
+        console.log('✅ [Store] clearGradingRecord completed');
+      },
+
+      isStudentAIGraded: (assignmentId: string, studentId: string): boolean => {
+        const { gradingRecords } = get();
+        const record = gradingRecords.find(r => r.assignmentId === assignmentId && r.studentId === studentId);
+        return record ? record.isAIGraded : false;
+      },
+
+
+      // Computed getters
+      getStats: (): GradingStats => {
+        const { studentData, submissions, grades } = get();
+        
+        // If no student data yet, try to compute from raw submissions/grades
+        if (!studentData.length) {
+          // Still return basic stats from raw data if available
+          return {
+            totalStudents: 0,
+            submitted: submissions?.length || 0,
+            pending: 0,
+            graded: grades?.length || 0,
+            ungraded: 0,
+            published: grades?.filter(g => g.grade > 0).length || 0,
+            unpublished: 0
+          };
+        }
+
+        const totalStudents = studentData.length;
+        let submitted = 0;
+        let pending = 0;
+        let graded = 0;
+        let ungraded = 0;
+        let published = 0;
+        let unpublished = 0;
+
+        studentData.forEach(data => {
+          if (data.submission && data.submission.status === 'submitted') {
+            submitted++;
+          } else {
+            pending++;
+          }
+
+          if (data.grade && data.grade.grade > 0) {
+            published++;
+            graded++;
+          } else if (data.currentGrade && data.currentGrade !== '0' && data.currentGrade !== '') {
+            unpublished++;
+            graded++;
+          } else {
+            ungraded++;
+          }
+        });
+
+        // console.log('[GradingStore] Stats computed:', {
+        //   totalStudents,
+        //   submitted,
+        //   pending,
+        //   graded,
+        //   ungraded,
+        //   published,
+        //   unpublished
+        // });
+
+        return {
+          totalStudents,
+          submitted,
+          pending,
+          graded,
+          ungraded,
+          published,
+          unpublished
+        };
+      },
+
+      getSelectedSubmissionData: (): StudentSubmissionData | undefined => {
+        const { studentData, selectedSubmission } = get();
+        return studentData.find(s => s.student.id === selectedSubmission);
+      },
+
+      // Complex actions
+      processStudentData: (students: MoodleUser[]) => {
+        const { submissions, grades } = get();
+        
+        if (!students.length) return;
+
+
+        const combinedData: StudentSubmissionData[] = students.map(student => {
+          // Ensure student.id is a string for comparison
+          const studentId = String(student.id);
+          const submission = submissions?.find(sub => sub.userid === studentId);
+          const grade = grades?.find(gr => gr.userid === studentId);
+
+          return {
+            student,
+            submission,
+            grade,
+            currentGrade: grade ? grade.grade.toString() : '',
+            feedback: grade?.feedback || '',
+            isEditing: false
+          };
+        });
+
+
+        set({ studentData: combinedData });
+      },
+
+      clearGradingData: () => {
+        set({
+          selectedAssignment: '',
+          selectedSubmission: null,
+          uploadedFile: null,
+          rubricFile: null,
+          rubricContent: null,
+          rubricLoading: false,
+          rubricError: null,
+          assignmentRubrics: [], // Clear all rubrics
+          gradingRecords: [], // Clear all grading records
+          studentData: [],
+          submissions: [],
+          grades: [],
+          loading: false,
+          isGrading: false,
+          aiGradeResult: null,
+          detailedAIGradeResult: null,
+          finalGrade: '',
+          finalFeedback: '',
+        });
+      },
+
+      resetToAssignmentSelection: () => {
+        set({
+          selectedSubmission: null,
+          uploadedFile: null,
+          aiGradeResult: null,
+          detailedAIGradeResult: null,
+          finalGrade: '',
+          finalFeedback: '',
+        });
+      },
+
+      // API actions
+      loadAssignmentData: async (assignmentId: string, config: { baseUrl: string; apiKey: string }) => {
+        if (!assignmentId) return;
+        
+        set({ loading: true });
+        
+        try {
+          // Fetch real submissions and grades from Moodle API
+          const [submissionsResult, gradesResult] = await Promise.all([
+            window.electron.ipcRenderer.invoke('moodle:get-assignment-submissions', {
+              baseUrl: config.baseUrl,
+              apiKey: config.apiKey,
+              assignmentId,
+            }),
+            window.electron.ipcRenderer.invoke('moodle:get-assignment-grades', {
+              baseUrl: config.baseUrl,
+              apiKey: config.apiKey,
+              assignmentId,
+            }),
+          ]);
+          
+          
+          // Process submissions - ensure userid is consistently a string
+          const realSubmissions: MoodleSubmission[] = submissionsResult.success && submissionsResult.data
+            ? submissionsResult.data.map((sub: any) => ({
+                userid: String(sub.userid || sub.id),
+                status: sub.status || 'new',
+                timemodified: sub.timemodified,
+                attemptnumber: sub.attemptnumber || 0,
+              }))
+            : [];
+          
+          // Process grades - ensure userid is consistently a string
+          const realGrades: MoodleGrade[] = gradesResult.success && gradesResult.data
+            ? gradesResult.data.map((grade: any) => ({
+                userid: String(grade.userid || grade.id),
+                grade: parseFloat(grade.grade) || 0,
+                timemodified: grade.timemodified,
+                feedback: grade.assignfeedbackcomments || grade.feedback || '',
+              }))
+            : [];
+          
+          
+          set({ 
+            submissions: realSubmissions,
+            grades: realGrades 
+          });
+          
+          if (!submissionsResult.success) {
+            console.error('[GradingStore] Failed to fetch submissions:', submissionsResult.error);
+          }
+          if (!gradesResult.success) {
+            console.error('[GradingStore] Failed to fetch grades:', gradesResult.error);
+          }
+        } catch (error) {
+          console.error('[GradingStore] Error loading assignment data:', error);
+          set({ 
+            submissions: [],
+            grades: [] 
+          });
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      submitGrade: async (assignmentId: string, userId: string, grade: number, feedback: string, config: { baseUrl: string; apiKey: string }) => {
+        try {
+          console.log('[Grading Store] Submitting grade:', { assignmentId, userId, grade });
+          
+          const result = await window.electron.ipcRenderer.invoke('moodle:update-assignment-grade', {
+            baseUrl: config.baseUrl,
+            apiKey: config.apiKey,
+            assignmentId,
+            userId,
+            grade,
+            feedback
+          });
+
+          if (result.success) {
+            console.log('[Grading Store] Grade submitted successfully');
+            
+            // Update the local state to reflect the submitted grade
+            const { studentData } = get();
+            const updatedStudentData = studentData.map(student => {
+              if (student.student.id === userId) {
+                return {
+                  ...student,
+                  currentGrade: grade.toString(),
+                  feedback: feedback,
+                  grade: {
+                    userid: userId,
+                    grade: grade,
+                    feedback: feedback,
+                    timemodified: Date.now()
+                  }
+                };
+              }
+              return student;
+            });
+            
+            set({ studentData: updatedStudentData });
+            
+            return { success: true };
+          } else {
+            console.error('[Grading Store] Failed to submit grade:', result.error);
+            return { success: false, error: result.error };
+          }
+        } catch (error: any) {
+          console.error('[Grading Store] Error submitting grade:', error);
+          return { success: false, error: error.message || 'Failed to submit grade' };
+        }
+      },
+
+      // Initialization method to restore state after persistence hydration
+      initializeFromPersistedData: () => {
+        const { selectedAssignment, assignmentRubrics, getRubricForAssignment } = get();
+        
+        // Restore rubric content for the currently selected assignment
+        if (selectedAssignment) {
+          const rubricContent = getRubricForAssignment(selectedAssignment);
+          if (rubricContent && !get().rubricContent) {
+            set({ rubricContent });
+          }
+        }
+      },
+
+      // Grading progress actions
+      startGrading: (studentId: string) => {
+        console.log(`[Store] 🚀 Starting grading for student: ${studentId}`);
+        set(state => ({
+          gradingInProgress: new Set(state.gradingInProgress).add(studentId),
+          activeGradingStudent: studentId // Set as active when starting
+        }));
+        console.log(`[Store] Students currently grading:`, Array.from(get().gradingInProgress));
+        console.log(`[Store] Active grading student:`, studentId);
+      },
+
+      finishGrading: (studentId: string) => {
+        console.log(`[Store] ✅ Finishing grading for student: ${studentId}`);
+        const { selectedAssignment } = get();
+        
+        // Clear plan widget data for this student's session
+        if (selectedAssignment) {
+          const sessionId = `grading-${selectedAssignment}-${studentId}`;
+          console.log(`[Store] Clearing plan widget data for session: ${sessionId}`);
+          
+          // Use chat store to clear the session data
+          const { clearPlan, clearTodos } = useChatStore.getState();
+          clearPlan(sessionId);
+          clearTodos(sessionId);
+        }
+        
+        set(state => {
+          const newSet = new Set(state.gradingInProgress);
+          newSet.delete(studentId);
+          // Clear active student if it was this one
+          const newActiveStudent = state.activeGradingStudent === studentId ? null : state.activeGradingStudent;
+          return { 
+            gradingInProgress: newSet,
+            activeGradingStudent: newActiveStudent
+          };
+        });
+        console.log(`[Store] Students still grading:`, Array.from(get().gradingInProgress));
+      },
+
+      setGradingError: (studentId: string) => {
+        console.log(`[Store] ❌ Grading error for student: ${studentId}`);
+        const { selectedAssignment } = get();
+        
+        // Clear plan widget data for this student's session on error
+        if (selectedAssignment) {
+          const sessionId = `grading-${selectedAssignment}-${studentId}`;
+          console.log(`[Store] Clearing plan widget data for session (error): ${sessionId}`);
+          
+          // Use chat store to clear the session data
+          const { clearPlan, clearTodos } = useChatStore.getState();
+          clearPlan(sessionId);
+          clearTodos(sessionId);
+        }
+        
+        set(state => {
+          const newSet = new Set(state.gradingInProgress);
+          newSet.delete(studentId);
+          // Clear active student if it was this one
+          const newActiveStudent = state.activeGradingStudent === studentId ? null : state.activeGradingStudent;
+          return { 
+            gradingInProgress: newSet,
+            activeGradingStudent: newActiveStudent
+          };
+        });
+        console.log(`[Store] Students still grading:`, Array.from(get().gradingInProgress));
+      },
+
+      isStudentBeingGraded: (studentId: string): boolean => {
+        return get().gradingInProgress.has(studentId);
+      },
+
+      startBatchGrading: (totalStudents: number) => {
+        set({
+          batchGradingActive: true,
+          batchGradingProgress: {
+            total: totalStudents,
+            completed: 0,
+            failed: 0,
+            currentStudent: null
+          }
+        });
+      },
+
+      updateBatchGradingProgress: (completed: number, failed: number, currentStudent: string | null) => {
+        set(state => ({
+          batchGradingProgress: {
+            ...state.batchGradingProgress,
+            completed,
+            failed,
+            currentStudent
+          }
+        }));
+      },
+
+      endBatchGrading: () => {
+        set({
+          batchGradingActive: false,
+          batchGradingProgress: {
+            total: 0,
+            completed: 0,
+            failed: 0,
+            currentStudent: null
+          }
+        });
+      },
+
+      clearAllGradingProgress: () => {
+        set({
+          gradingInProgress: new Set<string>(),
+          batchGradingActive: false,
+          batchGradingProgress: {
+            total: 0,
+            completed: 0,
+            failed: 0,
+            currentStudent: null
+          },
+          activeGradingStudent: null
+        });
+      },
+
+      setActiveGradingStudent: (studentId: string | null) => {
+        console.log(`[Store] Setting active grading student:`, studentId);
+        set({ activeGradingStudent: studentId });
+      },
+      }),
+      {
+        name: 'grading-store',
+        partialize: (state) => ({
+          selectedAssignment: state.selectedAssignment,
+          selectedSubmission: state.selectedSubmission,
+          assignmentRubrics: state.assignmentRubrics,
+          gradingRecords: state.gradingRecords,
+          // Exclude runtime grading progress state from persistence
+          // gradingInProgress, batchGradingActive, batchGradingProgress are not persisted
+          // activeTab is also not persisted - should start fresh each time
+        }),
+        onRehydrateStorage: () => (state) => {
+          if (state) {
+            // Restore rubric content for the selected assignment after hydration
+            const { selectedAssignment, selectedSubmission, assignmentRubrics, gradingRecords } = state;
+            
+            if (selectedAssignment && assignmentRubrics.length > 0) {
+              const rubric = assignmentRubrics.find(r => r.assignmentId === selectedAssignment);
+              if (rubric) {
+                state.rubricContent = rubric.rubricContent;
+              }
+            }
+            
+            // Restore detailed AI grading results for the current selection
+            if (selectedAssignment && selectedSubmission && gradingRecords.length > 0) {
+              const gradingRecord = gradingRecords.find(r => 
+                r.assignmentId === selectedAssignment && r.studentId === selectedSubmission
+              );
+              if (gradingRecord) {
+                state.aiGradeResult = gradingRecord.aiGradeResult;
+                state.detailedAIGradeResult = gradingRecord.detailedAIGradeResult;
+                state.finalGrade = gradingRecord.finalGrade || '';
+                state.finalFeedback = gradingRecord.finalFeedback || '';
+              }
+            }
+          }
+        },
+      }
+    ),
+    {
+      name: 'grading-store-devtools',
+    }
+  )
+);
+
+// Export types for use in components
+export type { 
+  MoodleSubmission, 
+  MoodleGrade, 
+  StudentSubmissionData, 
+  GradingStats, 
+  AIGradeResult,
+  DetailedAIGradeResult,
+  RubricContent,
+  AssignmentRubric,
+  GradingRecord
+};

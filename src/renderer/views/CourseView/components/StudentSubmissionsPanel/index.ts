@@ -1,0 +1,41 @@
+// Export main component
+export { StudentSubmissionsPanel } from './StudentSubmissionsPanel';
+
+// Export all decomposed components
+export { BatchGradingProgress } from './BatchGradingProgress';
+export { SubmissionsTableHeader } from './SubmissionsTableHeader';
+export { CategoryHeader } from './CategoryHeader';
+export { StudentRow } from './StudentRow';
+export { useFilePreviewHandler } from './FilePreviewHandler';
+export { useBatchGradingHandler } from './BatchGradingHandler';
+
+// Export hooks
+export {
+  useSubmissionFiles,
+  useStudentFiles,
+  useDialogStates,
+  useCollapsibleCategories,
+  useGradingActions,
+} from './hooks';
+
+// Export utilities
+export {
+  getSubmissionStatus,
+  getGradeStatus,
+  getInitials,
+  getAvatarColor,
+  categorizeStudents,
+} from './utils';
+
+// Export types
+export type {
+  StudentSubmissionsPanelProps,
+  SubmissionFile,
+  SubmissionStatus,
+  GradeStatus,
+  FeedbackDialogData,
+  SubmitGradeDialogData,
+  CollapsedCategories,
+  CategorizedStudents,
+  CategoryKey,
+} from './types';
