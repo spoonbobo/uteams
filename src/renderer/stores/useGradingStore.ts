@@ -211,6 +211,8 @@ interface GradingState {
   endBatchGrading: () => void;
   clearAllGradingProgress: () => void;
   setActiveGradingStudent: (studentId: string | null) => void;
+  // Manual method to clear grading progress (useful for debugging or explicit cleanup)
+  manualClearGradingProgress: () => void;
 }
 
 export const useGradingStore = create<GradingState>()(
@@ -256,6 +258,9 @@ export const useGradingStore = create<GradingState>()(
         // Only reset submission if assignment actually changed
         const shouldResetSubmission = selectedAssignment !== assignmentId;
         
+        // Clear grading progress only when assignment actually changes
+        const shouldClearGradingProgress = selectedAssignment !== assignmentId;
+        
         set({ 
           selectedAssignment: assignmentId,
           selectedSubmission: shouldResetSubmission ? null : get().selectedSubmission,
@@ -271,6 +276,18 @@ export const useGradingStore = create<GradingState>()(
           rubricContent: existingRubric,
           rubricFile: null, // Don't restore file object
           rubricError: null,
+          // Clear grading progress only when assignment changes
+          ...(shouldClearGradingProgress && {
+            gradingInProgress: new Set<string>(),
+            batchGradingActive: false,
+            batchGradingProgress: {
+              total: 0,
+              completed: 0,
+              failed: 0,
+              currentStudent: null
+            },
+            activeGradingStudent: null
+          })
         });
         
         // If rubric exists and has a file path, try to reload from path
@@ -775,6 +792,16 @@ export const useGradingStore = create<GradingState>()(
           detailedAIGradeResult: null,
           finalGrade: '',
           finalFeedback: '',
+          // Clear grading progress state when explicitly clearing all data
+          gradingInProgress: new Set<string>(),
+          batchGradingActive: false,
+          batchGradingProgress: {
+            total: 0,
+            completed: 0,
+            failed: 0,
+            currentStudent: null
+          },
+          activeGradingStudent: null,
         });
       },
 
@@ -1039,6 +1066,21 @@ export const useGradingStore = create<GradingState>()(
         console.log(`[Store] Setting active grading student:`, studentId);
         set({ activeGradingStudent: studentId });
       },
+
+      manualClearGradingProgress: () => {
+        console.log(`[Store] Manually clearing all grading progress`);
+        set({
+          gradingInProgress: new Set<string>(),
+          batchGradingActive: false,
+          batchGradingProgress: {
+            total: 0,
+            completed: 0,
+            failed: 0,
+            currentStudent: null
+          },
+          activeGradingStudent: null,
+        });
+      },
       }),
       {
         name: 'grading-store',
@@ -1047,9 +1089,11 @@ export const useGradingStore = create<GradingState>()(
           selectedSubmission: state.selectedSubmission,
           assignmentRubrics: state.assignmentRubrics,
           gradingRecords: state.gradingRecords,
-          // Exclude runtime grading progress state from persistence
-          // gradingInProgress, batchGradingActive, batchGradingProgress are not persisted
-          // activeTab is also not persisted - should start fresh each time
+          // Persist grading progress state so it survives view changes
+          gradingInProgress: Array.from(state.gradingInProgress), // Convert Set to Array for serialization
+          batchGradingActive: state.batchGradingActive,
+          batchGradingProgress: state.batchGradingProgress,
+          activeGradingStudent: state.activeGradingStudent,
         }),
         onRehydrateStorage: () => (state) => {
           if (state) {
@@ -1074,6 +1118,34 @@ export const useGradingStore = create<GradingState>()(
                 state.finalGrade = gradingRecord.finalGrade || '';
                 state.finalFeedback = gradingRecord.finalFeedback || '';
               }
+            }
+            
+            // Restore grading progress state from persistence
+            // Convert gradingInProgress array back to Set
+            if (state.gradingInProgress && Array.isArray(state.gradingInProgress)) {
+              state.gradingInProgress = new Set(state.gradingInProgress);
+            } else {
+              // Ensure it's initialized as an empty Set if not found
+              state.gradingInProgress = new Set<string>();
+            }
+            
+            // Ensure batch grading progress is properly initialized
+            if (!state.batchGradingProgress) {
+              state.batchGradingProgress = {
+                total: 0,
+                completed: 0,
+                failed: 0,
+                currentStudent: null
+              };
+            }
+            
+            // Initialize other grading state if not present
+            if (state.batchGradingActive === undefined) {
+              state.batchGradingActive = false;
+            }
+            
+            if (!state.activeGradingStudent) {
+              state.activeGradingStudent = null;
             }
           }
         },

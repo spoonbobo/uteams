@@ -101,7 +101,10 @@ export function createSwarmSynthesisNode(llm: ChatOpenAI) {
       console.log(`📝 [SYNTHESIS] Summarizing ${completedCount}/${state.todos.length} completed todos`);
     }
     
-    // Synthesize any tool or agent results
+    // Collect content to synthesize from multiple sources
+    let contentToSynthesize: string | null = null;
+    
+    // First priority: tool results (including agent outputs)
     if (state.toolResults && state.toolResults.length > 0) {
       // Extract the actual content from tool results
       const resultsContent = state.toolResults.map(r => {
@@ -112,10 +115,31 @@ export function createSwarmSynthesisNode(llm: ChatOpenAI) {
         return JSON.stringify(r);
       }).join('\n\n');
       
+      contentToSynthesize = resultsContent;
+    }
+    
+    // Second priority: if we have completed todos but no tool results, synthesize from agent messages
+    else if (state.todos && state.todos.filter(t => t.completed).length > 0) {
+      console.log('📝 [SYNTHESIS] No tool results but have completed todos, synthesizing from agent messages');
+      
+      // Collect recent AI messages that likely contain the todo completions
+      const recentAiMessages = agentMessages.slice(-state.todos.length);
+      const todoCompletions = recentAiMessages
+        .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
+        .filter(content => content && content.trim())
+        .join('\n\n');
+      
+      if (todoCompletions) {
+        contentToSynthesize = todoCompletions;
+      }
+    }
+    
+    // If we have content to synthesize, generate the synthesis
+    if (contentToSynthesize) {
       const synthesisPrompt = createSwarmSynthesisPrompt({
         lastUserMessage: String(lastUserMessage?.content),
         planReasoning: state.plan?.reasoning,
-        resultsContent,
+        resultsContent: contentToSynthesize,
       });
       
       try {
@@ -128,7 +152,7 @@ export function createSwarmSynthesisNode(llm: ChatOpenAI) {
         console.error('Synthesis error:', error);
         // Fallback: try to extract key information
         const fallbackResponse = 'I found some information for you. ' + 
-          (resultsContent.length > 500 ? resultsContent.substring(0, 500) + '...' : resultsContent);
+          (contentToSynthesize.length > 500 ? contentToSynthesize.substring(0, 500) + '...' : contentToSynthesize);
         return {
           messages: [new AIMessage(fallbackResponse)],
           needsSynthesis: false,

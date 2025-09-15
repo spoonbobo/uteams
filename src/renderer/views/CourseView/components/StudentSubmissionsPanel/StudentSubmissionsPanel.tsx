@@ -95,12 +95,15 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
     clearFilePreview
   } = useFilePreviewHandler();
 
-  // Cleanup grading progress on unmount
+  // Only clear grading progress when assignment changes, not on every unmount
+  // This allows grading state to persist when switching views
   useEffect(() => {
+    // Clear progress only if assignment is being changed/cleared
     return () => {
-      clearAllGradingProgress();
+      // Don't clear progress on unmount - let it persist for view switching
+      // Progress will be cleared when assignment changes or explicitly requested
     };
-  }, [clearAllGradingProgress]);
+  }, []);
 
   // Get categorized students and batch grading handler
   const categorizedStudents = categorizeStudents(studentData);

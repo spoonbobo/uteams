@@ -74,13 +74,23 @@ export class Orchestrator extends EventEmitter {
     super();
     
     // Initialize LLM with streaming enabled
+    const apiKey = process.env.OPENAI_API_KEY;
+    const baseURL = process.env.OPENAI_BASE_URL;
+    
+    if (!apiKey) {
+      console.error('[Orchestrator] OPENAI_API_KEY is not set. Please check your .env.production file.');
+      throw new Error('OpenAI API key is required but not found in environment variables. Please set OPENAI_API_KEY in your .env.production file.');
+    }
+    
+    console.log('[Orchestrator] Creating LLM with baseURL:', baseURL || 'default OpenAI API');
+    
     this.llm = new ChatOpenAI({
       model: 'deepseek-chat',
       temperature: 0.3,
       streaming: true, // Enable streaming for token-by-token output
-      openAIApiKey: process.env.OPENAI_API_KEY,
+      openAIApiKey: apiKey,
       configuration: {
-        baseURL: process.env.OPENAI_BASE_URL,
+        baseURL: baseURL,
       },
     });
 

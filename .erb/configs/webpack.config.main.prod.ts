@@ -14,8 +14,16 @@ import deleteSourceMaps from '../scripts/delete-source-maps';
 import dotenv from 'dotenv';
 
 // Load environment variables from .env files
+console.log('[WEBPACK] Loading environment variables...');
+dotenv.config({ path: '.env.production' });
 dotenv.config({ path: '.env.local' });
 dotenv.config();
+
+// Debug: Check if environment variables are loaded during build
+console.log('[WEBPACK] Build-time environment check:');
+console.log('[WEBPACK] NODE_ENV:', process.env.NODE_ENV);
+console.log('[WEBPACK] OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '***SET***' : 'NOT SET');
+console.log('[WEBPACK] OPENAI_BASE_URL:', process.env.OPENAI_BASE_URL || 'NOT SET');
 
 checkNodeEnv('production');
 deleteSourceMaps();

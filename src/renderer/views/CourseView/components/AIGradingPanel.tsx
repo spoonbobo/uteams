@@ -97,12 +97,12 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
   const [appliedCommentIndices, setAppliedCommentIndices] = useState<Set<string>>(new Set());
 
   // Session ID for plan widget and chat store
-  // Use activeGradingStudent if available (during active grading), otherwise use selectedSubmission
-  const displayStudent = activeGradingStudent || selectedSubmission;
-  const sessionId = `grading-${selectedAssignment}-${displayStudent}`;
+  // IMPORTANT: Always use selectedSubmission for the session ID to ensure proper task isolation
+  // The AIGradingPanel should only show tasks for the currently selected student, not the one being graded in batch
+  const sessionId = `grading-${selectedAssignment}-${selectedSubmission}`;
   
   // Debug logging to verify unique sessions
-  console.log(`[AIGradingPanel] SessionId: ${sessionId}, ActiveGrading: ${activeGradingStudent}, Selected: ${selectedSubmission}`);
+  console.log(`[AIGradingPanel] SessionId: ${sessionId}, Selected: ${selectedSubmission}, ActiveGrading: ${activeGradingStudent}`);
   
   // Get plan and todos from chat store for PlanWidget
   const { 
@@ -635,12 +635,10 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
             {selectedSubmissionData && (
               <> - Currently viewing: <strong>{selectedSubmissionData.student.fullname}</strong></>
             )}
-            {activeGradingStudent && activeGradingStudent !== selectedSubmission && (
-              <> - Showing plan for student ID: <strong>{activeGradingStudent}</strong></>
-            )}
             {batchGradingProgress.currentStudent && (
               <> - Processing: <strong>{batchGradingProgress.currentStudent}</strong></>
             )}
+            {/* Note: Each student's tasks are isolated - only showing tasks for the selected student */}
           </Typography>
         </Alert>
       )}
@@ -779,7 +777,7 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
             ) : (
               /* Show spinner when grading is starting/in progress but no plan yet, otherwise show PlanWidget */
               (() => {
-                const isCurrentlyGrading = displayStudent && gradingInProgress.has(displayStudent);
+                const isCurrentlyGrading = selectedSubmission && gradingInProgress.has(selectedSubmission);
                 const hasActivePlan = plan || todos.length > 0;
                 const shouldShowSpinner = isCurrentlyGrading && !hasActivePlan;
                 

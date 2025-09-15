@@ -251,7 +251,8 @@
       "output": "release/build"
     },
     "extraResources": [
-      "./assets/**"
+      "./assets/**",
+      ".env.production"
     ],
     "publish": {
       "provider": "github",

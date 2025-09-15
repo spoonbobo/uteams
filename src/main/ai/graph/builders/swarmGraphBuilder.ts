@@ -71,6 +71,19 @@ function createSwarmAgentNode(registry: AgentRegistry, agentName: string) {
       if (result.toolResults) {
         toolResults.push(...result.toolResults);
       }
+      
+      // Also add agent's message output as a tool result for synthesis
+      // This ensures synthesis node always has content to work with
+      if (result.messages && result.messages.length > 0) {
+        const lastMessage = result.messages[result.messages.length - 1];
+        if (lastMessage && typeof lastMessage.content === 'string' && lastMessage.content.trim()) {
+          toolResults.push({
+            type: 'agent_output',
+            agent: agentName,
+            content: lastMessage.content,
+          });
+        }
+      }
 
       // Check if agent marked task as completed
       let taskCompleted = false;

@@ -135,12 +135,22 @@ export abstract class BaseAgent {
    * Create LLM instance with agent-specific config
    */
   protected createLLM(): ChatOpenAI {
+    const apiKey = process.env.OPENAI_API_KEY;
+    const baseURL = process.env.OPENAI_BASE_URL;
+    
+    if (!apiKey) {
+      console.error('[Agent] OPENAI_API_KEY is not set. Please check your .env.production file.');
+      throw new Error('OpenAI API key is required but not found in environment variables. Please set OPENAI_API_KEY in your .env.production file.');
+    }
+    
+    console.log('[Agent] Creating LLM with baseURL:', baseURL || 'default OpenAI API');
+    
     return new ChatOpenAI({
       model: this.config.llmConfig?.model || 'deepseek-chat',
       temperature: this.config.llmConfig?.temperature || 0.3,
-      openAIApiKey: process.env.OPENAI_API_KEY,
+      openAIApiKey: apiKey,
       configuration: {
-        baseURL: process.env.OPENAI_BASE_URL,
+        baseURL: baseURL,
       },
     });
   }

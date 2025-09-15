@@ -31,10 +31,16 @@ export const useBatchGradingHandler = (
     );
     
     // Process students with controlled concurrency
-    const MAX_CONCURRENT = 2; // Reduce to 2 for better debugging
+    const MAX_CONCURRENT = 2; // Process 2 students in parallel for efficiency
     const queue = [...studentsToGrade];
     const inProgress = new Map<string, Promise<void>>();
     let processedCount = 0;
+    
+    console.log('🚀 Batch grading configuration:', {
+      maxConcurrent: MAX_CONCURRENT,
+      totalStudents: studentsToGrade.length,
+      parallelExecution: true
+    });
     
     while (queue.length > 0 || inProgress.size > 0) {
       // Start new grading tasks up to the limit
@@ -56,6 +62,7 @@ export const useBatchGradingHandler = (
         
         console.log(`📝 [${++processedCount}/${studentsToGrade.length}] Starting grading for ${studentName} (ID: ${studentId})`);
         console.log(`   Queue remaining: ${queue.length}, In progress: ${inProgress.size}`);
+        console.log(`   🔄 Parallel tasks running:`, Array.from(inProgress.keys()).join(', '));
         
         const gradingPromise = handleStartGrading(studentId, studentFiles, loadStudentFiles)
           .then(() => {
