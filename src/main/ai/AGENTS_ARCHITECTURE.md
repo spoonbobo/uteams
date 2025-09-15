@@ -50,31 +50,46 @@ This document describes the multi-agent architecture implemented for the LangGra
 - **Best Agent Selection**: Scores agents based on request keywords and capabilities
 - **Factory Methods**: Creates agents with appropriate MCP tools
 
-### 4. Multi-Agent Graph Builder (`utils/multiAgentGraphBuilder.ts`)
+### 4. Multi-Agent Graph System (`graph/`)
 
-Supports two architectures:
+The graph system has been decomposed into a modular architecture:
 
-#### Supervisor Architecture
-- Central supervisor agent coordinates all other agents
-- Supervisor decides which agent to invoke based on the task
-- Agents report back to supervisor after completion
+#### Core Components
 
-#### Swarm Architecture
+- **Main Builder** (`graph/multiAgentGraphBuilder.ts`): Orchestrates graph creation
+- **Types** (`graph/types.ts`): Core interfaces and state definitions
+- **State Manager** (`graph/stateManager.ts`): Graph channel configuration and reducers
+
+#### Node Builders (`graph/nodes/`)
+- **Planner Node** (`plannerNode.ts`): Task analysis and agent selection for swarm architecture
+- **Synthesis Node** (`synthesisNode.ts`): Result formatting and presentation
+
+#### Edge Configuration (`graph/edges/`)
+- **Edge Builder** (`edgeBuilder.ts`): Routing logic between nodes
+
+#### Graph Builders (`graph/builders/`)
+- **Swarm Graph Builder** (`swarmGraphBuilder.ts`): Builds swarm-based graphs with dynamic agent handoffs
+
+#### Architecture
+
+**Swarm Architecture** (Current Implementation)
 - Agents dynamically hand off control to each other
-- No central coordinator
-- Agents decide when to hand off based on their capabilities
+- No central coordinator - agents collaborate peer-to-peer
+- Agents decide when to hand off based on their capabilities and task requirements
+- Built using `buildSwarmGraph()`
+- Flow: `planner` → `{selected_agent}` → `synthesis`
 
 ### 5. Memory System (`memory.ts`)
 
 - **Short-term Memory**: Thread-level conversation continuity
 - **Long-term Memory**: Cross-thread user profiles and preferences
 - **Persistence**: File-based storage for durability
-- **Integration**: Seamlessly integrated with UnifiedAgent
+- **Integration**: Seamlessly integrated with Orchestrator
 - **Memory Tools**: Specialized tools for memory operations
 
 ### 6. Integration with Unified Agent
 
-The UnifiedAgent (`unifiedAgent.ts`) integrates all agents including MemoryAgent:
+The Orchestrator (`orchestrator.ts`) integrates all agents including MemoryAgent:
 - Automatic memory context loading
 - User preference application
 - Thread-based conversation continuity
@@ -107,8 +122,9 @@ Each agent receives only the MCP tools relevant to its capabilities:
 - **PlaywrightAgent**: Receives browser automation tools (Playwright MCP)
 - **MemoryAgent**: Uses memory-specific tools (not MCP tools, but custom memory tools)
 
-## Usage Example
+## Usage Examples
 
+### Using Individual Agents
 ```typescript
 // Initialize agent registry
 const registry = AgentRegistry.getInstance();
@@ -131,8 +147,44 @@ if (result.command) {
 }
 ```
 
+### Using the Multi-Agent Graph System
+```typescript
+import { MultiAgentGraphBuilder } from './graph';
+
+// Create a swarm configuration
+const config = MultiAgentGraphBuilder.createSwarmConfig([
+  'tavily_agent',
+  'playwright_agent', 
+  'memory_agent'
+]);
+
+// Build the graph
+const builder = new MultiAgentGraphBuilder(registry, config);
+const graph = builder.buildGraph();
+
+// Compile and run
+const compiledGraph = graph.compile();
+const result = await compiledGraph.invoke({
+  messages: [new HumanMessage("search for latest AI news")],
+  sessionId: "session123"
+});
+```
+
+### Using Modular Components
+```typescript
+import { 
+  buildSwarmGraph, 
+  createPlannerNode, 
+  createSwarmSynthesisNode 
+} from './graph';
+
+// Use individual components for custom graphs
+const customGraph = buildSwarmGraph(registry, config, llm, selectBestAgent);
+```
+
 ## Benefits
 
+### Agent System Benefits
 1. **Modularity**: Each agent is self-contained and focused on specific capabilities
 2. **Extensibility**: Easy to add new agents by extending BaseAgent
 3. **Flexibility**: Supports both supervisor and swarm architectures
@@ -140,10 +192,60 @@ if (result.command) {
 5. **Dynamic Routing**: Agents can hand off to specialists when needed
 6. **Tool Isolation**: Each agent only gets the tools it needs
 
+### Graph System Benefits
+1. **Modular Architecture**: Components are separated by responsibility
+2. **Maintainability**: Easy to modify individual nodes, edges, or builders
+3. **Testability**: Each component can be tested in isolation
+4. **Composability**: Mix and match components for custom graphs
+5. **Type Safety**: Strong TypeScript interfaces throughout
+6. **Clean Separation**: Clear boundaries between state, nodes, and edges
+7. **Backward Compatibility**: Legacy imports still work during migration
+
+## Migration Guide
+
+### Simplified Architecture
+
+**Current System:**
+```typescript
+import { MultiAgentGraphBuilder } from './graph';
+// Or import specific components:
+import { buildSwarmGraph, createPlannerNode } from './graph/builders';
+```
+
+The system now uses a streamlined swarm architecture without the complexity of supervisor coordination.
+
+### Directory Structure
+
+```
+ai/
+├── graph/                          # Modular graph system
+│   ├── multiAgentGraphBuilder.ts   # Main orchestrator
+│   ├── types.ts                    # Core interfaces
+│   ├── stateManager.ts             # State management
+│   ├── nodes/                      # Node builders
+│   │   ├── plannerNode.ts
+│   │   └── synthesisNode.ts
+│   ├── edges/                      # Edge configuration
+│   │   └── edgeBuilder.ts
+│   ├── builders/                   # Graph builders
+│   │   └── swarmGraphBuilder.ts
+│   └── index.ts                    # Central exports
+├── tools/                          # MCP tools and utilities
+└── agents/                         # Individual agent implementations
+```
+
 ## Future Enhancements
 
+### Agent System
 - Add more specialized agents (e.g., ScreenpipeAgent for local content, DataAnalysisAgent, CodeAgent)
 - Implement agent memory and learning
 - Add agent collaboration patterns
 - Implement agent performance monitoring
 - Add agent versioning and rollback capabilities
+
+### Graph System
+- Add graph visualization and debugging tools
+- Implement dynamic graph reconfiguration
+- Add graph performance metrics and optimization
+- Support for conditional node execution
+- Add graph templates for common patterns

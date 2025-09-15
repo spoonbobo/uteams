@@ -39,6 +39,11 @@ export class TavilyAgent extends BaseAgent {
 4. Focus on factual, reliable information
 5. Hand off to other agents when specialized help is needed
 
+IMPORTANT: When executing a specific task:
+- Focus on completing ONLY the requested task
+- Include "COMPLETED" at the end of your response when the task is done
+- This signals the system to move to the next step
+
 When searching, be specific with your queries and use advanced search options when available.
 Prefer recent information and authoritative sources.`,
       handoffTargets: ['playwright_agent'],
@@ -77,6 +82,20 @@ Prefer recent information and authoritative sources.`,
    */
   async execute(state: AgentState): Promise<AgentResult> {
     try {
+      // Check if we're executing a specific todo
+      let taskContext = '';
+      let isTodoExecution = false;
+      
+      // Look for todo execution context in the last AI message
+      const lastAiMessage = state.messages.filter(m => m._getType() === 'ai').pop();
+      if (lastAiMessage && typeof lastAiMessage.content === 'string') {
+        const content = lastAiMessage.content;
+        if (content.includes('Current Task:') && content.includes('COMPLETED')) {
+          taskContext = content;
+          isTodoExecution = true;
+        }
+      }
+      
       // Extract the latest user message
       const userMessages = state.messages.filter(m => m._getType() === 'human');
       const lastUserMessage = userMessages[userMessages.length - 1];
@@ -123,7 +142,12 @@ Prefer recent information and authoritative sources.`,
       const searchResult = await tavilySearchTool.invoke(searchParams);
 
       // Process and format results
-      const formattedResult = this.formatSearchResults(searchResult);
+      let formattedResult = this.formatSearchResults(searchResult);
+      
+      // Add COMPLETED token if this is a todo execution
+      if (isTodoExecution) {
+        formattedResult += '\n\nCOMPLETED';
+      }
 
       return {
         messages: [
@@ -140,6 +164,7 @@ Prefer recent information and authoritative sources.`,
         metadata: {
           toolUsed: 'tavily_search',
           searchParams,
+          todoCompleted: isTodoExecution,
         },
       };
     } catch (error) {

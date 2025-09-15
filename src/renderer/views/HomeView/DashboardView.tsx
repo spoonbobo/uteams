@@ -24,6 +24,7 @@ import { useIntl } from 'react-intl';
 import { useMoodleStore } from '../../stores/useMoodleStore';
 import { useUserStore, useAuthenticationState } from '../../stores/useUserStore';
 import { Authenticate } from '../../components/Authenticate';
+import { toast } from '../../utils/toast';
 
 export const DashboardView: React.FC = () => {
   const intl = useIntl();
@@ -48,25 +49,25 @@ export const DashboardView: React.FC = () => {
   const hasCoursesWithContent = React.useMemo(() => {
     if (courses.length === 0) return false;
     
-    // Check if at least some courses have content loaded
-    const contentLoadedCount = courses.filter(course => {
+    // Check if at least some courses have content loaded or attempted to load
+    const contentProcessedCount = courses.filter(course => {
       const content = courseContent[course.id];
-      // Consider content loaded if it exists, is not loading, and has no error
-      // Content is valid even if assignments/activities arrays are empty (course might have no content)
+      // Consider content processed if it exists, is not loading, and has lastUpdated (even with errors)
+      // This prevents getting stuck on courses that might have API errors
       return content && 
              !content.isLoading && 
-             !content.error && 
              content.lastUpdated !== null;
     }).length;
     
-    // Consider data ready if we have courses and at least 50% have content loaded
-    const isReady = contentLoadedCount >= Math.ceil(courses.length * 0.5);
+    // Consider data ready if we have courses and at least 70% have been processed (success or failure)
+    const threshold = Math.max(1, Math.ceil(courses.length * 0.7)); // At least 1 course must be processed
+    const isReady = contentProcessedCount >= threshold;
     
     // Debug logging
     console.log('[Dashboard] Content check:', {
       totalCourses: courses.length,
-      contentLoadedCount,
-      threshold: Math.ceil(courses.length * 0.5),
+      contentProcessedCount,
+      threshold,
       isReady,
       courseContent: Object.keys(courseContent).map(courseId => ({
         courseId,
@@ -148,19 +149,36 @@ export const DashboardView: React.FC = () => {
         try {
           const store = useMoodleStore.getState();
           
-          // First, ensure courses are loaded
+          // First, ensure courses are loaded with timeout
           console.log('[Dashboard] Fetching courses...');
-          await store.fetchCourses();
+          const fetchCoursesPromise = store.fetchCourses();
+          const timeoutPromise = new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Courses fetch timeout')), 15000)
+          );
           
-          // Then fetch content for all courses
-          const updatedCourses = useMoodleStore.getState().courses;
-          if (updatedCourses.length > 0) {
+          const fetchedCourses = await Promise.race([fetchCoursesPromise, timeoutPromise]);
+          
+          // Then fetch content for all courses with timeout
+          if (fetchedCourses && fetchedCourses.length > 0) {
             console.log('[Dashboard] Fetching content for all courses...');
-            await store.fetchAllCourseContent();
+            const fetchContentPromise = store.fetchAllCourseContent();
+            const contentTimeoutPromise = new Promise<never>((_, reject) => 
+              setTimeout(() => reject(new Error('Course content fetch timeout')), 30000)
+            );
+            
+            await Promise.race([fetchContentPromise, contentTimeoutPromise]);
             console.log('[Dashboard] ✅ All data loaded successfully');
+          } else {
+            console.log('[Dashboard] No courses found or courses fetch failed');
           }
         } catch (error) {
           console.error('[Dashboard] ❌ Error loading data:', error);
+          // Reset initialization flag on error so it can be retried
+          setHasInitializedData(false);
+          
+          if (error instanceof Error && error.message.includes('timeout')) {
+            toast.error('Data loading is taking longer than expected. Please check your connection and try refreshing.');
+          }
         }
       }, 100);
     } else if (!isAuthenticated && hasInitializedData) {
@@ -628,12 +646,29 @@ export const DashboardView: React.FC = () => {
                 : intl.formatMessage({ id: 'dashboard.loading.title' })
               }
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               {!isConnected 
                 ? intl.formatMessage({ id: 'dashboard.connecting.subtitle' })
                 : intl.formatMessage({ id: 'dashboard.loading.subtitle' })
               }
             </Typography>
+            
+            {/* Add retry button if loading takes too long */}
+            <Button 
+              variant="outlined" 
+              size="small"
+              onClick={() => {
+                console.log('[Dashboard] Manual retry requested');
+                setHasInitializedData(false); // Reset to trigger refetch
+                const store = useMoodleStore.getState();
+                store.fetchCourses().then(() => {
+                  store.fetchAllCourseContent();
+                });
+              }}
+              sx={{ mt: 2 }}
+            >
+              {intl.formatMessage({ id: 'dashboard.retry' })}
+            </Button>
           </Box>
         ) : coursesError ? (
           // Show error state if there's an error loading courses

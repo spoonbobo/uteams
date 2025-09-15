@@ -8,12 +8,14 @@ import { BaseAgent, AgentConfig } from '../types/agent';
 import { TavilyAgent } from './tavilyAgent';
 import { PlaywrightAgent } from './playwrightAgent';
 import { MemoryAgent } from './memoryAgent';
+import { GeneralAgent } from './generalAgent';
 import { MCPClient } from '../utils/mcpClient';
 
 /**
  * Agent types available in the system
  */
 export enum AgentType {
+  GENERAL = 'general_agent',
   TAVILY = 'tavily_agent',
   PLAYWRIGHT = 'playwright_agent',
   MEMORY = 'memory_agent',
@@ -114,6 +116,12 @@ export class AgentRegistry {
     }
 
 
+    // Create General agent (always available)
+    const generalAgent = new GeneralAgent({
+      tools: [], // General agent doesn't need MCP tools
+    });
+    this.registerAgent(AgentType.GENERAL, generalAgent);
+
     // Create Memory agent
     // Memory agent doesn't require specific MCP tools, it uses memory tools
     const memoryConfig: AgentConfig = {
@@ -126,7 +134,7 @@ export class AgentRegistry {
         canHandoff: true,
       },
       prompt: 'You are a memory specialist that helps users manage their information and preferences.',
-      handoffTargets: [AgentType.TAVILY, AgentType.PLAYWRIGHT],
+      handoffTargets: [AgentType.TAVILY, AgentType.PLAYWRIGHT, AgentType.GENERAL],
     };
     
     const memoryAgent = new MemoryAgent(
@@ -254,5 +262,7 @@ export class AgentRegistry {
 export const agentRegistry = AgentRegistry.getInstance();
 
 // Export agent classes
+export { GeneralAgent } from './generalAgent';
 export { TavilyAgent } from './tavilyAgent';
 export { PlaywrightAgent } from './playwrightAgent';
+export { MemoryAgent } from './memoryAgent';

@@ -76,7 +76,7 @@ export const Authenticate: React.FC<AuthenticateProps> = ({ onAuthenticated }) =
       if (success) {
         // Wait for connection info to be available (with timeout)
         let attempts = 0;
-        const maxAttempts = 20; // 2 seconds max wait
+        const maxAttempts = 30; // 3 seconds max wait - increased for slower connections
         
         while (attempts < maxAttempts) {
           const currentConnectionInfo = useMoodleStore.getState().connectionInfo;
@@ -92,7 +92,15 @@ export const Authenticate: React.FC<AuthenticateProps> = ({ onAuthenticated }) =
               sitename: currentConnectionInfo.sitename,
               siteurl: currentConnectionInfo.siteurl,
             }, 'moodle');
-            break;
+            
+            // Give a small delay to ensure state updates are processed
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            toast.success(intl.formatMessage({ id: 'auth.moodle.success' }));
+            if (onAuthenticated) {
+              onAuthenticated();
+            }
+            return; // Exit early on success
           }
           
           // Wait 100ms before checking again
@@ -100,18 +108,15 @@ export const Authenticate: React.FC<AuthenticateProps> = ({ onAuthenticated }) =
           attempts++;
         }
         
-        if (attempts >= maxAttempts) {
-          console.error('[Authenticate] Timeout waiting for connection info');
-          toast.error('Connection successful but user info not available. Please try again.');
-        } else {
-          toast.success(intl.formatMessage({ id: 'auth.moodle.success' }));
-          if (onAuthenticated) {
-            onAuthenticated();
-          }
-        }
+        // If we reach here, we timed out
+        console.error('[Authenticate] Timeout waiting for connection info');
+        toast.error('Connection successful but user info not available. Please try again.');
       } else if (connectionError) {
         toast.error(intl.formatMessage({ id: 'auth.moodle.failed' }, { error: connectionError }));
       }
+    } catch (error) {
+      console.error('[Authenticate] Authentication error:', error);
+      toast.error('Authentication failed: ' + (error as Error).message);
     } finally {
       setIsAuthenticating(false);
     }

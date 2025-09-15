@@ -395,6 +395,7 @@
     "progress": "進度",
     "processing": "正在處理...",
     "allTasksCompleted": "所有任務已完成",
+    "synthesizingResponse": "正在綜合回應...",
     "testStreaming": "測試串流"
   },
   "overlay": {
@@ -646,7 +647,8 @@
     "error": {
       "title": "無法載入您的課程",
       "retry": "重試"
-    }
+    },
+    "retry": "重新載入"
   },
   "auth": {
     "title": "身份驗證",

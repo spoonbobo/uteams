@@ -399,8 +399,8 @@ export const useGradingActions = (selectedAssignment: string) => {
           console.log('⏱️ Grading timeout for session:', sessionId);
           setGradingError(studentId);
           cleanup();
-          reject(new Error('Grading timeout after 2 minutes'));
-        }, 120000);
+          reject(new Error('Grading timeout after 4 minutes'));
+        }, 240000);
 
         ipc?.invoke?.('chat:agent:run', { 
           sessionId, 

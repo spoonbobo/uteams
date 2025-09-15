@@ -40,6 +40,11 @@ export class PlaywrightAgent extends BaseAgent {
 5. Extract data from complex web structures
 6. Hand off to other agents when different expertise is needed
 
+IMPORTANT: When executing a specific task:
+- Focus on completing ONLY the requested task
+- Include "COMPLETED" at the end of your response when the task is done
+- This signals the system to move to the next step
+
 When scraping:
 - Be respectful of robots.txt and rate limits
 - Use efficient selectors (CSS or XPath)
@@ -85,6 +90,20 @@ When scraping:
    */
   async execute(state: AgentState): Promise<AgentResult> {
     try {
+      // Check if we're executing a specific todo
+      let taskContext = '';
+      let isTodoExecution = false;
+      
+      // Look for todo execution context in the last AI message
+      const lastAiMessage = state.messages.filter(m => m._getType() === 'ai').pop();
+      if (lastAiMessage && typeof lastAiMessage.content === 'string') {
+        const content = lastAiMessage.content;
+        if (content.includes('Current Task:') && content.includes('COMPLETED')) {
+          taskContext = content;
+          isTodoExecution = true;
+        }
+      }
+      
       // Extract the latest user message
       const userMessages = state.messages.filter(m => m._getType() === 'human');
       const lastUserMessage = userMessages[userMessages.length - 1];
@@ -117,11 +136,19 @@ When scraping:
       // Execute the scraping plan
       const results = await this.executeScraping(scrapingPlan);
 
-      // Format and return results
+      // Format results
+      let formattedResult = this.formatScrapingResults(results);
+      
+      // Add COMPLETED token if this is a todo execution
+      if (isTodoExecution) {
+        formattedResult += '\n\nCOMPLETED';
+      }
+
+      // Return results
       return {
         messages: [
           new AIMessage({
-            content: this.formatScrapingResults(results),
+            content: formattedResult,
             name: this.config.name,
           }),
         ],
@@ -133,6 +160,7 @@ When scraping:
         metadata: {
           toolUsed: 'playwright',
           scrapingPlan,
+          todoCompleted: isTodoExecution,
         },
       };
     } catch (error) {

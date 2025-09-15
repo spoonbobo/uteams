@@ -3,16 +3,16 @@
  */
 
 import { exec } from 'child_process';
-import { unifiedAgent } from './unifiedAgent';
+import { orchestrator } from './orchestrator';
 
 export async function initializeAgents(): Promise<void> {
   // Initialize Unified Agent
   try {
     console.log('🤖 Initializing Unified Agent system...');
-    await unifiedAgent.initialize();
+    await orchestrator.initialize();
     
     try {
-      await unifiedAgent.warmupMCP(30000);
+      await orchestrator.warmupMCP(30000);
     } catch (e) {
       console.warn('Unified Agent MCP warmup failed or timed out', e);
     }
@@ -31,7 +31,7 @@ export function registerAgentIpc(): void {
 export async function cleanupAgents(): Promise<void> {
   // Clean up unified agent
   try {
-    await unifiedAgent.cleanup();
+    await orchestrator.cleanup();
     console.log('Unified agent cleaned up');
   } catch (error) {
     console.error('Error cleaning up unified agent:', error);
@@ -40,8 +40,4 @@ export async function cleanupAgents(): Promise<void> {
 }
 
 // Export the unified agent as the primary interface
-export { unifiedAgent };
-
-// For backward compatibility, export unified agent with old names
-export { unifiedAgent as generalAgent };
-export { unifiedAgent as bettingResearchAgent };
+export { orchestrator };

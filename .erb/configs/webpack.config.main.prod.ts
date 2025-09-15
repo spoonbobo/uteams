@@ -11,6 +11,11 @@ import baseConfig from './webpack.config.base';
 import webpackPaths from './webpack.paths';
 import checkNodeEnv from '../scripts/check-node-env';
 import deleteSourceMaps from '../scripts/delete-source-maps';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env files
+dotenv.config({ path: '.env.local' });
+dotenv.config();
 
 checkNodeEnv('production');
 deleteSourceMaps();
@@ -62,6 +67,12 @@ const configuration: webpack.Configuration = {
       NODE_ENV: 'production',
       DEBUG_PROD: false,
       START_MINIMIZED: false,
+      APP_NAME: process.env.APP_NAME || 'THEiTeams',
+      APP_DESCRIPTION: process.env.APP_DESCRIPTION || 'LMS AI Extension for THEi',
+      MOODLE_BASE_URL: process.env.MOODLE_BASE_URL || 'https://moodle.onlysaid.com/',
+      TAVILY_API_KEY: process.env.TAVILY_API_KEY,
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+      OPENAI_BASE_URL: process.env.OPENAI_BASE_URL || 'https://api.deepseek.com',
     }),
 
     new webpack.DefinePlugin({

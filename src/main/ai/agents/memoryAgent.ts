@@ -135,8 +135,23 @@ export class MemoryAgent extends BaseAgent {
     console.log(`🧠 Memory Agent executing for session ${state.sessionId}`);
 
     try {
+      // Check if we're executing a specific todo
+      let taskContext = '';
+      let isTodoExecution = false;
+      
+      // Look for todo execution context in the last AI message
+      const todoContextMessage = state.messages.filter(m => m._getType() === 'ai').pop();
+      if (todoContextMessage && typeof todoContextMessage.content === 'string') {
+        const content = todoContextMessage.content;
+        if (content.includes('Current Task:') && content.includes('COMPLETED')) {
+          taskContext = content;
+          isTodoExecution = true;
+          console.log(`🧠 Memory Agent: Executing todo task`);
+        }
+      }
+      
       // Check if we should handle this request
-      if (!this.shouldHandle(state)) {
+      if (!this.shouldHandle(state) && !isTodoExecution) {
         // Suggest handoff to a more appropriate agent
         const handoffTarget = this.suggestHandoff(state);
         if (handoffTarget) {
@@ -202,6 +217,11 @@ Your capabilities include:
 4. Managing user profile and settings
 5. Helping users organize and access their stored memories
 ${courseMemory ? '6. Answering questions about the current course context' : ''}
+
+IMPORTANT: When executing a specific task:
+- Focus on completing ONLY the requested task
+- Include "COMPLETED" at the end of your response when the task is done
+- This signals the system to move to the next step
 
 ${contextPrompt}
 
@@ -388,6 +408,15 @@ Last Updated: ${courseMemory.lastUpdated}`;
       
       console.log(`🧠 [Memory Agent] Returning ${responseMessages.length} messages, ${toolResults.length} tool results`);
       
+      // Add COMPLETED token if this is a todo execution
+      if (isTodoExecution && responseMessages.length > 0) {
+        const lastMessage = responseMessages[responseMessages.length - 1];
+        if (lastMessage instanceof AIMessage && typeof lastMessage.content === 'string') {
+          lastMessage.content += '\n\nCOMPLETED';
+          console.log(`🧠 Memory Agent: Added COMPLETED token to response`);
+        }
+      }
+      
       return {
         messages: responseMessages,
         toolResults, // Include tool results for proper reporting
@@ -395,6 +424,7 @@ Last Updated: ${courseMemory.lastUpdated}`;
           ...state.metadata,
           memoryStats: stats,
           lastMemoryAccess: new Date().toISOString(),
+          todoCompleted: isTodoExecution,
         },
       };
     } catch (error) {

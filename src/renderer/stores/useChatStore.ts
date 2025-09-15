@@ -35,6 +35,8 @@ type ChatState = {
   planBySession: Record<string, AgentPlan | undefined>;
   // Todos by session
   todosBySession: Record<string, TodoItem[] | undefined>;
+  // Thinking state: whether agent is processing
+  isThinkingBySession: Record<string, boolean>;
 
   loadMessages: (sessionId: string) => Promise<void>;
   addMessage: (sessionId: string, message: Omit<ChatMessage, 'chatId' | 'createdAt'>) => Promise<void>;
@@ -58,6 +60,8 @@ type ChatState = {
   updateTodo: (sessionId: string, todoId: string, updates: Partial<TodoItem>) => void;
   updateTodoByIndex: (sessionId: string, index: number, completed: boolean) => void;
   clearTodos: (sessionId: string) => void;
+  // Thinking state management
+  setThinking: (sessionId: string, isThinking: boolean) => void;
 };
 
 export const useChatStore = create<ChatState>()(
@@ -67,6 +71,7 @@ export const useChatStore = create<ChatState>()(
     streamingBySession: {},
     planBySession: {},
     todosBySession: {},
+    isThinkingBySession: {},
 
     loadMessages: async (sessionId) => {
       const state = get();
@@ -192,6 +197,9 @@ export const useChatStore = create<ChatState>()(
     sendUserMessage: async (sessionId, text, courseId?: string) => {
       if (!text?.trim()) return;
       
+      // Set thinking state immediately when user sends message
+      get().setThinking(sessionId, true);
+      
       // If courseId is available, enhance the prompt to encourage memory agent usage
       let enhancedText = text;
       if (courseId) {
@@ -205,7 +213,7 @@ export const useChatStore = create<ChatState>()(
         text, // Original text without enhancement
         sender: 'user',
       });
-
+      
       // Defer starting stream until content (non-thinking) arrives
       try {
         // Subscribe to chunk/done/error events for this session
@@ -214,86 +222,23 @@ export const useChatStore = create<ChatState>()(
           if (payload?.sessionId !== sessionId) return;
           console.log('[chat] onChunk', { sessionId, preview: String(payload.chunk).slice(0, 60) });
           const chunk = String(payload.chunk ?? '');
-          const isThinking = (() => {
-            const c = chunk.trim();
-            if (!c) return false;
-            const known = [
-              'Answering directly without external tools.',
-              'Summarizing results',
-              'Summary ready.',
-              'Finalizing general response',
-              'Executing plan with MCP tools',
-              'Searching the web (Tavily)...',
-              'Tavily findings:',
-              'Tavily result:',
-              'Tavily tool not available.',
-              'Tavily search failed.',
-              'Screenpipe tools detected:',
-              'Screenpipe tools are available',
-              'Prioritizing screenpipe@index.ts',
-              'Screenpipe tools not available.',
-            ];
-            if (known.some((k) => c.startsWith(k))) return true;
-            if (c.endsWith('...')) return true;
-            // Heuristic: very short status-like lines
-            if (c.length <= 64 && /ing\b/i.test(c)) return true;
-            // Step-like lines from planner: numbered or imperative verb starts
-            if (/^\d+[\.)]\s/.test(c)) return true;
-            const imperativeStarts = [
-              'use ',
-              'analyze ',
-              'summarize ',
-              'plan ',
-              'check ',
-              'capture ',
-              'identify ',
-              'infer ',
-              'search ',
-              'gather ',
-              'review ',
-              'verify ',
-              'draft ',
-              'provide ',
-              'route ',
-              'dispatch ',
-            ];
-            if (imperativeStarts.some((p) => c.toLowerCase().startsWith(p))) return true;
-            // Tool-ish tokens indicate internal steps
-            const toolTokens = [
-              'screenpipe',
-              'search-content',
-              'pixel-control',
-              'clipboard',
-              'window',
-              'ocr',
-              'tavily',
-              'playwright',
-              'mcp',
-              'specialist',
-              'node',
-            ];
-            if (toolTokens.some((t) => c.toLowerCase().includes(t))) return true;
-            if (c.includes('Next steps:')) return true;
-            return false;
-          })();
-          if (isThinking) {
-            get().addThinkingMessage(sessionId, chunk);
-            return;
-          }
-          // Start streaming if not already started
+          
+          // We no longer show thinking messages, just track state
+          // Start streaming immediately when we get chunks
           const current = get().streamingBySession[sessionId];
           if (!current) {
             const streamId = get().beginStream(sessionId);
             console.log('[chat] beginStream', { sessionId, streamId });
-            // Remove prior thinking messages once real content starts
-            get().clearThinkingMessages(sessionId);
+            // Clear thinking state when real content starts
+            get().setThinking(sessionId, false);
           }
           get().appendStream(sessionId, chunk);
         };
         const onDone = (payload: { sessionId: string; final?: string }) => {
           if (payload?.sessionId !== sessionId) return;
           console.log('[chat] onDone', { sessionId });
-          // Wipe all reasoning/thinking lines after final response
+          // Clear thinking state when done
+          get().setThinking(sessionId, false);
           get().clearThinkingMessages(sessionId);
           
           // End streaming if active (tokens were streamed)
@@ -328,7 +273,8 @@ export const useChatStore = create<ChatState>()(
           if (payload?.sessionId !== sessionId) return;
           console.log('[chat] onError', { sessionId, error: payload.error });
           get().appendStream(sessionId, `\n[error] ${payload.error}`);
-          // Ensure we also clean up any thinking logs on error
+          // Ensure we also clean up any thinking state on error
+          get().setThinking(sessionId, false);
           get().clearThinkingMessages(sessionId);
           get().clearPlan(sessionId);
           get().clearTodos(sessionId);
@@ -365,6 +311,7 @@ export const useChatStore = create<ChatState>()(
             // Start streaming if not already started
             const streamId = get().beginStream(sessionId);
             console.log('[chat] beginStream for tokens', { sessionId, streamId });
+            get().setThinking(sessionId, false);
             get().clearThinkingMessages(sessionId);
           }
           get().appendStream(sessionId, payload.token);
@@ -372,7 +319,8 @@ export const useChatStore = create<ChatState>()(
         const onSynthesisStart = (payload: { sessionId: string; progress: number }) => {
           if (payload?.sessionId !== sessionId) return;
           console.log('[chat] synthesis starting, preparing for token stream', { sessionId });
-          // Clear thinking messages when synthesis starts
+          // Clear thinking state when synthesis starts
+          get().setThinking(sessionId, false);
           get().clearThinkingMessages(sessionId);
         };
 
@@ -606,6 +554,19 @@ export const useChatStore = create<ChatState>()(
         }),
         false,
         'chat:todos:clear',
+      );
+    },
+
+    setThinking: (sessionId: string, isThinking: boolean) => {
+      set(
+        (s) => ({
+          isThinkingBySession: {
+            ...s.isThinkingBySession,
+            [sessionId]: isThinking,
+          },
+        }),
+        false,
+        'chat:thinking:set',
       );
     },
   }))

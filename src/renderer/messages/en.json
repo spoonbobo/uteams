@@ -391,6 +391,7 @@
     "progress": "Progress",
     "processing": "Working on it...",
     "allTasksCompleted": "All tasks completed",
+    "synthesizingResponse": "Synthesizing response...",
     "testStreaming": "Test streaming"
   },
   "overlay": {
@@ -634,7 +635,8 @@
     "error": {
       "title": "Unable to load your courses",
       "retry": "Try Again"
-    }
+    },
+    "retry": "Retry Loading"
   },
   "auth": {
     "title": "Authentication",

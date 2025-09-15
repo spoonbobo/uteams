@@ -1,5 +1,5 @@
 /**
- * Unified Multi-Agent System
+ * Orchestrator
  * Single entry point for all agent-based operations
  */
 
@@ -15,17 +15,19 @@ import {
 import { 
   createGeneralMCPClient,
   MCPClient,
+} from './tools';
+import {
   MultiAgentGraphBuilder,
   MultiAgentArchitecture,
   MultiAgentState,
-} from './utils';
+} from './graph';
 import { AgentRegistry } from './agents';
 import { memoryManager, MemoryManager, UserProfile, SessionMemory } from './memory';
 
 /**
- * Unified request interface
+ * Orchestrator request interface
  */
-export interface UnifiedRequest {
+export interface OrchestratorRequest {
   sessionId: string;
   prompt?: string;
   type?: 'general' | 'research' | 'auto';
@@ -46,9 +48,9 @@ export interface TodoItem {
 }
 
 /**
- * Unified response interface
+ * Orchestrator response interface
  */
-export interface UnifiedResponse {
+export interface OrchestratorResponse {
   requestId: string;
   sessionId: string;
   resultSummary: string;
@@ -56,10 +58,10 @@ export interface UnifiedResponse {
 }
 
 /**
- * Unified Multi-Agent System
+ * Orchestrator
  * Manages all agent interactions through a single interface
  */
-export class UnifiedAgent extends EventEmitter {
+export class Orchestrator extends EventEmitter {
   private llm: ChatOpenAI;
   private mcpClient: MCPClient;
   private agentRegistry: AgentRegistry;
@@ -93,7 +95,7 @@ export class UnifiedAgent extends EventEmitter {
   }
 
   /**
-   * Initialize the unified agent system
+   * Initialize the orchestrator system
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
@@ -101,23 +103,23 @@ export class UnifiedAgent extends EventEmitter {
     try {
       // Initialize MCP client
       await this.mcpClient.initialize();
-      console.log('🤖 Unified Agent: MCP client initialized');
+      console.log('🤖 Orchestrator: MCP client initialized');
 
       // Initialize agent registry with MCP tools
       await this.agentRegistry.initialize(this.mcpClient, this.llm);
-      console.log('🤖 Unified Agent: Agent registry initialized');
+      console.log('🤖 Orchestrator: Agent registry initialized');
       
       // Initialize memory manager
       await this.memoryManager.initialize();
-      console.log('🤖 Unified Agent: Memory manager initialized');
+      console.log('🤖 Orchestrator: Memory manager initialized');
 
       // Build the multi-agent graph
       this.graph = this.buildGraph();
-      console.log('🤖 Unified Agent: Multi-agent graph built');
+      console.log('🤖 Orchestrator: Multi-agent graph built');
 
       this.isInitialized = true;
     } catch (error) {
-      console.error('Failed to initialize unified agent:', error);
+      console.error('Failed to initialize orchestrator:', error);
       throw error;
     }
   }
@@ -156,9 +158,9 @@ export class UnifiedAgent extends EventEmitter {
   }
 
   /**
-   * Run the unified agent with a request
+   * Run the orchestrator with a request
    */
-  async run(request: UnifiedRequest): Promise<UnifiedResponse> {
+  async run(request: OrchestratorRequest): Promise<OrchestratorResponse> {
     await this.initialize();
 
     if (!this.graph) {
@@ -170,13 +172,8 @@ export class UnifiedAgent extends EventEmitter {
     const threadId = request.threadId || `thread_${Date.now()}`;
     const userId = request.userId || 'default_user';
     
-    // Emit start event
-    this.emit('progress', {
-      sessionId: request.sessionId,
-      update: 'Initializing...',
-      progress: 0,
-      step: 0,
-    });
+    // Don't emit initializing as a chunk - UI will show thinking spinner instead
+    console.log('🚀 Starting orchestrator run for session:', request.sessionId);
 
     try {
       // Load user profile if memory is enabled
@@ -263,8 +260,9 @@ export class UnifiedAgent extends EventEmitter {
         
         // Track todos and their completion
         let currentTodos: TodoItem[] = [];
-        let agentTodoIndex = 0; // Index for "Use the X agent" todo
-        let synthesisTodoIndex = 1; // Index for "Retrieve and present" todo
+        let initialTodos: TodoItem[] = []; // Keep track of initial todos state
+        let currentTodoIndex = 0; // Track which todo we're currently executing
+        let isExecutingTodos = false; // Flag to track if we've started executing todos
         
         // Calculate real progress based on expected steps
         const expectedSteps = 3; // planner -> agent -> synthesis is the typical flow
@@ -285,119 +283,87 @@ export class UnifiedAgent extends EventEmitter {
               nodesVisited.push(nodeName);
               currentStreamingNode = nodeName;
               
-              // Emit node-specific updates with real progress
-              this.emit('progress', {
-                sessionId: request.sessionId,
-                update: `Processing: ${nodeName}`,
-                progress,
-                node: nodeName,
-                step: stepCount,
-                totalSteps: expectedSteps,
-              });
+              // Don't emit processing updates as chunks (they show as thinking)
+              // Only emit for internal tracking, not for UI display
+              console.log(`🔄 Processing node: ${nodeName}`);
               
-              // Handle planner node first (it doesn't have messages)
+              // Handle planner node
               if (nodeName === 'planner') {
-                // The planner returns the plan directly in the output
-                console.log('📦 [UNIFIED] Raw planner output received:', JSON.stringify(output, null, 2));
+                // Check if we have todos being created or updated
+                if (output.todos) {
+                  currentTodos = output.todos;
+                  console.log(`📋 Todos created/updated: ${currentTodos.length} items`);
+                  
+                  // Save initial todos state if this is the first time
+                  if (initialTodos.length === 0) {
+                    initialTodos = currentTodos.map(todo => ({ ...todo }));
+                    console.log(`📋 Saved initial todos state (all should be incomplete)`);
+                  }
+                  
+                  // Convert todos to the format expected by UI
+                  const uiTodos = currentTodos.map((todo, index) => ({
+                    id: todo.id || `todo-${index}`,
+                    text: todo.text,
+                    completed: todo.completed === true, // Ensure boolean
+                    order: todo.order !== undefined ? todo.order : index
+                  }));
+                  
+                  // Emit todos to UI
+                  this.emit('progress', {
+                    sessionId: request.sessionId,
+                    type: 'todos',
+                    todos: uiTodos,
+                    progress,
+                    step: stepCount,
+                    totalSteps: currentTodos.length + 1, // Update total steps based on todos
+                  });
+                }
                 
-                // Check if plan exists (it's returned directly, not in messages)
-                const planData = output.plan || output;
+                // Check if a todo was just completed
+                if (output.completedTodos && currentTodos.length > 0) {
+                  const completedIndices = output.completedTodos;
+                  for (const index of completedIndices) {
+                    if (!isExecutingTodos || currentTodoIndex <= index) {
+                      console.log(`✅ Todo ${index} completed: "${currentTodos[index]?.text}"`);
+                      this.emit('progress', {
+                        sessionId: request.sessionId,
+                        type: 'todo-update',
+                        todoIndex: index,
+                        completed: true,
+                        progress: Math.round((index + 1) / currentTodos.length * 90),
+                        step: index + 1,
+                        totalSteps: currentTodos.length,
+                      });
+                      currentTodoIndex = index + 1;
+                    }
+                  }
+                  isExecutingTodos = true;
+                }
                 
-                // Debug: Log what we have
-                console.log('🔍 [UNIFIED] Planner output structure:', {
-                  hasDirectPlan: !!output.plan,
-                  outputKeys: Object.keys(output),
-                  planKeys: planData ? Object.keys(planData) : [],
-                  planData: planData,
-                });
-                
-                // Extract and emit the plan if available
-                if (planData && (planData.steps || planData.reasoning)) {
-                  console.log('📋 Plan created:', planData);
-                  // Emit the plan as a special type so UI can display it
+                // Emit plan if available
+                if (output.plan) {
+                  console.log('📋 Plan created:', output.plan);
                   this.emit('progress', {
                     sessionId: request.sessionId,
                     type: 'plan',
-                    plan: {
-                      steps: planData.steps || [],
-                      reasoning: planData.reasoning || '',
-                      requiresTools: planData.requiresTools || false,
-                      selectedAgent: planData.selectedAgent || null,
-                    },
+                    plan: output.plan,
                     progress,
                     step: stepCount,
-                    totalSteps: expectedSteps,
-                  });
-                  
-                  // Also emit as todos for better task tracking
-                  if (planData.steps && planData.steps.length > 0) {
-                    const todos: TodoItem[] = planData.steps.map((step: string, index: number) => ({
-                      id: `todo_${requestId}_${index}`,
-                      text: step,
-                      completed: false,
-                      order: index,
-                    }));
-                    
-                    // Store todos for tracking
-                    currentTodos = todos;
-                    
-                    // Identify which todo is for agent execution (usually first one)
-                    // Look for keywords like "search", "gather", "retrieve", "find", "look up", "analyze"
-                    agentTodoIndex = todos.findIndex(todo => {
-                      const text = todo.text.toLowerCase();
-                      return text.includes('search') || 
-                             text.includes('gather') ||
-                             text.includes('retrieve') ||
-                             text.includes('find') ||
-                             text.includes('look up') ||
-                             text.includes('analyze') ||
-                             text.includes('process') ||
-                             text.includes('collect') ||
-                             text.includes('get') ||
-                             text.includes('fetch');
-                    });
-                    if (agentTodoIndex === -1) agentTodoIndex = 0; // Default to first
-                    
-                    // Synthesis todo is usually about presenting/providing results (usually last)
-                    synthesisTodoIndex = todos.findIndex(todo => {
-                      const text = todo.text.toLowerCase();
-                      return text.includes('present') || 
-                             text.includes('provide') ||
-                             text.includes('display') ||
-                             text.includes('show') ||
-                             text.includes('deliver') ||
-                             text.includes('compile') ||
-                             text.includes('summarize') ||
-                             text.includes('format');
-                    });
-                    if (synthesisTodoIndex === -1) synthesisTodoIndex = todos.length - 1; // Default to last
-                    
-                    console.log(`📋 Emitting ${todos.length} todos for session ${request.sessionId}`);
-                    console.log(`📋 Agent todo index: ${agentTodoIndex}, Synthesis todo index: ${synthesisTodoIndex}`);
-                    this.emit('progress', {
-                      sessionId: request.sessionId,
-                      type: 'todos',
-                      todos,
-                      progress,
-                      step: stepCount,
-                      totalSteps: expectedSteps,
-                    });
-                  }
-                } else {
-                  // Fallback status if no plan - log what we got
-                  console.log('⚠️ No plan found in planner output:', JSON.stringify(output).substring(0, 200));
-                  this.emit('progress', {
-                    sessionId: request.sessionId,
-                    update: `Analyzing request...`,
-                    type: 'status',
-                    progress,
-                    step: stepCount,
-                    totalSteps: expectedSteps,
+                    totalSteps: output.todos?.length || expectedSteps,
                   });
                 }
+                
+                // Update current todo index if provided
+                if (output.currentTodoIndex !== undefined) {
+                  const idx = output.currentTodoIndex;
+                  if (idx < currentTodos.length) {
+                    console.log(`📍 Processing todo ${idx + 1}/${currentTodos.length}: "${currentTodos[idx]?.text}"`);
+                    // Don't emit status updates that would appear as chunks
+                    // The PlanWidget will track progress through todo updates
+                  }
+                }
               } else if (nodeName.endsWith('_agent')) {
-                // For tool agents (tavily_agent, playwright_agent, etc.)
-                // These produce raw tool outputs that need synthesis
+                // For all agents (tavily_agent, playwright_agent, general_agent, etc.)
                 if (output.toolResults) {
                   console.log(`📊 Collected ${output.toolResults.length} tool results from ${nodeName}`);
                 }
@@ -417,28 +383,64 @@ export class UnifiedAgent extends EventEmitter {
                   }
                 }
                 
-                // Show a friendly status message instead of raw output
-                this.emit('progress', {
-                  sessionId: request.sessionId,
-                  update: `Gathering information...`,
-                  type: 'status',
-                  progress,
-                  step: stepCount,
-                  totalSteps: expectedSteps,
-                });
+                // Don't emit status messages that would appear as chunks
+                console.log(`📊 Agent ${nodeName} is gathering information...`);
                 
-                // Emit todo update when an agent completes its task
-                if (currentTodos.length > 0 && agentTodoIndex >= 0 && agentTodoIndex < currentTodos.length) {
-                  console.log(`✅ Marking todo ${agentTodoIndex} ("${currentTodos[agentTodoIndex].text}") as completed for session ${request.sessionId}`);
-                  this.emit('progress', {
-                    sessionId: request.sessionId,
-                    type: 'todo-update',
-                    todoIndex: agentTodoIndex,
-                    completed: true,
-                    progress,
-                    step: stepCount,
-                    totalSteps: expectedSteps,
-                  });
+                // Update todos from state if they were modified
+                if (output.todos && output.todos.length > 0) {
+                  currentTodos = output.todos;
+                  console.log(`📝 Agent ${nodeName} updated todos, checking for completions...`);
+                  console.log(`📝 Initial todos:`, initialTodos.map((t, i) => `${i}: ${t.completed ? '✓' : '○'} ${t.text.substring(0, 50)}`));
+                  console.log(`📝 Current todos:`, currentTodos.map((t, i) => `${i}: ${t.completed ? '✓' : '○'} ${t.text.substring(0, 50)}`));
+                  
+                  // Check each todo against INITIAL state for completion changes
+                  for (let i = 0; i < currentTodos.length; i++) {
+                    const initialTodo = initialTodos[i];
+                    const currTodo = currentTodos[i];
+                    
+                    if (initialTodo && currTodo) {
+                      const wasInitiallyCompleted = initialTodo.completed === true;
+                      const isNowCompleted = currTodo.completed === true;
+                      
+                      console.log(`📝 Checking todo ${i}: initial=${wasInitiallyCompleted}, now=${isNowCompleted}`);
+                      
+                      // If this todo wasn't completed initially but is now completed, emit update
+                      if (!wasInitiallyCompleted && isNowCompleted) {
+                        console.log(`✅ Todo ${i} marked complete: "${currTodo.text.substring(0, 50)}..."`);
+                        this.emit('progress', {
+                          sessionId: request.sessionId,
+                          type: 'todo-update',
+                          todoIndex: i,
+                          completed: true,
+                          progress: Math.round((i + 1) / currentTodos.length * 90),
+                          step: i + 1,
+                          totalSteps: currentTodos.length,
+                        });
+                        
+                        // Update the initial todo to reflect this has been emitted
+                        initialTodos[i].completed = true;
+                      }
+                    }
+                  }
+                }
+                
+                // Also check completedTodos array (backward compatibility)
+                if (output.completedTodos && currentTodos.length > 0) {
+                  for (const index of output.completedTodos) {
+                    if (currentTodos[index] && !currentTodos[index].completed) {
+                      console.log(`✅ Agent completed todo ${index} via completedTodos array: "${currentTodos[index].text}"`);
+                      currentTodos[index].completed = true;
+                      this.emit('progress', {
+                        sessionId: request.sessionId,
+                        type: 'todo-update',
+                        todoIndex: index,
+                        completed: true,
+                        progress: Math.round((index + 1) / currentTodos.length * 90),
+                        step: index + 1,
+                        totalSteps: currentTodos.length,
+                      });
+                    }
+                  }
                 }
               } else if (nodeName === 'synthesis') {
                 // Handle synthesis node - stream tokens if possible
@@ -482,18 +484,23 @@ export class UnifiedAgent extends EventEmitter {
                           await new Promise(resolve => setTimeout(resolve, 20));
                         }
                         
-                        // Mark synthesis todo as complete after streaming
-                        if (currentTodos.length > 0 && synthesisTodoIndex >= 0 && synthesisTodoIndex < currentTodos.length) {
-                          console.log(`✅ Marking todo ${synthesisTodoIndex} ("${currentTodos[synthesisTodoIndex].text}") as completed for session ${request.sessionId}`);
-                          this.emit('progress', {
-                            sessionId: request.sessionId,
-                            type: 'todo-update',
-                            todoIndex: synthesisTodoIndex,
-                            completed: true,
-                            progress: 95, // Almost done
-                            step: stepCount,
-                            totalSteps: expectedSteps,
-                          });
+                        // Check if synthesis marked a todo complete
+                        if (output.completedTodos && currentTodos.length > 0) {
+                          for (const index of output.completedTodos) {
+                            if (currentTodos[index] && !currentTodos[index].completed) {
+                              console.log(`✅ Synthesis completed todo ${index}: "${currentTodos[index].text}"`);
+                              currentTodos[index].completed = true;
+                              this.emit('progress', {
+                                sessionId: request.sessionId,
+                                type: 'todo-update',
+                                todoIndex: index,
+                                completed: true,
+                                progress: Math.round((index + 1) / currentTodos.length * 90),
+                                step: index + 1,
+                                totalSteps: currentTodos.length,
+                              });
+                            }
+                          }
                         }
                       }
                     }
@@ -580,14 +587,10 @@ export class UnifiedAgent extends EventEmitter {
         // No interval to clear anymore
       }
     } catch (error) {
-      console.error('Unified agent execution error:', error);
+      console.error('Orchestrator execution error:', error);
       
-      this.emit('progress', {
-        sessionId: request.sessionId,
-        update: `Error: ${(error as Error).message}`,
-        type: 'error',
-        progress: 100,
-      });
+      // Don't emit error as update text, let the error handler in chat.ts handle it
+      console.error(`❌ Error for session ${request.sessionId}:`, (error as Error).message);
       
       throw error;
     }
@@ -669,12 +672,12 @@ export class UnifiedAgent extends EventEmitter {
       await this.agentRegistry.cleanup();
       await this.mcpClient.cleanup();
       await this.memoryManager.cleanup();
-      console.log('🛑 Unified agent cleaned up');
+      console.log('🛑 Orchestrator cleaned up');
     } catch (error) {
-      console.error('Error cleaning up unified agent:', error);
+      console.error('Error cleaning up orchestrator:', error);
     }
   }
 }
 
 // Export singleton instance
-export const unifiedAgent = new UnifiedAgent();
+export const orchestrator = new Orchestrator();

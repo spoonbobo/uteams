@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import { executeQuery } from './db';
-import { unifiedAgent } from './ai';
+import { orchestrator } from './ai';
 import { UserProfile } from './ai/memory';
 
 export const registerChatIpc = () => {
@@ -89,6 +89,12 @@ export const registerChatIpc = () => {
             if (payload.sessionId === sessionId) {
               const chunk: string | undefined = payload?.update;
               
+              // Debug: Check if event sender is valid
+              if (!event?.sender) {
+                console.warn(`⚠️ No event sender for session ${sessionId}!`);
+                return;
+              }
+              
               // Log progress updates
               // if (payload.node || payload.type === 'message' || payload.type === 'complete' || payload.progress === 0) {
               //   console.log('📢 Agent progress:', {
@@ -105,43 +111,71 @@ export const registerChatIpc = () => {
                // Handle different message types
                if (payload.type === 'plan') {
                  // Send plan information to renderer
-                 event?.sender?.send?.('chat:agent:plan', {
-                   sessionId,
-                   plan: payload.plan,
-                   progress: payload.progress,
-                   step: payload.step,
-                   totalSteps: payload.totalSteps,
-                 });
+                 console.log(`📋 Sending plan to UI for session ${sessionId}`);
+                 if (!event?.sender?.send) {
+                   console.error(`❌ Cannot send plan - event.sender.send not available!`);
+                   return;
+                 }
+                 
+                 try {
+                   event.sender.send('chat:agent:plan', {
+                     sessionId,
+                     plan: payload.plan,
+                     progress: payload.progress,
+                     step: payload.step,
+                     totalSteps: payload.totalSteps,
+                   });
+                   console.log(`✅ Plan event sent successfully`);
+                 } catch (error) {
+                   console.error(`❌ Error sending plan event:`, error);
+                 }
                } else if (payload.type === 'todos') {
                  // Send todos to renderer
-                 event?.sender?.send?.('chat:agent:todos', {
+                 console.log(`📋 Sending todos to UI for session ${sessionId}:`, payload.todos?.length || 0, 'items');
+                 console.log(`📋 Todos content:`, payload.todos);
+                 const todoEvent = {
                    sessionId,
                    todos: payload.todos,
                    progress: payload.progress,
                    step: payload.step,
                    totalSteps: payload.totalSteps,
-                 });
-              } else if (payload.type === 'todos') {
-                // Send initial todos list to renderer
-                console.log(`📋 Sending todos to UI for session ${sessionId}:`, payload.todos?.length || 0, 'items');
-                event?.sender?.send?.('chat:agent:todos', {
-                  sessionId,
-                  todos: payload.todos,
-                  progress: payload.progress,
-                  step: payload.step,
-                  totalSteps: payload.totalSteps,
-                });
+                 };
+                 console.log(`📋 Sending todo event:`, todoEvent);
+                 
+                 // Check if sender is valid
+                 if (!event?.sender?.send) {
+                   console.error(`❌ Cannot send todos - event.sender.send not available!`);
+                   return;
+                 }
+                 
+                 try {
+                   event.sender.send('chat:agent:todos', todoEvent);
+                   console.log(`✅ Todos event sent successfully`);
+                 } catch (error) {
+                   console.error(`❌ Error sending todos event:`, error);
+                 }
               } else if (payload.type === 'todo-update') {
                 // Send todo update to renderer
                 console.log(`✅ Updating todo ${payload.todoIndex} for session ${sessionId}`);
-                event?.sender?.send?.('chat:agent:todo-update', {
-                  sessionId,
-                  todoIndex: payload.todoIndex,
-                  completed: payload.completed,
-                  progress: payload.progress,
-                  step: payload.step,
-                  totalSteps: payload.totalSteps,
-                });
+                
+                if (!event?.sender?.send) {
+                  console.error(`❌ Cannot send todo-update - event.sender.send not available!`);
+                  return;
+                }
+                
+                try {
+                  event.sender.send('chat:agent:todo-update', {
+                    sessionId,
+                    todoIndex: payload.todoIndex,
+                    completed: payload.completed,
+                    progress: payload.progress,
+                    step: payload.step,
+                    totalSteps: payload.totalSteps,
+                  });
+                  console.log(`✅ Todo-update event sent successfully for todo ${payload.todoIndex}`);
+                } catch (error) {
+                  console.error(`❌ Error sending todo-update event:`, error);
+                }
               } else if (payload.type === 'token') {
                 // Stream individual tokens from synthesis
                 event?.sender?.send?.('chat:agent:token', {
@@ -156,16 +190,10 @@ export const registerChatIpc = () => {
                   progress: payload.progress,
                 });
               } else if (chunk && payload.type !== 'complete' && payload.type !== 'status') {
-                 // Send actual content chunks (not status messages)
-                 event?.sender?.send?.('chat:agent:chunk', { 
-                   sessionId, 
-                   chunk,
-                   progress: payload.progress,
-                   node: payload.node,
-                   step: payload.step,
-                   totalSteps: payload.totalSteps,
-                   type: payload.type
-                 });
+                 // Only send actual content chunks, not status messages
+                 // This should never happen now since we removed all update fields
+                 console.warn('[chat] Unexpected chunk received:', { sessionId, chunk: chunk.substring(0, 50) });
+                 // Don't send the chunk to avoid showing technical messages
                } else if (payload.type === 'complete') {
                 // Send completion signal without chunk
                 event?.sender?.send?.('chat:agent:progress', { 
@@ -177,14 +205,14 @@ export const registerChatIpc = () => {
             }
           } catch {}
         };
-        unifiedAgent.on('progress', onProgress);
+        orchestrator.on('progress', onProgress);
 
         try {
           // Load course memory if courseId is provided
           let courseMemory = null;
           if (courseId) {
             console.log(`[Chat] Loading course memory for agent context (courseId: ${courseId})...`);
-            const memoryManager = unifiedAgent.getMemoryManager();
+            const memoryManager = orchestrator.getMemoryManager();
             courseMemory = await memoryManager.getCourseMemory(courseId);
             if (courseMemory) {
               console.log(`[Chat] 📚 Successfully loaded course memory for ${courseMemory.courseShortName}`);
@@ -201,7 +229,7 @@ export const registerChatIpc = () => {
             console.log(`[Chat] No courseId provided, agent will run without course context`);
           }
           
-          const res = await unifiedAgent.run({ 
+          const res = await orchestrator.run({ 
             sessionId, 
             prompt,
             userId,
@@ -221,7 +249,7 @@ export const registerChatIpc = () => {
           });
           return { success: true, resultSummary: res?.resultSummary };
         } finally {
-          unifiedAgent.removeListener('progress', onProgress);
+          orchestrator.removeListener('progress', onProgress);
           console.log('🔚 Removed progress listener for session', sessionId);
         }
       } catch (e) {
@@ -238,7 +266,7 @@ export const registerChatIpc = () => {
   // Memory management IPC handlers
   ipcMain.handle('chat:memory:getUserProfile', async (_event, { userId }: { userId: string }) => {
     try {
-      const memoryManager = unifiedAgent.getMemoryManager();
+      const memoryManager = orchestrator.getMemoryManager();
       const profile = await memoryManager.getUserProfile(userId);
       return { success: true, profile };
     } catch (e) {
@@ -249,7 +277,7 @@ export const registerChatIpc = () => {
   
   ipcMain.handle('chat:memory:saveUserProfile', async (_event, { profile }: { profile: UserProfile }) => {
     try {
-      await unifiedAgent.updateUserProfile(profile);
+      await orchestrator.updateUserProfile(profile);
       return { success: true };
     } catch (e) {
       console.error('chat:memory:saveUserProfile failed', e);
@@ -259,7 +287,7 @@ export const registerChatIpc = () => {
   
   ipcMain.handle('chat:memory:getRecentSessions', async (_event, { userId, limit = 5 }: { userId: string; limit?: number }) => {
     try {
-      const sessions = await unifiedAgent.getUserSessions(userId, limit);
+      const sessions = await orchestrator.getUserSessions(userId, limit);
       return { success: true, sessions };
     } catch (e) {
       console.error('chat:memory:getRecentSessions failed', e);
@@ -269,7 +297,7 @@ export const registerChatIpc = () => {
   
   ipcMain.handle('chat:memory:searchMemories', async (_event, { query, userId }: { query: string; userId?: string }) => {
     try {
-      const results = await unifiedAgent.searchMemories(query, userId);
+      const results = await orchestrator.searchMemories(query, userId);
       return { success: true, results };
     } catch (e) {
       console.error('chat:memory:searchMemories failed', e);
@@ -279,7 +307,7 @@ export const registerChatIpc = () => {
   
   ipcMain.handle('chat:memory:clearOldSessions', async (_event, { daysToKeep = 30 }: { daysToKeep?: number }) => {
     try {
-      const memoryManager = unifiedAgent.getMemoryManager();
+      const memoryManager = orchestrator.getMemoryManager();
       const cleared = await memoryManager.clearOldSessions(daysToKeep);
       return { success: true, cleared };
     } catch (e) {
@@ -290,7 +318,7 @@ export const registerChatIpc = () => {
   
   ipcMain.handle('chat:memory:getStats', async () => {
     try {
-      const memoryManager = unifiedAgent.getMemoryManager();
+      const memoryManager = orchestrator.getMemoryManager();
       const stats = memoryManager.getStats();
       return { success: true, stats };
     } catch (e) {
@@ -301,7 +329,7 @@ export const registerChatIpc = () => {
   
   ipcMain.handle('chat:memory:setEnabled', async (_event, { enabled }: { enabled: boolean }) => {
     try {
-      unifiedAgent.setMemoryEnabled(enabled);
+      orchestrator.setMemoryEnabled(enabled);
       return { success: true };
     } catch (e) {
       console.error('chat:memory:setEnabled failed', e);

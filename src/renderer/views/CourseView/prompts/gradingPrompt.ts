@@ -29,6 +29,11 @@ ${submissionData}
 ## GRADING TASK:
 Carefully evaluate the student submission against each rubric criterion. Provide specific, constructive feedback that helps the student understand their strengths and areas for improvement.
 
+IMPORTANT: Complete the grading efficiently in MAXIMUM 2 STEPS:
+- Step 1: Analyze the submission against rubric criteria
+- Step 2: Generate the final grading feedback
+Do not overcomplicate the process - focus on providing accurate, constructive feedback quickly.
+
 ## REQUIRED OUTPUT FORMAT:
 You MUST respond with ONLY a valid JSON object (no markdown code blocks, no explanations) with this exact structure:
 

@@ -10,10 +10,5 @@ export {
   createResearchMCPClient,
 } from './mcpClient';
 
-// Multi-Agent Graph Builder
-export {
-  MultiAgentGraphBuilder,
-  MultiAgentState,
-  MultiAgentArchitecture,
-  MultiAgentConfig,
-} from './multiAgentGraphBuilder';
+// New modular graph system
+export * from '../graph';

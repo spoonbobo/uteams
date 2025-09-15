@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -17,6 +17,7 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  CircularProgress,
 } from '@mui/material';
 import { Send as SendIcon, Close as CloseIcon } from '@mui/icons-material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -41,6 +42,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   const theme = useTheme();
   const intl = useIntl();
   const [newMessage, setNewMessage] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const {
     messagesBySession,
     loadMessages,
@@ -51,6 +53,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     streamingBySession,
     deleteMessage,
     clearAllMessages,
+    isThinkingBySession,
   } = useChatStore();
 
   useEffect(() => {
@@ -58,6 +61,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   }, [sessionId]);
 
   const streaming = streamingBySession[sessionId];
+  const isThinking = isThinkingBySession?.[sessionId] || false;
   const chatMessages = useMemo(() => {
     const base = messagesBySession[sessionId] ?? [];
     if (streaming) {
@@ -75,6 +79,11 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     }
     return base;
   }, [messagesBySession, sessionId, streaming]);
+
+  // Auto-scroll to bottom when messages change or thinking state changes
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages, isThinking]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
@@ -158,28 +167,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           },
         }}
       >
-        {chatMessages.map((message) => {
+        {chatMessages.filter(m => m.type !== 'thinking').map((message) => {
           const createdTime = new Date(message.createdAt).toLocaleString();
           const isUser = message.sender === 'user';
-          const isThinking = message.type === 'thinking';
-          if (isThinking) {
-            return (
-              <Box key={message.id} sx={{ mb: 0.5, alignSelf: 'flex-start', maxWidth: '85%' }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: 'block',
-                    color: theme.palette.text.secondary,
-                    lineHeight: 1.1,
-                    fontSize: '0.68rem',
-                    px: 0.25,
-                  }}
-                >
-                  {message.text}
-                </Typography>
-              </Box>
-            );
-          }
           return (
             <Tooltip key={message.id} title={createdTime} arrow placement="top">
               <Box
@@ -232,6 +222,44 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             </Tooltip>
           );
         })}
+        
+        {/* Show thinking spinner when agent is processing - appears after user message */}
+        {isThinking && !streaming && (
+          <Box
+            sx={{
+              mb: 1,
+              pl: 1,
+              alignSelf: 'flex-start',
+              maxWidth: '85%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            <CircularProgress 
+              size={14} 
+              thickness={5} 
+              sx={{ 
+                color: theme.palette.text.disabled,
+                opacity: 0.6,
+              }} 
+            />
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                fontSize: '0.65rem', 
+                color: theme.palette.text.disabled,
+                opacity: 0.8,
+                fontStyle: 'italic',
+              }}
+            >
+              {intl.formatMessage({ id: 'chat.thinking', defaultMessage: 'Agent is working on a response' })}
+            </Typography>
+          </Box>
+        )}
+        
+        {/* Invisible element for auto-scrolling */}
+        <div ref={messagesEndRef} />
       </Box>
 
       {/* Chat Input */}

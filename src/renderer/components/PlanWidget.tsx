@@ -12,6 +12,7 @@ import {
   Circle as PendingIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
+import CircularProgress from '@mui/material/CircularProgress';
 import { useChatStore } from '../stores/useChatStore';
 import { useIntl } from 'react-intl';
 
@@ -285,7 +286,7 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
           })}
         </Box>
 
-        {/* Minimal Completion Message */}
+        {/* Minimal Completion Message with Synthesizing Spinner */}
         {progress === 100 && (
           <Fade in={true} timeout={800}>
             <Box
@@ -296,18 +297,36 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
                 bgcolor: (theme) => alpha(theme.palette.success.main, 0.04),
               }}
             >
-              <Typography
-                variant="caption"
+              <Box
                 sx={{
-                  color: 'success.main',
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                  display: 'block',
-                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 1,
                 }}
               >
-                {intl.formatMessage({ id: 'plan.allTasksCompleted' })}
-              </Typography>
+                <CircularProgress 
+                  size={20} 
+                  thickness={4}
+                  sx={{
+                    color: 'success.main',
+                  }}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'success.main',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    display: 'block',
+                    textAlign: 'center',
+                  }}
+                >
+                  {intl.formatMessage({ id: 'plan.synthesizingResponse' }, {
+                    defaultMessage: 'Synthesizing response...'
+                  })}
+                </Typography>
+              </Box>
             </Box>
           </Fade>
         )}

@@ -19,8 +19,8 @@ The Memory System provides both short-term (thread-level) and long-term (cross-t
    - Includes tools for saving, retrieving, and searching memories
    - Supports user preference management
 
-3. **Integration** (`unifiedAgent.ts`)
-   - Seamlessly integrated into the UnifiedAgent
+3. **Integration** (`orchestrator.ts`)
+   - Seamlessly integrated into the Orchestrator
    - Automatic memory context loading
    - Thread-based conversation continuity
 
@@ -40,13 +40,13 @@ The Memory System provides both short-term (thread-level) and long-term (cross-t
 
 ## Usage
 
-### Basic Usage in UnifiedAgent
+### Basic Usage with Orchestrator
 
 ```typescript
-import { unifiedAgent } from './ai';
+import { orchestrator } from './ai';
 
 // Run with memory enabled (default)
-const response = await unifiedAgent.run({
+const response = await orchestrator.run({
   sessionId: 'session_123',
   prompt: 'Hello, how are you?',
   userId: 'user_123',
@@ -64,7 +64,7 @@ const response = await unifiedAgent.run({
 
 ```typescript
 // Save user profile
-await unifiedAgent.updateUserProfile({
+await orchestrator.updateUserProfile({
   userId: 'user_123',
   name: 'John Doe',
   language: 'English',
@@ -82,7 +82,7 @@ await unifiedAgent.updateUserProfile({
 });
 
 // Get user profile
-const memoryManager = unifiedAgent.getMemoryManager();
+const memoryManager = orchestrator.getMemoryManager();
 const profile = await memoryManager.getUserProfile('user_123');
 ```
 
@@ -90,13 +90,13 @@ const profile = await memoryManager.getUserProfile('user_123');
 
 ```typescript
 // Get recent sessions for a user
-const sessions = await unifiedAgent.getUserSessions('user_123', 5);
+const sessions = await orchestrator.getUserSessions('user_123', 5);
 
 // Search through memories
-const results = await unifiedAgent.searchMemories('JavaScript', 'user_123');
+const results = await orchestrator.searchMemories('JavaScript', 'user_123');
 
 // Clear old sessions (older than 30 days)
-const memoryManager = unifiedAgent.getMemoryManager();
+const memoryManager = orchestrator.getMemoryManager();
 const cleared = await memoryManager.clearOldSessions(30);
 ```
 
@@ -120,7 +120,7 @@ const courseMemory = {
   lastUpdated: new Date().toISOString()
 };
 
-const memoryManager = unifiedAgent.getMemoryManager();
+const memoryManager = orchestrator.getMemoryManager();
 await memoryManager.saveCourseMemory(courseMemory);
 
 // Retrieve course memory
@@ -265,7 +265,7 @@ data/memory/
 
 ```typescript
 // First message
-const response1 = await unifiedAgent.run({
+const response1 = await orchestrator.run({
   sessionId: 'session_123',
   prompt: 'My name is John and I like JavaScript',
   userId: 'user_123',
@@ -273,7 +273,7 @@ const response1 = await unifiedAgent.run({
 });
 
 // Later message in same thread
-const response2 = await unifiedAgent.run({
+const response2 = await orchestrator.run({
   sessionId: 'session_123',
   prompt: 'What programming language do I like?',
   userId: 'user_123',
@@ -286,7 +286,7 @@ const response2 = await unifiedAgent.run({
 
 ```typescript
 // Set user preference for detailed responses
-await unifiedAgent.updateUserProfile({
+await orchestrator.updateUserProfile({
   userId: 'user_123',
   preferences: {
     responseStyle: 'detailed',
@@ -295,7 +295,7 @@ await unifiedAgent.updateUserProfile({
 });
 
 // All future responses for this user will use these preferences
-const response = await unifiedAgent.run({
+const response = await orchestrator.run({
   sessionId: 'session_123',
   prompt: 'Explain quantum computing',
   userId: 'user_123',
@@ -306,10 +306,10 @@ const response = await unifiedAgent.run({
 
 ```typescript
 // Search for past conversations about a topic
-const results = await unifiedAgent.searchMemories('quantum computing', 'user_123');
+const results = await orchestrator.searchMemories('quantum computing', 'user_123');
 
 // Use the results to provide context
-const response = await unifiedAgent.run({
+const response = await orchestrator.run({
   sessionId: 'session_123',
   prompt: `Based on our previous discussions about quantum computing, 
            what else would you like to know?`,
@@ -342,7 +342,7 @@ const response = await unifiedAgent.run({
 - Course memory system with full CRUD operations
 - Memory persistence to disk
 - IPC handlers for both chat and course memory
-- Integration with UnifiedAgent
+- Integration with Orchestrator
 - Memory tools for agents
 - Automatic memory context loading
 

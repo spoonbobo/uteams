@@ -123,8 +123,12 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
 
   // Listen for AI agent events using the same pattern as ChatWidget
   useEffect(() => {
+    console.log(`🔄 useEffect running for sessionId: ${sessionId}`);
     const ipc = (window as any).electron?.ipcRenderer;
-    if (!ipc) return;
+    if (!ipc) {
+      console.error('❌ IPC not available! window.electron:', (window as any).electron);
+      return;
+    }
 
     // Handle token streaming for grading results
     const onToken = (payload: { sessionId: string; token: string; node?: string }) => {
@@ -341,7 +345,11 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
 
     // Handle todos updates
     const onTodos = (payload: { sessionId: string; todos: any[] }) => {
-      if (payload?.sessionId !== sessionId) return;
+      console.log('📝 Todos event received for session:', payload?.sessionId, 'Current session:', sessionId);
+      if (payload?.sessionId !== sessionId) {
+        console.log('📝 Ignoring todos for different session');
+        return;
+      }
       console.log('📝 Todos received:', payload.todos);
       setTodos(sessionId, payload.todos);
     };
@@ -392,6 +400,7 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
     };
 
     // Subscribe to all events (same as ChatWidget)
+    console.log(`📡 Setting up IPC listeners for session: ${sessionId}`);
     const offToken = ipc?.on?.('chat:agent:token' as any, onToken as any);
     const offPlan = ipc?.on?.('chat:agent:plan' as any, onPlan as any);
     const offTodos = ipc?.on?.('chat:agent:todos' as any, onTodos as any);
@@ -399,6 +408,7 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
     const offSynthesisStart = ipc?.on?.('chat:agent:synthesis-start' as any, onSynthesisStart as any);
     const offDone = ipc?.on?.('chat:agent:done' as any, onDone as any);
     const offError = ipc?.on?.('chat:agent:error' as any, onError as any);
+    console.log(`📡 IPC listeners set up for session: ${sessionId}`);
 
     // Cleanup
     return () => {
@@ -764,14 +774,6 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
                     </Box>
                   )}
                   
-                  {/* Comments count indicator */}
-                  {gradingComments.length > 0 && (
-                    <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {gradingComments.length} detailed comment{gradingComments.length !== 1 ? 's' : ''} highlighted in document
-                      </Typography>
-                    </Box>
-                  )}
                 </Box>
               </CardContent>
             ) : (
