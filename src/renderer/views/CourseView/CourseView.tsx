@@ -4,8 +4,8 @@ import { AskView } from './AskView';
 import { CourseOverview } from './CourseOverview';
 import { GradingView } from './GradingView';
 import { useIntl } from 'react-intl';
-import { useMoodleStore } from '../../stores/useMoodleStore';
-import type { CourseSessionContext } from '../../stores/useContextStore';
+import { useMoodleStore } from '@/stores/useMoodleStore';
+import type { CourseSessionContext } from '@/stores/useContextStore';
 
 interface CourseViewProps {
   sessionContext: CourseSessionContext | null;

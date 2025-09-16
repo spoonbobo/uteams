@@ -14,17 +14,17 @@ import {
   ArrowForward as ArrowForwardIcon,
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
-import type { MoodleAssignment } from '../../../stores/useMoodleStore';
-import type { StudentSubmissionData, RubricContent, AIGradeResult, DetailedAIGradeResult } from '../../../stores/useGradingStore';
-import { DocxPreview } from '../../../components/DocxPreview/DocxPreview';
-import type { DocxContent } from '../../../components/DocxPreview/types';
-import { PlanWidget } from '../../../components/PlanWidget';
+import type { MoodleAssignment } from '@/stores/useMoodleStore';
+import type { StudentSubmissionData, RubricContent, AIGradeResult, DetailedAIGradeResult } from '@/stores/useGradingStore';
+import { DocxPreview } from '@/components/DocxPreview/DocxPreview';
+import type { DocxContent } from '@/components/DocxPreview/types';
+import { PlanWidget } from '@/components/PlanWidget';
 import { useIntl } from 'react-intl';
-import { pulseNewHighlights } from '../../../components/DocxPreview/utils';
-import type { ElementHighlight } from '../../../components/DocxPreview/types';
-import { useChatStore } from '../../../stores/useChatStore';
-import { createGradingPrompt } from '../prompts/gradingPrompt';
-import { useGradingStore } from '../../../stores/useGradingStore';
+import { pulseNewHighlights } from '@/components/DocxPreview/utils';
+import type { ElementHighlight } from '@/components/DocxPreview/types';
+import { useChatStore } from '@/stores/useChatStore';
+import { createGradingPrompt } from '../../prompts/gradingPrompt';
+import { useGradingStore } from '@/stores/useGradingStore';
 
 interface AIGradingPanelProps {
   selectedAssignment: string;
@@ -118,8 +118,9 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
   const plan = planBySession?.[sessionId];
 
   // Listen for AI agent events using the same pattern as ChatWidget
+  // IMPORTANT: We listen to ALL grading events and store them, not just for the selected student
   useEffect(() => {
-    console.log(`🔄 useEffect running for sessionId: ${sessionId}`);
+    console.log(`🔄 useEffect running for listening to ALL grading events`);
     const ipc = (window as any).electron?.ipcRenderer;
     if (!ipc) {
       console.error('❌ IPC not available! window.electron:', (window as any).electron);
@@ -128,6 +129,7 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
 
     // Handle token streaming for grading results
     const onToken = (payload: { sessionId: string; token: string; node?: string }) => {
+      // Only process tokens for the currently selected student to avoid UI confusion
       if (payload?.sessionId !== sessionId) return;
       
       setStreamBuffer(prev => {
@@ -332,67 +334,80 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
       });
     };
 
-    // Handle plan updates
+    // Handle plan updates - Store ALL plans, not just for selected student
     const onPlan = (payload: { sessionId: string; plan: any }) => {
-      if (payload?.sessionId !== sessionId) return;
-      console.log('📋 Plan received:', payload.plan);
-      setPlan(sessionId, payload.plan);
-    };
-
-    // Handle todos updates
-    const onTodos = (payload: { sessionId: string; todos: any[] }) => {
-      console.log('📝 Todos event received for session:', payload?.sessionId, 'Current session:', sessionId);
-      if (payload?.sessionId !== sessionId) {
-        console.log('📝 Ignoring todos for different session');
-        return;
+      // Store plan for ANY grading session
+      if (payload?.sessionId && payload.sessionId.startsWith(`grading-${selectedAssignment}-`)) {
+        console.log('📋 Plan received for session:', payload.sessionId, payload.plan);
+        setPlan(payload.sessionId, payload.plan);
       }
-      console.log('📝 Todos received:', payload.todos);
-      setTodos(sessionId, payload.todos);
     };
 
-    // Handle todo completion updates
+    // Handle todos updates - Store ALL todos, not just for selected student
+    const onTodos = (payload: { sessionId: string; todos: any[] }) => {
+      console.log('📝 Todos event received for session:', payload?.sessionId);
+      // Store todos for ANY grading session of this assignment
+      if (payload?.sessionId && payload.sessionId.startsWith(`grading-${selectedAssignment}-`)) {
+        console.log('📝 Storing todos for session:', payload.sessionId, payload.todos);
+        setTodos(payload.sessionId, payload.todos);
+      }
+    };
+
+    // Handle todo completion updates - Store ALL updates
     const onTodoUpdate = (payload: { sessionId: string; todoIndex: number; completed: boolean }) => {
-      if (payload?.sessionId !== sessionId) return;
-      console.log('✅ Todo update:', payload.todoIndex, payload.completed);
-      updateTodoByIndex(sessionId, payload.todoIndex, payload.completed);
+      // Store todo updates for ANY grading session of this assignment
+      if (payload?.sessionId && payload.sessionId.startsWith(`grading-${selectedAssignment}-`)) {
+        console.log('✅ Todo update for session:', payload.sessionId, payload.todoIndex, payload.completed);
+        updateTodoByIndex(payload.sessionId, payload.todoIndex, payload.completed);
+      }
     };
 
     // Handle synthesis start
     const onSynthesisStart = (payload: { sessionId: string; progress: number }) => {
+      // Only process synthesis for current student to avoid UI confusion
       if (payload?.sessionId !== sessionId) return;
       console.log('🚀 Synthesis started, expecting JSON response...');
       setStreamBuffer(''); // Clear buffer for clean JSON parsing
     };
 
-    // Handle completion
+    // Handle completion - Clear plans/todos for ANY completed grading session
     const onDone = (payload: { sessionId: string; final?: string }) => {
-      if (payload?.sessionId !== sessionId) return;
-      console.log('✅ Grading complete');
-      
-      // Persist grading results to store
-      if (gradingResult && selectedAssignment && selectedSubmission) {
-        const { saveDetailedGradingRecord } = useGradingStore.getState();
-        saveDetailedGradingRecord(selectedAssignment, selectedSubmission, gradingResult);
-        console.log('💾 Detailed grading results persisted to store');
+      // Clear plan/todos for ANY completed grading session of this assignment
+      if (payload?.sessionId && payload.sessionId.startsWith(`grading-${selectedAssignment}-`)) {
+        console.log('✅ Grading complete for session:', payload.sessionId);
+        clearPlan(payload.sessionId);
+        clearTodos(payload.sessionId);
+        
+        // Only update local state if it's for the current student
+        if (payload.sessionId === sessionId) {
+          // Persist grading results to store
+          if (gradingResult && selectedAssignment && selectedSubmission) {
+            const { saveDetailedGradingRecord } = useGradingStore.getState();
+            saveDetailedGradingRecord(selectedAssignment, selectedSubmission, gradingResult);
+            console.log('💾 Detailed grading results persisted to store');
+          }
+          
+          setStreamBuffer('');
+          setIsGradingActive(false);
+          setAppliedCommentIndices(new Set());
+        }
       }
-      
-      setStreamBuffer('');
-      setIsGradingActive(false);
-      setAppliedCommentIndices(new Set());
-      // Clear plan and todos when done
-      clearPlan(sessionId);
-      clearTodos(sessionId);
     };
 
-    // Handle errors
+    // Handle errors - Clear plans/todos for ANY errored grading session
     const onError = (payload: { sessionId: string; error: string }) => {
-      if (payload?.sessionId !== sessionId) return;
-      console.error('❌ AI Error:', payload.error);
-      setIsGradingActive(false);
-      setStreamBuffer('');
-      // Clear plan and todos on error
-      clearPlan(sessionId);
-      clearTodos(sessionId);
+      // Clear plan/todos for ANY errored grading session of this assignment
+      if (payload?.sessionId && payload.sessionId.startsWith(`grading-${selectedAssignment}-`)) {
+        console.error('❌ AI Error for session:', payload.sessionId, payload.error);
+        clearPlan(payload.sessionId);
+        clearTodos(payload.sessionId);
+        
+        // Only update local state if it's for the current student
+        if (payload.sessionId === sessionId) {
+          setIsGradingActive(false);
+          setStreamBuffer('');
+        }
+      }
     };
 
     // Subscribe to all events (same as ChatWidget)

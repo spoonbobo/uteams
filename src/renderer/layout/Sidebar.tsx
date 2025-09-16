@@ -21,11 +21,11 @@ import {
   Login as LoginIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
-import { toast } from '../utils/toast';
-import { useAppStore } from '../stores/useAppStore';
-import { useContextStore } from '../stores/useContextStore';
-import { useMoodleStore } from '../stores/useMoodleStore';
-import { useAuthenticationState } from '../stores/useUserStore';
+import { toast } from '@/utils/toast';
+import { useAppStore } from '@/stores/useAppStore';
+import { useContextStore } from '@/stores/useContextStore';
+import { useMoodleStore } from '@/stores/useMoodleStore';
+import { useAuthenticationState } from '@/stores/useUserStore';
 // Disclaimer moved into Settings General view
 
 const SIDEBAR_WIDTH = 240;

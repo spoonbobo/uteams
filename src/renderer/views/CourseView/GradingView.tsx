@@ -6,10 +6,10 @@ import {
 } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { useIntl } from 'react-intl';
-import { useMoodleStore } from '../../stores/useMoodleStore';
-import { useGradingStore } from '../../stores/useGradingStore';
-import type { CourseSessionContext } from '../../stores/useContextStore';
-import { HTabsPanel, type TabSection } from '../../components/HTabsPanel';
+import { useMoodleStore } from '@/stores/useMoodleStore';
+import { useGradingStore } from '@/stores/useGradingStore';
+import type { CourseSessionContext } from '@/stores/useContextStore';
+import { HTabsPanel, type TabSection } from '@/components/HTabsPanel';
 
 import {
   AssignmentSelectionPanel,

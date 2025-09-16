@@ -5,7 +5,7 @@ import {
   ThemeOptions,
 } from '@mui/material/styles';
 import { CssBaseline, GlobalStyles } from '@mui/material';
-import { useAppStore, type ColorPalette } from '../stores/useAppStore';
+import { useAppStore, type ColorPalette } from '@/stores/useAppStore';
 
 // Using locale-aware fonts via App.tsx imports
 

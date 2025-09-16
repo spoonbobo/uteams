@@ -5,8 +5,8 @@ import {
 } from '@mui/material';
 
 import { useIntl } from 'react-intl';
-import { useContextStore } from '../../stores/useContextStore';
-import { useAuthenticationState } from '../../stores/useUserStore';
+import { useContextStore } from '@/stores/useContextStore';
+import { useAuthenticationState } from '@/stores/useUserStore';
 import { DashboardView } from './DashboardView';
 
 export const HomeView: React.FC = () => {

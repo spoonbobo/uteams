@@ -1,6 +1,6 @@
 import React from 'react';
 import { Snackbar, Alert, Stack, LinearProgress, Box } from '@mui/material';
-import { useToastStore, ToastMessage } from '../stores/useToastStore';
+import { useToastStore, ToastMessage } from '@/stores/useToastStore';
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const { toasts, removeToast } = useToastStore();

@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, IconButton, Typography, alpha, useTheme, Tooltip } from '@mui/material';
 import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
 import { useIntl } from 'react-intl';
-import { ChatWidget } from '../components/ChatWidget';
+import { ChatWidget } from '@/components/ChatWidget';
 
 interface CompanionOverlayProps {
   sessionId: string;

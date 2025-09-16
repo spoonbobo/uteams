@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { IntlProvider as ReactIntlProvider } from 'react-intl';
-import { useAppStore } from '../stores/useAppStore';
+import { useAppStore } from '@/stores/useAppStore';
 import { messages, getMessages } from '../messages';
 
 interface IntlProviderProps {

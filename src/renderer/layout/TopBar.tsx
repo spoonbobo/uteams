@@ -32,7 +32,7 @@ import {
   School as SchoolIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
-import { useContextStore } from '../stores/useContextStore';
+import { useContextStore } from '@/stores/useContextStore';
 
 interface TopBarProps {
   sidebarWidth: number;

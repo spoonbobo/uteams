@@ -1,5 +1,5 @@
 // Toast utility for electron app using MUI components
-import { useToastStore } from '../stores/useToastStore';
+import { useToastStore } from '@/stores/useToastStore';
 
 export interface ToastOptions {
   message: string;

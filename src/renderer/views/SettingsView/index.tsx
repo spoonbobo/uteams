@@ -33,13 +33,13 @@ import {
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 
-import { useAppStore, type ColorPalette } from '../../stores/useAppStore';
-import { useContextStore } from '../../stores/useContextStore';
-import { useMoodleStore } from '../../stores/useMoodleStore';
+import { useAppStore, type ColorPalette } from '@/stores/useAppStore';
+import { useContextStore } from '@/stores/useContextStore';
+import { useMoodleStore } from '@/stores/useMoodleStore';
 import { useTheme } from '@mui/material/styles';
-import { toast } from '../../utils/toast';
+import { toast } from '@/utils/toast';
 import { languageNames } from '../../messages';
-import { Disclaimer, useDisclaimer } from '../../components/Disclaimer';
+import { Disclaimer, useDisclaimer } from '@/components/Disclaimer';
 
 
 

@@ -3,7 +3,7 @@ import { Box } from '@mui/material';
 import { SidebarCollapse, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from './SidebarCollapse';
 import { TopBar } from './TopBar';
 import { MainView } from './MainView';
-import { useLayoutStore } from '../stores/useLayoutStore';
+import { useLayoutStore } from '@/stores/useLayoutStore';
 
 interface AppLayoutProps {
   children: React.ReactNode;

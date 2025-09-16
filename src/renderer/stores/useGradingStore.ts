@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import type { MoodleAssignment, MoodleUser } from './useMoodleStore';
+import type {MoodleUser } from './useMoodleStore';
 import { useChatStore } from './useChatStore';
 
 // Define types for submissions and grades

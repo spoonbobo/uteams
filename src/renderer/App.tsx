@@ -20,12 +20,12 @@ import { ThemeProvider } from './providers/ThemeProvider';
 import { IntlProvider } from './providers/IntlProvider';
 import { ToastProvider } from './providers/ToastProvider';
 import { AppLayout } from './layout';
-import { HomeView } from './views/HomeView';
-import { SettingsView } from './views/SettingsView';
-import { CourseView } from './views/CourseView';
-import { CompanionOverlay } from './views/CompanionOverlay';
-import { useContextStore } from './stores/useContextStore';
-import { useAppStore } from './stores/useAppStore';
+import { HomeView } from '@/views/HomeView';
+import { SettingsView } from '@/views/SettingsView';
+import { CourseView } from '@/views/CourseView';
+import { CompanionOverlay } from '@/views/CompanionOverlay';
+import { useContextStore } from '@/stores/useContextStore';
+import { useAppStore } from '@/stores/useAppStore';
 import './App.css';
 
 

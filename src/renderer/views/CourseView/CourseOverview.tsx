@@ -3,9 +3,9 @@ import { Typography, Box } from '@mui/material';
 import { useIntl } from 'react-intl';
 import { AssignmentsPanel, StudentsPanel, MaterialsPanel } from './components';
 import type { SortOrder } from './components/AssignmentsPanel';
-import { useMoodleStore } from '../../stores/useMoodleStore';
-import type { CourseSessionContext } from '../../stores/useContextStore';
-import { HTabsPanel, HTabPanel, type TabSection, type PanelControlConfig } from '../../components/HTabsPanel';
+import { useMoodleStore } from '@/stores/useMoodleStore';
+import type { CourseSessionContext } from '@/stores/useContextStore';
+import { HTabsPanel, HTabPanel, type TabSection, type PanelControlConfig } from '@/components/HTabsPanel';
 
 interface CourseOverviewProps {
   sessionContext: CourseSessionContext;

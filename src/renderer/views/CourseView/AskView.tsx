@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Typography, Box, Fade } from '@mui/material';
-import { ChatWidget } from '../../components/ChatWidget';
-import { PlanWidget } from '../../components/PlanWidget';
-import { useChatStore } from '../../stores/useChatStore';
+import { ChatWidget } from '@/components/ChatWidget';
+import { PlanWidget } from '@/components/PlanWidget';
+import { useChatStore } from '@/stores/useChatStore';
 import { useIntl } from 'react-intl';
-import type { CourseSessionContext } from '../../stores/useContextStore';
+import type { CourseSessionContext } from '@/stores/useContextStore';
 
 interface AskViewProps {
   sessionContext: CourseSessionContext;

@@ -21,10 +21,10 @@ import {
   List as ListIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
-import { useMoodleStore } from '../../stores/useMoodleStore';
-import { useUserStore, useAuthenticationState } from '../../stores/useUserStore';
-import { Authenticate } from '../../components/Authenticate';
-import { toast } from '../../utils/toast';
+import { useMoodleStore } from '@/stores/useMoodleStore';
+import { useUserStore, useAuthenticationState } from '@/stores/useUserStore';
+import { Authenticate } from '@/components/Authenticate';
+import { toast } from '@/utils/toast';
 
 export const DashboardView: React.FC = () => {
   const intl = useIntl();

@@ -2,6 +2,7 @@
  * Base webpack config used across other specific configs
  */
 
+import path from 'path';
 import webpack from 'webpack';
 import TsconfigPathsPlugins from 'tsconfig-paths-webpack-plugin';
 import webpackPaths from './webpack.paths';
@@ -44,8 +45,19 @@ const configuration: webpack.Configuration = {
   resolve: {
     extensions: ['.js', '.jsx', '.json', '.ts', '.tsx'],
     modules: [webpackPaths.srcPath, 'node_modules'],
-    // There is no need to add aliases here, the paths in tsconfig get mirrored
-    plugins: [new TsconfigPathsPlugins()],
+    alias: {
+      '@': path.resolve(__dirname, '../../src'),
+      '@/components': path.resolve(__dirname, '../../src/renderer/components'),
+      '@/stores': path.resolve(__dirname, '../../src/renderer/stores'),
+      '@/views': path.resolve(__dirname, '../../src/renderer/views'),
+      '@/utils': path.resolve(__dirname, '../../src/renderer/utils'),
+      '@/types': path.resolve(__dirname, '../../src/renderer/types'),
+      '@/main': path.resolve(__dirname, '../../src/main'),
+    },
+    // Keep the TsconfigPathsPlugin as backup
+    plugins: [new TsconfigPathsPlugins({
+      configFile: path.resolve(__dirname, '../../tsconfig.json')
+    })],
   },
 
   plugins: [new webpack.EnvironmentPlugin({ NODE_ENV: 'production' })],
