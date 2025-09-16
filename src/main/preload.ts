@@ -23,7 +23,8 @@ export type Channels =
   | 'moodle:save-config'
   | 'moodle:get-config'
   | 'moodle:clear-config'
-  | 'moodle:get-preset-url';
+  | 'moodle:get-preset-url'
+  | 'alert:toast';
 
 const electronHandler = {
   ipcRenderer: {
@@ -124,6 +125,80 @@ const electronHandler = {
     close: () => ipcRenderer.invoke('companion:close'),
     isOpen: () => ipcRenderer.invoke('companion:is-open'),
     focus: () => ipcRenderer.invoke('companion:focus'),
+  },
+  alert: {
+    // Show system alert dialog
+    show: (options: {
+      title: string;
+      message: string;
+      type?: 'info' | 'warning' | 'error' | 'question';
+      buttons?: string[];
+      defaultId?: number;
+      cancelId?: number;
+      icon?: string;
+    }) => ipcRenderer.invoke('alert:show', options),
+
+    // Show system notification
+    notification: (options: {
+      title: string;
+      body: string;
+      icon?: string;
+      silent?: boolean;
+      urgency?: 'normal' | 'critical' | 'low';
+      timeoutType?: 'default' | 'never';
+      actions?: Array<{
+        type: 'button';
+        text: string;
+      }>;
+    }) => ipcRenderer.invoke('alert:notification', options),
+
+    // Show error alert
+    error: (title: string, message: string) =>
+      ipcRenderer.invoke('alert:error', title, message),
+
+    // Show warning alert
+    warning: (title: string, message: string) =>
+      ipcRenderer.invoke('alert:warning', title, message),
+
+    // Show info alert
+    info: (title: string, message: string) =>
+      ipcRenderer.invoke('alert:info', title, message),
+
+    // Show confirmation dialog
+    confirm: (
+      title: string,
+      message: string,
+      confirmText?: string,
+      cancelText?: string
+    ) => ipcRenderer.invoke('alert:confirm', title, message, confirmText, cancelText),
+
+    // Show toast notification (sent to renderer)
+    toast: (options: {
+      title: string;
+      message: string;
+      type?: 'success' | 'error' | 'warning' | 'info';
+      duration?: number;
+    }) => ipcRenderer.invoke('alert:toast', options),
+
+    // Check if notifications are supported
+    isNotificationSupported: () =>
+      ipcRenderer.invoke('alert:is-notification-supported'),
+
+    // Request notification permission
+    requestNotificationPermission: () =>
+      ipcRenderer.invoke('alert:request-notification-permission'),
+
+    // Listen for toast messages from main process
+    onToast: (callback: (options: {
+      title: string;
+      message: string;
+      type?: 'success' | 'error' | 'warning' | 'info';
+      duration?: number;
+    }) => void) => {
+      const subscription = (_event: IpcRendererEvent, options: any) => callback(options);
+      ipcRenderer.on('alert:toast', subscription);
+      return () => ipcRenderer.removeListener('alert:toast', subscription);
+    },
   },
 };
 

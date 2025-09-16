@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useGradingStore } from '../../../../stores/useGradingStore';
 import { createGradingPrompt } from '../../prompts/gradingPrompt';
 import type { SubmissionFile, CollapsedCategories, SubmitGradeDialogData } from './types';
-import type { StudentSubmissionData } from '../../../../stores/useGradingStore';
-import type { MoodleAssignment } from '../../../../stores/useMoodleStore';
+import type { StudentSubmissionData } from '../../../../types/grading';
+import type { MoodleAssignment } from '../../../../types/moodle';
 import type { DocxContent } from '../../../../components/DocxPreview/types';
 
 export const useSubmissionFiles = (selectedSubmission: string | null, selectedAssignment: string) => {

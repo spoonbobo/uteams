@@ -33,7 +33,7 @@ import {
 } from './hooks';
 import { categorizeStudents } from './utils';
 import type { StudentSubmissionsPanelProps } from './types';
-import type { StudentSubmissionData } from '../../../../stores/useGradingStore';
+import type { StudentSubmissionData } from '../../../../types/grading';
 
 
 

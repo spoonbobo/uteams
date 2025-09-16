@@ -9,8 +9,8 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import type { MoodleAssignment } from '../../../../stores/useMoodleStore';
-import type { StudentSubmissionData } from '../../../../stores/useGradingStore';
+import type { MoodleAssignment } from '../../../../types/moodle';
+import type { StudentSubmissionData } from '../../../../types/grading';
 import { useGradingStore } from '../../../../stores/useGradingStore';
 import { useMoodleStore } from '../../../../stores/useMoodleStore';
 import { useIntl } from 'react-intl';

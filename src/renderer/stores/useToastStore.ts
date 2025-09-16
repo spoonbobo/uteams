@@ -1,14 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-
-export interface ToastMessage {
-  id: string;
-  message: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-  autoHideDuration?: number;
-  showProgress?: boolean;
-  progress?: number;
-}
+import type { ToastMessage } from '../types/message';
 
 interface ToastState {
   toasts: ToastMessage[];

@@ -25,8 +25,8 @@ import {
   Description as DescriptionIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
-import type { MoodleAssignment } from '../../../stores/useMoodleStore';
-import type { GradingStats, RubricContent } from '../../../stores/useGradingStore';
+import type { MoodleAssignment } from '../../../types/moodle';
+import type { GradingStats, RubricContent } from '../../../types/grading';
 import { DocxPreview } from '../../../components/DocxPreview/DocxPreview';
 import { useIntl } from 'react-intl';
 

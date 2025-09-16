@@ -15,7 +15,7 @@ import {
   Send as SendIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
-import type { StudentSubmissionData } from '../../../../stores/useGradingStore';
+import type { StudentSubmissionData } from '../../../../types/grading';
 import type { SubmissionFile } from './types';
 import { getSubmissionStatus, getGradeStatus, getInitials, getAvatarColor } from './utils';
 

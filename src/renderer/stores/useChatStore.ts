@@ -1,30 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-
-export type ChatMessage = {
-  id: string;
-  chatId: string; // betting session id
-  text: string;
-  sender: 'user' | 'companion';
-  createdAt: string; // ISO string
-  isRead?: boolean;
-  type?: 'normal' | 'thinking';
-};
-
-export type AgentPlan = {
-  steps: string[];
-  reasoning: string;
-  requiresTools: boolean;
-  selectedAgent: string | null;
-  currentStep?: number; // Track which step is currently being executed
-};
-
-export type TodoItem = {
-  id: string;
-  text: string;
-  completed: boolean;
-  order: number;
-};
+import type { ChatMessage } from '../types/message';
+import type { AgentPlan, TodoItem } from '../types/plan';
 
 type ChatState = {
   messagesBySession: Record<string, ChatMessage[]>;

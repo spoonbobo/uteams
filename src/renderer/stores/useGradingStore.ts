@@ -1,112 +1,18 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import type {MoodleUser } from './useMoodleStore';
+import type { MoodleUser } from '../types/moodle';
 import { useChatStore } from './useChatStore';
-
-// Define types for submissions and grades
-interface MoodleSubmission {
-  userid: string;
-  status: string;
-  timemodified?: number;
-  attemptnumber?: number;
-}
-
-interface MoodleGrade {
-  userid: string;
-  grade: number;
-  timemodified?: number;
-  feedback?: string;
-}
-
-// Student submission data type
-interface StudentSubmissionData {
-  student: MoodleUser;
-  submission?: MoodleSubmission;
-  grade?: MoodleGrade;
-  currentGrade: string;
-  feedback: string;
-  isEditing: boolean;
-}
-
-// Statistics interface
-interface GradingStats {
-  totalStudents: number;
-  submitted: number;
-  pending: number;
-  graded: number;
-  ungraded: number;
-  published: number;
-  unpublished: number;
-}
-
-// AI grading result interface
-interface AIGradeResult {
-  grade: number;
-  feedback: string;
-}
-
-// Detailed AI grading result interface
-interface DetailedAIGradeResult {
-  comments: Array<{
-    elementType: string;
-    elementIndex: string;
-    color: 'red' | 'yellow' | 'green';
-    comment: string;
-  }>;
-  overallScore: number;
-  shortFeedback: string;
-}
-
-// Rubric content interface
-interface RubricContent {
-  text: string;
-  html: string;
-  wordCount: number;
-  characterCount: number;
-  filename: string;
-  filePath?: string; // Path to the saved file for persistence
-  elementCounts?: {
-    paragraph: number;
-    heading1: number;
-    heading2: number;
-    heading3: number;
-    heading4: number;
-    heading5: number;
-    heading6: number;
-    list: number;
-    listItem: number;
-    table: number;
-    tableRow: number;
-    tableCell: number;
-  };
-}
-
-// Assignment rubric mapping
-interface AssignmentRubric {
-  assignmentId: string;
-  rubricContent: RubricContent;
-  uploadedAt: number;
-}
-
-// Grading status for student-assignment combination
-interface GradingRecord {
-  assignmentId: string;
-  studentId: string;
-  aiGradeResult: AIGradeResult | null;
-  detailedAIGradeResult: DetailedAIGradeResult | null; // Store detailed AI grading results
-  isAIGraded: boolean;
-  gradedAt?: number;
-  finalGrade?: string;
-  finalFeedback?: string;
-}
-
-// Persisted grading data per session
-interface PersistedGradingData {
-  selectedAssignment: string;
-  selectedSubmission: string | null;
-  assignmentRubrics: AssignmentRubric[];
-  gradingRecords: GradingRecord[];
-}
+import type { MoodleSubmission, MoodleGrade } from '../types/moodle';
+import type {
+  StudentSubmissionData,
+  GradingStats,
+  AIGradeResult,
+  DetailedAIGradeResult,
+  RubricContent,
+  AssignmentRubric,
+  GradingRecord,
+  PersistedGradingData,
+} from '../types/grading';
 
 interface GradingState {
   // Assignment selection
@@ -1021,15 +927,3 @@ export const useGradingStore = create<GradingState>()(
   )
 );
 
-// Export types for use in components
-export type { 
-  MoodleSubmission, 
-  MoodleGrade, 
-  StudentSubmissionData, 
-  GradingStats, 
-  AIGradeResult,
-  DetailedAIGradeResult,
-  RubricContent,
-  AssignmentRubric,
-  GradingRecord
-};

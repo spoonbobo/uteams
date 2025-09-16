@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-
-export type ColorPalette = 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'teal' | 'pink' | 'indigo';
+import type { ColorPalette } from '../types/color';
 
 interface AppState {
   // UI state

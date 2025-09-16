@@ -24,7 +24,7 @@ import {
   Search as SearchIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
-import type { MoodleAssignment } from '../../../stores/useMoodleStore';
+import type { MoodleAssignment } from '../../../types/moodle';
 import { useMoodleStore } from '../../../stores/useMoodleStore';
 
 export type SortOrder = 'newest' | 'oldest';

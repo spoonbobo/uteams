@@ -17,7 +17,7 @@ import {
   Description as DescriptionIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
-import type { MoodleActivity } from '../../../stores/useMoodleStore';
+import type { MoodleActivity } from '../../../types/moodle';
 
 interface MaterialsPanelProps {
   activities: MoodleActivity[];

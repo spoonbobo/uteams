@@ -16,7 +16,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
-import { initializeAgents, registerAgentIpc, cleanupAgents, generalAgent } from './ai';
+import { initializeAgents, registerAgentIpc, cleanupAgents } from './ai';
 import { registerChatIpc } from './chat';
 import { registerAppIpcHandlers, getAppInfo } from './app';
 import { registerMemoryIpc } from './ai/memoryIpc';
@@ -29,6 +29,7 @@ import {
 import { setupMoodleHandlers } from './moodle';
 import { setupFileIOHandlers } from './fileio';
 import { setupDocxHandlers } from './msftdocx';
+import { setupAlertHandlers } from './alert';
 
 // Debug: Log environment variable loading
 console.log('🔧 Environment variables loaded:');
@@ -137,6 +138,13 @@ const createWindow = async () => {
     console.error('Failed to register DOCX handlers early', e);
   }
 
+  try {
+    setupAlertHandlers();
+    console.log('✅ Alert handlers registered early');
+  } catch (e) {
+    console.error('Failed to register Alert handlers early', e);
+  }
+
   mainWindow.loadURL(resolveHtmlPath('index.html'));
 
   // Inform renderer about app info on ready
@@ -188,14 +196,6 @@ app.on('window-all-closed', async () => {
 
   await cleanupAgents();
 
-  // Clean up general agent
-  try {
-    await generalAgent.cleanup();
-    console.log('General agent cleaned up');
-  } catch (error) {
-    console.error('Error cleaning up general agent:', error);
-  }
-
   // Respect the OSX convention of having the application in memory even
   // after all windows have been closed
   if (process.platform !== 'darwin') {
@@ -209,14 +209,6 @@ app.on('before-quit', async (event) => {
 
   await cleanupAgents();
 
-  // Clean up general agent
-  try {
-    await generalAgent.cleanup();
-    console.log('General agent cleaned up on quit');
-  } catch (error) {
-    console.error('Error cleaning up general agent on quit:', error);
-  }
-
   // Clean up database connections
   await cleanupDatabaseConnections();
 
@@ -229,14 +221,6 @@ const cleanupAndExit = async () => {
   console.log('Received termination signal, cleaning up...');
 
   await cleanupAgents();
-
-  // Clean up general agent
-  try {
-    await generalAgent.cleanup();
-    console.log('General agent cleaned up');
-  } catch (error) {
-    console.error('Error cleaning up general agent:', error);
-  }
 
   // Clean up database connections
   await cleanupDatabaseConnections();
