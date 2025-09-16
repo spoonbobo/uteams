@@ -11,23 +11,19 @@ import {
   TableContainer,
   TableRow,
   TableCell,
-  CircularProgress,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
-  PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
 import { DocxDialog } from '../DocxDialog';
 import { SubmitGradeDialog } from '../SubmitGradeDialog';
 import { useIntl } from 'react-intl';
 
 // Import decomposed components
-import { BatchGradingProgress } from './BatchGradingProgress';
 import { SubmissionsTableHeader } from './SubmissionsTableHeader';
 import { CategoryHeader } from './CategoryHeader';
 import { StudentRow } from './StudentRow';
 import { useFilePreviewHandler } from './FilePreviewHandler';
-import { useBatchGradingHandler } from './BatchGradingHandler';
 import {
   useSubmissionFiles,
   useStudentFiles,
@@ -60,12 +56,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
   const { 
     getGradingRecord, 
     clearGradingRecord, 
-    batchGradingActive,
-    batchGradingProgress,
     isStudentBeingGraded,
-    startBatchGrading,
-    updateBatchGradingProgress,
-    endBatchGrading,
     clearAllGradingProgress,
     setActiveGradingStudent,
     handleStartGrading
@@ -105,19 +96,8 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
     };
   }, []);
 
-  // Get categorized students and batch grading handler
+  // Get categorized students
   const categorizedStudents = categorizeStudents(studentData);
-  const { handleBatchGrading } = useBatchGradingHandler(
-    selectedAssignment,
-    categorizedStudents,
-    batchGradingActive,
-    batchGradingProgress,
-    startBatchGrading,
-    updateBatchGradingProgress,
-    endBatchGrading,
-    getGradingRecord,
-    handleStartGrading
-  );
   
   // Handle file preview with dialog management
   const handleFilePreviewWithDialog = async (studentId: string, file: any, studentName: string) => {
@@ -139,7 +119,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
   // Handler for starting individual grading with submission selection
   const handleIndividualGrading = async (studentId: string) => {
     // When manually starting grading, also update the selected submission to view the grading
-    if (!batchGradingActive && onSubmissionSelect) {
+    if (onSubmissionSelect) {
       onSubmissionSelect(studentId);
     }
     
@@ -165,7 +145,6 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
         gradingRecord={gradingRecord}
         hasAIResults={hasAIResults}
         isCurrentlyGrading={isCurrentlyGrading}
-        batchGradingActive={batchGradingActive}
         onStartGrading={handleIndividualGrading}
         onClearGrading={clearGradingRecord}
         onFilePreview={handleFilePreviewWithDialog}
@@ -192,34 +171,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
         <Typography variant="h5" sx={{ fontWeight: 500 }}>
           {intl.formatMessage({ id: 'grading.steps.studentSubmissions' })}
         </Typography>
-        
-        {/* Batch Grading Button */}
-        {categorizedStudents.notGradedSubmitted.length > 0 && (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => handleBatchGrading(studentFiles, loadStudentFiles)}
-            disabled={batchGradingActive || loading}
-            startIcon={batchGradingActive ? <CircularProgress size={20} color="inherit" /> : <PlayArrowIcon />}
-          >
-            {batchGradingActive 
-              ? intl.formatMessage({ id: 'grading.submissions.batchGrading.inProgress' }, { 
-                  completed: batchGradingProgress.completed, 
-                  total: batchGradingProgress.total 
-                })
-              : intl.formatMessage({ id: 'grading.submissions.batchGrading.start' }, { 
-                  count: categorizedStudents.notGradedSubmitted.length 
-                })
-            }
-          </Button>
-        )}
       </Box>
-      
-      {/* Batch Grading Progress */}
-      <BatchGradingProgress
-        batchGradingActive={batchGradingActive}
-        batchGradingProgress={batchGradingProgress}
-      />
       
           {loading && <LinearProgress sx={{ mb: 2 }} />}
           

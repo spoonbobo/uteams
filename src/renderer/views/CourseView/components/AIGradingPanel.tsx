@@ -66,8 +66,6 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
     getDetailedAIGradeResult, 
     gradingRecords,
     gradingInProgress,
-    batchGradingActive,
-    batchGradingProgress,
     activeGradingStudent 
   } = useGradingStore();
   
@@ -115,8 +113,6 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
     clearTodos
   } = useChatStore();
   
-  // Use batch grading state from store instead of checking todo sessions
-  const isPartOfBatchGrading = batchGradingActive;
   
   const todos = todosBySession[sessionId] || [];
   const plan = planBySession?.[sessionId];
@@ -627,21 +623,6 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
       </Box>
 
 
-      {/* Batch Grading Indicator */}
-      {isPartOfBatchGrading && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <Typography variant="body2">
-            Batch grading in progress: {batchGradingProgress.completed}/{batchGradingProgress.total} completed
-            {selectedSubmissionData && (
-              <> - Currently viewing: <strong>{selectedSubmissionData.student.fullname}</strong></>
-            )}
-            {batchGradingProgress.currentStudent && (
-              <> - Processing: <strong>{batchGradingProgress.currentStudent}</strong></>
-            )}
-            {/* Note: Each student's tasks are isolated - only showing tasks for the selected student */}
-          </Typography>
-        </Alert>
-      )}
 
       {/* Main Content Area - Split Layout */}
       <Box sx={{ display: 'flex', gap: 3, flex: 1, mb: 3 }}>

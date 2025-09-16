@@ -141,13 +141,6 @@ interface GradingState {
   
   // Grading progress tracking
   gradingInProgress: Set<string>; // Set of student IDs currently being graded
-  batchGradingActive: boolean;
-  batchGradingProgress: {
-    total: number;
-    completed: number;
-    failed: number;
-    currentStudent: string | null;
-  };
   activeGradingStudent: string | null; // The student whose grading process should be displayed
   
   // Actions
@@ -171,7 +164,6 @@ interface GradingState {
   saveGradingRecord: (assignmentId: string, studentId: string, aiGradeResult: AIGradeResult) => void;
   saveDetailedGradingRecord: (assignmentId: string, studentId: string, detailedResult: DetailedAIGradeResult) => void;
   getDetailedAIGradeResult: (assignmentId: string, studentId: string) => DetailedAIGradeResult | null;
-  clearAIGradingResults: (assignmentId: string, studentId: string) => void;
   updateFinalGrading: (assignmentId: string, studentId: string, finalGrade: string, finalFeedback: string) => void;
   clearGradingRecord: (assignmentId: string, studentId: string) => void;
   isStudentAIGraded: (assignmentId: string, studentId: string) => boolean;
@@ -206,9 +198,6 @@ interface GradingState {
   finishGrading: (studentId: string) => void;
   setGradingError: (studentId: string) => void;
   isStudentBeingGraded: (studentId: string) => boolean;
-  startBatchGrading: (totalStudents: number) => void;
-  updateBatchGradingProgress: (completed: number, failed: number, currentStudent: string | null) => void;
-  endBatchGrading: () => void;
   clearAllGradingProgress: () => void;
   setActiveGradingStudent: (studentId: string | null) => void;
   // Manual method to clear grading progress (useful for debugging or explicit cleanup)
@@ -239,13 +228,6 @@ export const useGradingStore = create<GradingState>()(
       finalGrade: '',
       finalFeedback: '',
       gradingInProgress: new Set<string>(),
-      batchGradingActive: false,
-      batchGradingProgress: {
-        total: 0,
-        completed: 0,
-        failed: 0,
-        currentStudent: null
-      },
       activeGradingStudent: null,
 
       // Basic setters
@@ -279,13 +261,6 @@ export const useGradingStore = create<GradingState>()(
           // Clear grading progress only when assignment changes
           ...(shouldClearGradingProgress && {
             gradingInProgress: new Set<string>(),
-            batchGradingActive: false,
-            batchGradingProgress: {
-              total: 0,
-              completed: 0,
-              failed: 0,
-              currentStudent: null
-            },
             activeGradingStudent: null
           })
         });
@@ -610,45 +585,6 @@ export const useGradingStore = create<GradingState>()(
         return record ? record.detailedAIGradeResult : null;
       },
 
-      clearAIGradingResults: (assignmentId: string, studentId: string) => {
-        const { gradingRecords, getGradingRecord } = get();
-        
-        // Get existing record to preserve non-AI data
-        const existingRecord = getGradingRecord(assignmentId, studentId);
-        
-        if (existingRecord) {
-          // Clear only AI-related data, preserve confirmation status
-          const clearedRecord: GradingRecord = {
-            ...existingRecord,
-            aiGradeResult: null,
-            detailedAIGradeResult: null,
-            isAIGraded: false,
-            gradedAt: undefined,
-            finalGrade: '',
-            finalFeedback: ''
-          };
-          
-          // Update record
-          const updatedRecords = gradingRecords.filter(r => !(r.assignmentId === assignmentId && r.studentId === studentId));
-          updatedRecords.push(clearedRecord);
-          
-          set({ 
-            gradingRecords: updatedRecords,
-            aiGradeResult: null,
-            detailedAIGradeResult: null,
-            finalGrade: '',
-            finalFeedback: ''
-          });
-        } else {
-          // No existing record, just clear current state
-          set({ 
-            aiGradeResult: null,
-            detailedAIGradeResult: null,
-            finalGrade: '',
-            finalFeedback: ''
-          });
-        }
-      },
 
       clearGradingRecord: (assignmentId: string, studentId: string) => {
         console.log('🗑️ [Store] clearGradingRecord called:', { assignmentId, studentId });
@@ -794,13 +730,6 @@ export const useGradingStore = create<GradingState>()(
           finalFeedback: '',
           // Clear grading progress state when explicitly clearing all data
           gradingInProgress: new Set<string>(),
-          batchGradingActive: false,
-          batchGradingProgress: {
-            total: 0,
-            completed: 0,
-            failed: 0,
-            currentStudent: null
-          },
           activeGradingStudent: null,
         });
       },
@@ -1013,51 +942,10 @@ export const useGradingStore = create<GradingState>()(
         return get().gradingInProgress.has(studentId);
       },
 
-      startBatchGrading: (totalStudents: number) => {
-        set({
-          batchGradingActive: true,
-          batchGradingProgress: {
-            total: totalStudents,
-            completed: 0,
-            failed: 0,
-            currentStudent: null
-          }
-        });
-      },
-
-      updateBatchGradingProgress: (completed: number, failed: number, currentStudent: string | null) => {
-        set(state => ({
-          batchGradingProgress: {
-            ...state.batchGradingProgress,
-            completed,
-            failed,
-            currentStudent
-          }
-        }));
-      },
-
-      endBatchGrading: () => {
-        set({
-          batchGradingActive: false,
-          batchGradingProgress: {
-            total: 0,
-            completed: 0,
-            failed: 0,
-            currentStudent: null
-          }
-        });
-      },
 
       clearAllGradingProgress: () => {
         set({
           gradingInProgress: new Set<string>(),
-          batchGradingActive: false,
-          batchGradingProgress: {
-            total: 0,
-            completed: 0,
-            failed: 0,
-            currentStudent: null
-          },
           activeGradingStudent: null
         });
       },
@@ -1071,13 +959,6 @@ export const useGradingStore = create<GradingState>()(
         console.log(`[Store] Manually clearing all grading progress`);
         set({
           gradingInProgress: new Set<string>(),
-          batchGradingActive: false,
-          batchGradingProgress: {
-            total: 0,
-            completed: 0,
-            failed: 0,
-            currentStudent: null
-          },
           activeGradingStudent: null,
         });
       },
@@ -1091,8 +972,6 @@ export const useGradingStore = create<GradingState>()(
           gradingRecords: state.gradingRecords,
           // Persist grading progress state so it survives view changes
           gradingInProgress: Array.from(state.gradingInProgress), // Convert Set to Array for serialization
-          batchGradingActive: state.batchGradingActive,
-          batchGradingProgress: state.batchGradingProgress,
           activeGradingStudent: state.activeGradingStudent,
         }),
         onRehydrateStorage: () => (state) => {
@@ -1127,21 +1006,6 @@ export const useGradingStore = create<GradingState>()(
             } else {
               // Ensure it's initialized as an empty Set if not found
               state.gradingInProgress = new Set<string>();
-            }
-            
-            // Ensure batch grading progress is properly initialized
-            if (!state.batchGradingProgress) {
-              state.batchGradingProgress = {
-                total: 0,
-                completed: 0,
-                failed: 0,
-                currentStudent: null
-              };
-            }
-            
-            // Initialize other grading state if not present
-            if (state.batchGradingActive === undefined) {
-              state.batchGradingActive = false;
             }
             
             if (!state.activeGradingStudent) {

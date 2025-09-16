@@ -2,12 +2,10 @@
 export { StudentSubmissionsPanel } from './StudentSubmissionsPanel';
 
 // Export all decomposed components
-export { BatchGradingProgress } from './BatchGradingProgress';
 export { SubmissionsTableHeader } from './SubmissionsTableHeader';
 export { CategoryHeader } from './CategoryHeader';
 export { StudentRow } from './StudentRow';
 export { useFilePreviewHandler } from './FilePreviewHandler';
-export { useBatchGradingHandler } from './BatchGradingHandler';
 
 // Export hooks
 export {
@@ -33,7 +31,6 @@ export type {
   SubmissionFile,
   SubmissionStatus,
   GradeStatus,
-  FeedbackDialogData,
   SubmitGradeDialogData,
   CollapsedCategories,
   CategorizedStudents,

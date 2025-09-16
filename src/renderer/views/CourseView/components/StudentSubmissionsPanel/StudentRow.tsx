@@ -26,7 +26,6 @@ interface StudentRowProps {
   gradingRecord: any;
   hasAIResults: boolean;
   isCurrentlyGrading: boolean;
-  batchGradingActive: boolean;
   onStartGrading: (studentId: string) => void;
   onClearGrading: (assignmentId: string, studentId: string) => void;
   onFilePreview: (studentId: string, file: SubmissionFile, studentName: string) => Promise<void>;
@@ -43,7 +42,6 @@ export const StudentRow: React.FC<StudentRowProps> = ({
   gradingRecord,
   hasAIResults,
   isCurrentlyGrading,
-  batchGradingActive,
   onStartGrading,
   onClearGrading,
   onFilePreview,
@@ -174,15 +172,15 @@ export const StudentRow: React.FC<StudentRowProps> = ({
             <Typography 
               variant="caption" 
               sx={{ 
-                color: hasAIResults || batchGradingActive ? 'text.disabled' : 'primary.main', 
-                cursor: hasAIResults || batchGradingActive ? 'not-allowed' : 'pointer',
-                textDecoration: hasAIResults || batchGradingActive ? 'none' : 'underline',
+                color: hasAIResults ? 'text.disabled' : 'primary.main', 
+                cursor: hasAIResults ? 'not-allowed' : 'pointer',
+                textDecoration: hasAIResults ? 'none' : 'underline',
                 fontWeight: 500,
-                '&:hover': hasAIResults || batchGradingActive ? {} : {
+                '&:hover': hasAIResults ? {} : {
                   color: 'primary.dark'
                 }
               }}
-              onClick={hasAIResults || batchGradingActive ? undefined : () => onStartGrading(data.student.id)}
+              onClick={hasAIResults ? undefined : () => onStartGrading(data.student.id)}
             >
               {intl.formatMessage({ id: 'grading.submissions.actions.startGrading' })}
             </Typography>

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useGradingStore } from '../../../../stores/useGradingStore';
 import { createGradingPrompt } from '../../prompts/gradingPrompt';
 import type { SubmissionFile, CollapsedCategories, SubmitGradeDialogData } from './types';
-import type { StudentSubmissionData, MoodleAssignment } from '../../../../stores/useGradingStore';
+import type { StudentSubmissionData } from '../../../../stores/useGradingStore';
+import type { MoodleAssignment } from '../../../../stores/useMoodleStore';
 import type { DocxContent } from '../../../../components/DocxPreview/types';
 
 export const useSubmissionFiles = (selectedSubmission: string | null, selectedAssignment: string) => {
@@ -238,15 +239,10 @@ export const useGradingActions = (selectedAssignment: string) => {
     saveDetailedGradingRecord,
     getRubricForAssignment,
     gradingInProgress,
-    batchGradingActive,
-    batchGradingProgress,
     startGrading,
     finishGrading,
     setGradingError,
     isStudentBeingGraded,
-    startBatchGrading,
-    updateBatchGradingProgress,
-    endBatchGrading,
     clearAllGradingProgress,
     setActiveGradingStudent
   } = useGradingStore();
@@ -450,15 +446,10 @@ export const useGradingActions = (selectedAssignment: string) => {
     saveDetailedGradingRecord,
     getRubricForAssignment,
     gradingInProgress,
-    batchGradingActive,
-    batchGradingProgress,
     startGrading,
     finishGrading,
     setGradingError,
     isStudentBeingGraded,
-    startBatchGrading,
-    updateBatchGradingProgress,
-    endBatchGrading,
     clearAllGradingProgress,
     setActiveGradingStudent,
     handleStartGrading

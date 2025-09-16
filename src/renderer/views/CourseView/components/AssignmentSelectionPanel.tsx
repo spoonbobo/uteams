@@ -363,7 +363,7 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
           onClick={onNext}
           disabled={!selectedAssignment}
         >
-          {intl.formatMessage({ id: 'common.next' })}: {intl.formatMessage({ id: 'grading.steps.selectStudent' })}
+          {intl.formatMessage({ id: 'common.next' })}: {intl.formatMessage({ id: 'grading.steps.studentSubmissions' })}
         </Button>
       </Box>
     </Paper>
