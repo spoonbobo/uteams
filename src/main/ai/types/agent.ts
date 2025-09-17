@@ -5,11 +5,11 @@
 
 import { ChatOpenAI } from '@langchain/openai';
 import { Command } from '@langchain/langgraph';
-import { 
-  HumanMessage, 
-  SystemMessage, 
+import {
+  HumanMessage,
+  SystemMessage,
   AIMessage,
-  BaseMessage 
+  BaseMessage
 } from '@langchain/core/messages';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
@@ -77,6 +77,8 @@ export interface AgentState {
   errors?: string[];
   /** Additional metadata */
   metadata?: Record<string, any>;
+  /** Abort signal for cancellation */
+  signal?: AbortSignal;
 }
 
 /**
@@ -124,7 +126,7 @@ export abstract class BaseAgent {
     this.llm = llm || this.createLLM();
     this.mcpTools = config.tools || [];
     this.handoffTools = new Map();
-    
+
     // Initialize handoff tools if agent can hand off
     if (config.capabilities.canHandoff && config.handoffTargets) {
       this.initializeHandoffTools();
@@ -137,14 +139,14 @@ export abstract class BaseAgent {
   protected createLLM(): ChatOpenAI {
     const apiKey = process.env.OPENAI_API_KEY;
     const baseURL = process.env.OPENAI_BASE_URL;
-    
+
     if (!apiKey) {
       console.error('[Agent] OPENAI_API_KEY is not set. Please check your .env.production file.');
       throw new Error('OpenAI API key is required but not found in environment variables. Please set OPENAI_API_KEY in your .env.production file.');
     }
-    
+
     console.log('[Agent] Creating LLM with baseURL:', baseURL || 'default OpenAI API');
-    
+
     return new ChatOpenAI({
       model: this.config.llmConfig?.model || 'deepseek-chat',
       temperature: this.config.llmConfig?.temperature || 0.3,
@@ -228,43 +230,43 @@ export abstract class BaseAgent {
    */
   canHandle(request: string): boolean {
     const text = request.toLowerCase();
-    
+
     // Check capabilities against request
     if (this.config.capabilities.webSearch) {
       const webKeywords = ['search', 'web', 'internet', 'google', 'find online', 'news'];
       if (webKeywords.some(k => text.includes(k))) return true;
     }
-    
+
     if (this.config.capabilities.webScraping) {
       const scrapeKeywords = ['scrape', 'extract', 'fetch from', 'get data from', 'website'];
       if (scrapeKeywords.some(k => text.includes(k))) return true;
     }
-    
+
     if (this.config.capabilities.screenCapture) {
       const screenKeywords = ['screen', 'screenshot', 'window', 'clipboard', 'local', 'recent'];
       if (screenKeywords.some(k => text.includes(k))) return true;
     }
-    
+
     if (this.config.capabilities.dataAnalysis) {
       const analysisKeywords = ['analyze', 'predict', 'forecast', 'trend', 'statistics'];
       if (analysisKeywords.some(k => text.includes(k))) return true;
     }
-    
+
     if (this.config.capabilities.memory) {
       const memoryKeywords = ['remember', 'recall', 'memory', 'forget', 'save this', 'store'];
       if (memoryKeywords.some(k => text.includes(k))) return true;
     }
-    
+
     if (this.config.capabilities.userPreferences) {
       const prefKeywords = ['preference', 'settings', 'my name', 'my information', 'profile'];
       if (prefKeywords.some(k => text.includes(k))) return true;
     }
-    
+
     if (this.config.capabilities.conversationHistory) {
       const historyKeywords = ['previous', 'last time', 'history', 'past conversation'];
       if (historyKeywords.some(k => text.includes(k))) return true;
     }
-    
+
     return false;
   }
 

@@ -19,7 +19,7 @@ import {
   ListItemText,
   CircularProgress,
 } from '@mui/material';
-import { Send as SendIcon, Close as CloseIcon } from '@mui/icons-material';
+import { Send as SendIcon, Close as CloseIcon, Stop as StopIcon } from '@mui/icons-material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -54,6 +54,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     deleteMessage,
     clearAllMessages,
     isThinkingBySession,
+    abortSession,
   } = useChatStore();
 
   useEffect(() => {
@@ -62,6 +63,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   const streaming = streamingBySession[sessionId];
   const isThinking = isThinkingBySession?.[sessionId] || false;
+  const isExecuting = streaming || isThinking;
   const chatMessages = useMemo(() => {
     const base = messagesBySession[sessionId] ?? [];
     if (streaming) {
@@ -90,6 +92,14 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     const text = newMessage;
     setNewMessage('');
     sendUserMessage(sessionId, text, courseId);
+  };
+
+  const handleAbort = async () => {
+    try {
+      await abortSession(sessionId, 'User cancelled via chat widget');
+    } catch (error) {
+      console.error('Error aborting session:', error);
+    }
   };
 
 
@@ -130,6 +140,25 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           <Typography variant="subtitle2" sx={{ flex: 1, fontWeight: 600 }}>
             {intl.formatMessage({ id: 'chat.title' })}
           </Typography>
+          {isExecuting && (
+            <Button
+              size="small"
+              onClick={handleAbort}
+              startIcon={<StopIcon sx={{ fontSize: '0.8rem' }} />}
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.75rem',
+                color: theme.palette.error.main,
+                '&:hover': {
+                  color: theme.palette.error.dark,
+                  backgroundColor: 'transparent',
+                },
+                mr: 1,
+              }}
+            >
+              {intl.formatMessage({ id: 'chat.stop', defaultMessage: 'Stop' })}
+            </Button>
+          )}
           <Button
             size="small"
             onClick={() => clearAllMessages(sessionId)}
@@ -222,7 +251,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             </Tooltip>
           );
         })}
-        
+
         {/* Show thinking spinner when agent is processing - appears after user message */}
         {isThinking && !streaming && (
           <Box
@@ -236,18 +265,18 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               gap: 1,
             }}
           >
-            <CircularProgress 
-              size={14} 
-              thickness={5} 
-              sx={{ 
+            <CircularProgress
+              size={14}
+              thickness={5}
+              sx={{
                 color: theme.palette.text.disabled,
                 opacity: 0.6,
-              }} 
+              }}
             />
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                fontSize: '0.65rem', 
+            <Typography
+              variant="caption"
+              sx={{
+                fontSize: '0.65rem',
                 color: theme.palette.text.disabled,
                 opacity: 0.8,
                 fontStyle: 'italic',
@@ -257,7 +286,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
             </Typography>
           </Box>
         )}
-        
+
         {/* Invisible element for auto-scrolling */}
         <div ref={messagesEndRef} />
       </Box>

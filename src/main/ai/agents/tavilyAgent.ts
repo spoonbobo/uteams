@@ -4,17 +4,17 @@
  */
 
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
-import { 
-  HumanMessage, 
-  SystemMessage, 
+import {
+  HumanMessage,
+  SystemMessage,
   AIMessage,
-  BaseMessage 
+  BaseMessage
 } from '@langchain/core/messages';
-import { 
-  BaseAgent, 
-  AgentConfig, 
-  AgentState, 
-  AgentResult 
+import {
+  BaseAgent,
+  AgentConfig,
+  AgentState,
+  AgentResult
 } from '../types/agent';
 
 export class TavilyAgent extends BaseAgent {
@@ -85,7 +85,7 @@ Prefer recent information and authoritative sources.`,
       // Check if we're executing a specific todo
       let taskContext = '';
       let isTodoExecution = false;
-      
+
       // Look for todo execution context in the last AI message
       const lastAiMessage = state.messages.filter(m => m._getType() === 'ai').pop();
       if (lastAiMessage && typeof lastAiMessage.content === 'string') {
@@ -95,11 +95,11 @@ Prefer recent information and authoritative sources.`,
           isTodoExecution = true;
         }
       }
-      
+
       // Extract the latest user message
       const userMessages = state.messages.filter(m => m._getType() === 'human');
       const lastUserMessage = userMessages[userMessages.length - 1];
-      
+
       if (!lastUserMessage) {
         return {
           messages: [new AIMessage('No user query provided for web search')],
@@ -139,11 +139,13 @@ Prefer recent information and authoritative sources.`,
       const searchParams = await this.prepareSearchParams(String(query), state);
 
       // Execute search
-      const searchResult = await tavilySearchTool.invoke(searchParams);
+      const searchResult = await tavilySearchTool.invoke(searchParams, {
+        signal: state.signal,  // Pass abort signal for cancellation
+      });
 
       // Process and format results
       let formattedResult = this.formatSearchResults(searchResult);
-      
+
       // Add COMPLETED token if this is a todo execution
       if (isTodoExecution) {
         formattedResult += '\n\nCOMPLETED';
@@ -185,7 +187,7 @@ Prefer recent information and authoritative sources.`,
    * Prepare search parameters based on query and context
    */
   private async prepareSearchParams(
-    query: string, 
+    query: string,
     state: AgentState
   ): Promise<any> {
     // Use LLM to optimize search parameters
@@ -203,10 +205,12 @@ Prefer recent information and authoritative sources.`,
     );
 
     try {
-      const response = await this.llm.invoke([systemPrompt, userPrompt]);
+      const response = await this.llm.invoke([systemPrompt, userPrompt], {
+        signal: state.signal,  // Pass abort signal for cancellation
+      });
       const content = String((response as any)?.content || '{}');
       const params = JSON.parse(content);
-      
+
       // Validate and set defaults
       return {
         query: params.query || query,
@@ -262,16 +266,16 @@ Prefer recent information and authoritative sources.`,
    */
   private shouldHandoff(query: string): boolean {
     const text = query.toLowerCase();
-    
+
     // Hand off to playwright for scraping needs
-    if (text.includes('scrape') || text.includes('extract') || 
+    if (text.includes('scrape') || text.includes('extract') ||
         text.includes('interact with') || text.includes('click') ||
         text.includes('fill form')) {
       return true;
     }
 
     // Hand off to screenpipe for local content
-    if (text.includes('screen') || text.includes('local') || 
+    if (text.includes('screen') || text.includes('local') ||
         text.includes('recent') || text.includes('clipboard')) {
       return true;
     }
@@ -285,7 +289,7 @@ Prefer recent information and authoritative sources.`,
   private determineHandoff(query: string): { targetAgent: string; reason: string } | null {
     const text = query.toLowerCase();
 
-    if (text.includes('scrape') || text.includes('extract') || 
+    if (text.includes('scrape') || text.includes('extract') ||
         text.includes('interact')) {
       return {
         targetAgent: 'playwright_agent',

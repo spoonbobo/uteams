@@ -18,10 +18,10 @@ interface GradingState {
   // Assignment selection
   selectedAssignment: string;
   selectedSubmission: string | null;
-  
+
   // File upload
   uploadedFile: File | null;
-  
+
   // Rubric management
   rubricFile: File | null;
   rubricContent: RubricContent | null;
@@ -29,38 +29,38 @@ interface GradingState {
   rubricError: string | null;
   assignmentRubrics: AssignmentRubric[];
   gradingRecords: GradingRecord[];
-  
+
   // Data arrays
   studentData: StudentSubmissionData[];
   submissions: MoodleSubmission[];
   grades: MoodleGrade[];
-  
+
   // UI state
   loading: boolean;
   isGrading: boolean;
-  
+
   // AI grading results
   aiGradeResult: AIGradeResult | null;
   detailedAIGradeResult: DetailedAIGradeResult | null;
   finalGrade: string;
   finalFeedback: string;
-  
+
   // Grading progress tracking
   gradingInProgress: Set<string>; // Set of student IDs currently being graded
   activeGradingStudent: string | null; // The student whose grading process should be displayed
-  
+
   // Grading stream state (for real-time updates)
   gradingStreams: Record<string, {
     streamBuffer: string;
     appliedComments: Set<string>;
     tempResult: DetailedAIGradeResult | null;
   }>;
-  
+
   // Actions
   setSelectedAssignment: (assignmentId: string) => Promise<void>;
   setSelectedSubmission: (submissionId: string | null) => void;
   setUploadedFile: (file: File | null) => void;
-  
+
   // Rubric actions
   setRubricFile: (file: File | null) => void;
   setRubricContent: (content: RubricContent | null) => void;
@@ -71,7 +71,7 @@ interface GradingState {
   getRubricForAssignment: (assignmentId: string) => RubricContent | null;
   saveRubricForAssignment: (assignmentId: string, rubricContent: RubricContent) => void;
   clearRubricForAssignment: (assignmentId: string) => void;
-  
+
   // Grading status actions
   getGradingRecord: (assignmentId: string, studentId: string) => GradingRecord | null;
   saveGradingRecord: (assignmentId: string, studentId: string, aiGradeResult: AIGradeResult) => void;
@@ -89,23 +89,23 @@ interface GradingState {
   setDetailedAIGradeResult: (result: DetailedAIGradeResult | null) => void;
   setFinalGrade: (grade: string) => void;
   setFinalFeedback: (feedback: string) => void;
-  
+
   // Computed getters
   getStats: () => GradingStats;
   getSelectedSubmissionData: () => StudentSubmissionData | undefined;
-  
+
   // Complex actions
   processStudentData: (students: MoodleUser[]) => void;
   clearGradingData: () => void;
   resetToAssignmentSelection: () => void;
-  
+
   // API actions
   loadAssignmentData: (assignmentId: string, config: { baseUrl: string; apiKey: string }) => Promise<void>;
   submitGrade: (assignmentId: string, userId: string, grade: number, feedback: string, config: { baseUrl: string; apiKey: string }) => Promise<{ success: boolean; error?: string }>;
-  
+
   // Initialization
   initializeFromPersistedData: () => void;
-  
+
   // Grading progress actions
   startGrading: (studentId: string) => void;
   finishGrading: (studentId: string) => void;
@@ -116,7 +116,7 @@ interface GradingState {
   setActiveGradingStudent: (studentId: string | null) => void;
   // Manual method to clear grading progress (useful for debugging or explicit cleanup)
   manualClearGradingProgress: () => void;
-  
+
   // Grading stream actions
   initGradingStream: (sessionId: string) => void;
   appendToGradingStream: (sessionId: string, token: string) => void;
@@ -155,17 +155,17 @@ export const useGradingStore = create<GradingState>()(
       // Basic setters
       setSelectedAssignment: async (assignmentId: string) => {
         const { getRubricForAssignment, reloadRubricFromPath, selectedAssignment } = get();
-        
+
         // Load rubric for this assignment if it exists
         const existingRubric = getRubricForAssignment(assignmentId);
-        
+
         // Only reset submission if assignment actually changed
         const shouldResetSubmission = selectedAssignment !== assignmentId;
-        
+
         // Clear grading progress only when assignment actually changes
         const shouldClearGradingProgress = selectedAssignment !== assignmentId;
-        
-        set({ 
+
+        set({
           selectedAssignment: assignmentId,
           selectedSubmission: shouldResetSubmission ? null : get().selectedSubmission,
           studentData: shouldResetSubmission ? [] : get().studentData, // Reset student data only if assignment changed
@@ -186,7 +186,7 @@ export const useGradingStore = create<GradingState>()(
             activeGradingStudent: null
           })
         });
-        
+
         // If rubric exists and has a file path, try to reload from path
         if (existingRubric && existingRubric.filePath) {
           await reloadRubricFromPath(assignmentId);
@@ -196,7 +196,7 @@ export const useGradingStore = create<GradingState>()(
       setSelectedSubmission: (submissionId: string | null) => {
         // When switching students, clear AI grading results but keep confirmation status
         // The confirmation will be checked again when accessing AI grading tab
-        set({ 
+        set({
           selectedSubmission: submissionId,
           aiGradeResult: null,
           detailedAIGradeResult: null,
@@ -265,35 +265,35 @@ export const useGradingStore = create<GradingState>()(
       loadRubricContent: async (file: File) => {
         const { selectedAssignment, saveRubricForAssignment } = get();
         set({ rubricLoading: true, rubricError: null });
-        
+
         try {
           // Save file to temp location first
           const arrayBuffer = await file.arrayBuffer();
           const uint8Array = new Uint8Array(arrayBuffer);
-          
+
           // Use IPC to save and parse the file
           const saveResult = await window.electron.ipcRenderer.invoke('fileio:save-temp-file', {
             filename: file.name,
             data: Array.from(uint8Array)
           });
-          
+
           if (!saveResult.success) {
             throw new Error(saveResult.error || 'Failed to save rubric file');
           }
-          
+
           // Add a small delay before parsing to ensure file is fully written
           await new Promise(resolve => setTimeout(resolve, 100));
-          
+
           // Parse the DOCX file with retry logic
           let parseResult;
           let parseSuccess = false;
           const maxParseRetries = 2;
-          
+
           for (let attempt = 1; attempt <= maxParseRetries && !parseSuccess; attempt++) {
             parseResult = await window.electron.ipcRenderer.invoke('docx:parse-file', {
               filePath: saveResult.filePath
             });
-            
+
             if (parseResult.success) {
               parseSuccess = true;
             } else if (parseResult.error.includes('Corrupted zip') || parseResult.error.includes('End of data reached')) {
@@ -306,22 +306,22 @@ export const useGradingStore = create<GradingState>()(
               break;
             }
           }
-          
+
           if (!parseSuccess) {
             throw new Error(parseResult?.error || 'Failed to parse rubric file');
           }
-          
+
           const rubricContent: RubricContent = {
             ...parseResult.content,
             filename: file.name,
             filePath: saveResult.filePath // Store the file path for persistence
           };
-          
+
           // Save rubric for the current assignment
           if (selectedAssignment) {
             saveRubricForAssignment(selectedAssignment, rubricContent);
           }
-          
+
           set({ rubricContent, rubricError: null });
         } catch (error: any) {
           console.error('[GradingStore] Error loading rubric:', error);
@@ -340,46 +340,46 @@ export const useGradingStore = create<GradingState>()(
 
       saveRubricForAssignment: (assignmentId: string, rubricContent: RubricContent) => {
         const { assignmentRubrics } = get();
-        
+
         const newRubric: AssignmentRubric = {
           assignmentId,
           rubricContent,
           uploadedAt: Date.now()
         };
-        
+
         // Remove existing rubric for this assignment and add new one
         const updatedRubrics = assignmentRubrics.filter(r => r.assignmentId !== assignmentId);
         updatedRubrics.push(newRubric);
-        
+
         set({ assignmentRubrics: updatedRubrics });
       },
 
       reloadRubricFromPath: async (assignmentId: string) => {
         const { getRubricForAssignment } = get();
         const existingRubric = getRubricForAssignment(assignmentId);
-        
+
         if (!existingRubric || !existingRubric.filePath) {
           return;
         }
         set({ rubricLoading: true, rubricError: null });
-        
+
         try {
           // Check if file still exists and re-parse it
           const parseResult = await window.electron.ipcRenderer.invoke('docx:parse-file', {
             filePath: existingRubric.filePath
           });
-          
+
           if (parseResult.success) {
             const updatedRubricContent: RubricContent = {
               ...parseResult.content,
               filename: existingRubric.filename,
               filePath: existingRubric.filePath
             };
-            
+
             // Update the stored rubric content
             const { saveRubricForAssignment } = get();
             saveRubricForAssignment(assignmentId, updatedRubricContent);
-            
+
             set({ rubricContent: updatedRubricContent, rubricError: null });
           } else {
             console.warn('[GradingStore] Could not reload rubric from path:', existingRubric.filePath, parseResult.error);
@@ -396,7 +396,7 @@ export const useGradingStore = create<GradingState>()(
       clearRubricForAssignment: (assignmentId: string) => {
         const { assignmentRubrics } = get();
         const updatedRubrics = assignmentRubrics.filter(r => r.assignmentId !== assignmentId);
-        set({ 
+        set({
           assignmentRubrics: updatedRubrics,
           rubricContent: null,
           rubricFile: null,
@@ -412,10 +412,10 @@ export const useGradingStore = create<GradingState>()(
 
       saveGradingRecord: (assignmentId: string, studentId: string, aiGradeResult: AIGradeResult) => {
         const { gradingRecords, getGradingRecord } = get();
-        
+
         // Get existing record to preserve confirmation status
         const existingRecord = getGradingRecord(assignmentId, studentId);
-        
+
         const newRecord: GradingRecord = {
           assignmentId,
           studentId,
@@ -430,12 +430,12 @@ export const useGradingStore = create<GradingState>()(
           errorMessage: undefined,
           errorType: undefined
         };
-        
+
         // Remove existing record for this assignment-student combination and add new one
         const updatedRecords = gradingRecords.filter(r => !(r.assignmentId === assignmentId && r.studentId === studentId));
         updatedRecords.push(newRecord);
-        
-        set({ 
+
+        set({
           gradingRecords: updatedRecords,
           aiGradeResult,
           finalGrade: String(aiGradeResult.grade),
@@ -445,7 +445,7 @@ export const useGradingStore = create<GradingState>()(
 
       updateFinalGrading: (assignmentId: string, studentId: string, finalGrade: string, finalFeedback: string) => {
         const { gradingRecords } = get();
-        
+
         const updatedRecords = gradingRecords.map(record => {
           if (record.assignmentId === assignmentId && record.studentId === studentId) {
             return {
@@ -456,16 +456,16 @@ export const useGradingStore = create<GradingState>()(
           }
           return record;
         });
-        
+
         set({ gradingRecords: updatedRecords });
       },
 
       saveDetailedGradingRecord: (assignmentId: string, studentId: string, detailedResult: DetailedAIGradeResult) => {
         const { gradingRecords, getGradingRecord } = get();
-        
+
         // Get existing record to preserve other data
         const existingRecord = getGradingRecord(assignmentId, studentId);
-        
+
         const newRecord: GradingRecord = existingRecord ? {
           ...existingRecord,
           detailedAIGradeResult: detailedResult,
@@ -499,12 +499,12 @@ export const useGradingStore = create<GradingState>()(
           errorMessage: undefined,
           errorType: undefined
         };
-        
+
         // Remove existing record and add updated one
         const updatedRecords = gradingRecords.filter(r => !(r.assignmentId === assignmentId && r.studentId === studentId));
         updatedRecords.push(newRecord);
-        
-        set({ 
+
+        set({
           gradingRecords: updatedRecords,
           aiGradeResult: newRecord.aiGradeResult,
           detailedAIGradeResult: detailedResult,
@@ -524,11 +524,11 @@ export const useGradingStore = create<GradingState>()(
         console.log('🗑️ [Store] clearGradingRecord called:', { assignmentId, studentId });
         const { gradingRecords } = get();
         console.log('📊 [Store] Before clear - gradingRecords count:', gradingRecords.length);
-        
+
         const updatedRecords = gradingRecords.filter(r => !(r.assignmentId === assignmentId && r.studentId === studentId));
         console.log('📊 [Store] After filter - gradingRecords count:', updatedRecords.length);
-        
-        set({ 
+
+        set({
           gradingRecords: updatedRecords,
           aiGradeResult: null,
           detailedAIGradeResult: null,
@@ -548,7 +548,7 @@ export const useGradingStore = create<GradingState>()(
       // Computed getters
       getStats: (): GradingStats => {
         const { studentData, submissions, grades } = get();
-        
+
         // If no student data yet, try to compute from raw submissions/grades
         if (!studentData.length) {
           // Still return basic stats from raw data if available
@@ -618,7 +618,7 @@ export const useGradingStore = create<GradingState>()(
       // Complex actions
       processStudentData: (students: MoodleUser[]) => {
         const { submissions, grades } = get();
-        
+
         if (!students.length) return;
 
 
@@ -682,9 +682,9 @@ export const useGradingStore = create<GradingState>()(
       // API actions
       loadAssignmentData: async (assignmentId: string, config: { baseUrl: string; apiKey: string }) => {
         if (!assignmentId) return;
-        
+
         set({ loading: true });
-        
+
         try {
           // Fetch real submissions and grades from Moodle API
           const [submissionsResult, gradesResult] = await Promise.all([
@@ -699,8 +699,8 @@ export const useGradingStore = create<GradingState>()(
               assignmentId,
             }),
           ]);
-          
-          
+
+
           // Process submissions - ensure userid is consistently a string
           const realSubmissions: MoodleSubmission[] = submissionsResult.success && submissionsResult.data
             ? submissionsResult.data.map((sub: any) => ({
@@ -710,7 +710,7 @@ export const useGradingStore = create<GradingState>()(
                 attemptnumber: sub.attemptnumber || 0,
               }))
             : [];
-          
+
           // Process grades - ensure userid is consistently a string
           const realGrades: MoodleGrade[] = gradesResult.success && gradesResult.data
             ? gradesResult.data.map((grade: any) => ({
@@ -720,13 +720,13 @@ export const useGradingStore = create<GradingState>()(
                 feedback: grade.assignfeedbackcomments || grade.feedback || '',
               }))
             : [];
-          
-          
-          set({ 
+
+
+          set({
             submissions: realSubmissions,
-            grades: realGrades 
+            grades: realGrades
           });
-          
+
           if (!submissionsResult.success) {
             console.error('[GradingStore] Failed to fetch submissions:', submissionsResult.error);
           }
@@ -735,9 +735,9 @@ export const useGradingStore = create<GradingState>()(
           }
         } catch (error) {
           console.error('[GradingStore] Error loading assignment data:', error);
-          set({ 
+          set({
             submissions: [],
-            grades: [] 
+            grades: []
           });
         } finally {
           set({ loading: false });
@@ -747,7 +747,7 @@ export const useGradingStore = create<GradingState>()(
       submitGrade: async (assignmentId: string, userId: string, grade: number, feedback: string, config: { baseUrl: string; apiKey: string }) => {
         try {
           console.log('[Grading Store] Submitting grade:', { assignmentId, userId, grade });
-          
+
           const result = await window.electron.ipcRenderer.invoke('moodle:update-assignment-grade', {
             baseUrl: config.baseUrl,
             apiKey: config.apiKey,
@@ -759,7 +759,7 @@ export const useGradingStore = create<GradingState>()(
 
           if (result.success) {
             console.log('[Grading Store] Grade submitted successfully');
-            
+
             // Update the local state to reflect the submitted grade
             const { studentData } = get();
             const updatedStudentData = studentData.map(student => {
@@ -778,9 +778,9 @@ export const useGradingStore = create<GradingState>()(
               }
               return student;
             });
-            
+
             set({ studentData: updatedStudentData });
-            
+
             return { success: true };
           } else {
             console.error('[Grading Store] Failed to submit grade:', result.error);
@@ -795,7 +795,7 @@ export const useGradingStore = create<GradingState>()(
       // Initialization method to restore state after persistence hydration
       initializeFromPersistedData: () => {
         const { selectedAssignment, assignmentRubrics, getRubricForAssignment } = get();
-        
+
         // Restore rubric content for the currently selected assignment
         if (selectedAssignment) {
           const rubricContent = getRubricForAssignment(selectedAssignment);
@@ -819,18 +819,18 @@ export const useGradingStore = create<GradingState>()(
       finishGrading: (studentId: string) => {
         console.log(`[Store] ✅ Finishing grading for student: ${studentId}`);
         const { selectedAssignment, clearGradingStream, processGradingStream, getGradingStream, getDetailedAIGradeResult } = get();
-        
+
         // Process any remaining data in the stream before clearing
         if (selectedAssignment) {
           const sessionId = `grading-${selectedAssignment}-${studentId}`;
           console.log(`[Store] Processing final stream data for session: ${sessionId}`);
-          
+
           // Process the stream one more time to ensure we capture any final results
           processGradingStream(sessionId, selectedAssignment, studentId);
-          
+
           // Check if there's a temp result in the stream that needs to be saved
           const stream = getGradingStream(sessionId);
-          
+
           // Log final stream state for debugging
           console.log(`[Store] Final stream state for ${sessionId}:`, {
             hasStream: !!stream,
@@ -838,19 +838,19 @@ export const useGradingStore = create<GradingState>()(
             hasTempResult: !!stream?.tempResult,
             tempResultScore: stream?.tempResult?.overallScore,
             appliedCommentsCount: stream?.appliedComments?.size || 0,
-            bufferPreview: stream?.streamBuffer ? 
-              (stream.streamBuffer.length > 200 ? 
+            bufferPreview: stream?.streamBuffer ?
+              (stream.streamBuffer.length > 200 ?
                 stream.streamBuffer.substring(0, 100) + '...' + stream.streamBuffer.substring(stream.streamBuffer.length - 100) :
                 stream.streamBuffer) : 'No buffer'
           });
-          
+
           if (stream?.tempResult) {
             console.log(`[Store] Found temp result in stream, ensuring it's saved for student: ${studentId}`);
             // The processGradingStream should have saved it, but let's make sure
             const { saveDetailedGradingRecord } = get();
             saveDetailedGradingRecord(selectedAssignment, studentId, stream.tempResult);
           }
-          
+
           // Final check if result was saved
           const finalResult = getDetailedAIGradeResult(selectedAssignment, studentId);
           if (!finalResult) {
@@ -864,25 +864,25 @@ export const useGradingStore = create<GradingState>()(
               commentsCount: finalResult.comments?.length || 0
             });
           }
-          
+
           // Now clear plan widget data and grading stream
           console.log(`[Store] Clearing plan widget data and stream for session: ${sessionId}`);
-          
+
           // Use chat store to clear the session data
           const { clearPlan, clearTodos } = useChatStore.getState();
           clearPlan(sessionId);
           clearTodos(sessionId);
-          
+
           // Clear the grading stream after ensuring results are saved
           clearGradingStream(sessionId);
         }
-        
+
         set(state => {
           const newSet = new Set(state.gradingInProgress);
           newSet.delete(studentId);
           // Clear active student if it was this one
           const newActiveStudent = state.activeGradingStudent === studentId ? null : state.activeGradingStudent;
-          return { 
+          return {
             gradingInProgress: newSet,
             activeGradingStudent: newActiveStudent
           };
@@ -893,26 +893,26 @@ export const useGradingStore = create<GradingState>()(
       setGradingError: (studentId: string, errorMessage?: string, errorType?: 'parsing' | 'format' | 'network' | 'unknown') => {
         console.log(`[Store] ❌ Grading error for student: ${studentId}`, errorMessage ? `Error: ${errorMessage}` : '');
         const { selectedAssignment, clearGradingStream } = get();
-        
+
         // Clear plan widget data and grading stream for this student's session on error
         if (selectedAssignment) {
           const sessionId = `grading-${selectedAssignment}-${studentId}`;
           console.log(`[Store] Clearing plan widget data and stream for session (error): ${sessionId}`);
-          
+
           // Use chat store to clear the session data
           const { clearPlan, clearTodos } = useChatStore.getState();
           clearPlan(sessionId);
           clearTodos(sessionId);
-          
+
           // Clear the grading stream on error
           clearGradingStream(sessionId);
-          
+
           // Save error information to grading record
           set(state => {
             const existingRecordIndex = state.gradingRecords.findIndex(
               record => record.assignmentId === selectedAssignment && record.studentId === studentId
             );
-            
+
             const errorRecord = {
               assignmentId: selectedAssignment,
               studentId: studentId,
@@ -924,20 +924,20 @@ export const useGradingStore = create<GradingState>()(
               errorType: errorType || 'unknown' as const,
               gradedAt: Date.now(),
             };
-            
+
             const newRecords = [...state.gradingRecords];
             if (existingRecordIndex >= 0) {
               newRecords[existingRecordIndex] = errorRecord;
             } else {
               newRecords.push(errorRecord);
             }
-            
+
             const newSet = new Set(state.gradingInProgress);
             newSet.delete(studentId);
             // Clear active student if it was this one
             const newActiveStudent = state.activeGradingStudent === studentId ? null : state.activeGradingStudent;
-            
-            return { 
+
+            return {
               gradingRecords: newRecords,
               gradingInProgress: newSet,
               activeGradingStudent: newActiveStudent
@@ -949,34 +949,34 @@ export const useGradingStore = create<GradingState>()(
             newSet.delete(studentId);
             // Clear active student if it was this one
             const newActiveStudent = state.activeGradingStudent === studentId ? null : state.activeGradingStudent;
-            return { 
+            return {
               gradingInProgress: newSet,
               activeGradingStudent: newActiveStudent
             };
           });
         }
-        
+
         console.log(`[Store] Students still grading:`, Array.from(get().gradingInProgress));
       },
 
       abortGrading: (studentId: string) => {
         console.log(`[Store] 🛑 Aborting grading for student: ${studentId}`);
         const { selectedAssignment, clearGradingStream } = get();
-        
+
         // Clear plan widget data and grading stream for this student's session on abort
         if (selectedAssignment) {
           const sessionId = `grading-${selectedAssignment}-${studentId}`;
           console.log(`[Store] Clearing plan widget data and stream for session (abort): ${sessionId}`);
-          
+
           // Use chat store to clear the session data
           const { clearPlan, clearTodos, clearThinkingMessages } = useChatStore.getState();
           clearPlan(sessionId);
           clearTodos(sessionId);
           clearThinkingMessages(sessionId);
-          
+
           // Clear the grading stream on abort
           clearGradingStream(sessionId);
-          
+
           // Send abort request to backend
           window.electron.ipcRenderer.invoke('chat:agent:abort', {
             sessionId,
@@ -987,13 +987,13 @@ export const useGradingStore = create<GradingState>()(
             console.error(`[Store] Failed to abort session:`, error);
           });
         }
-        
+
         set(state => {
           const newSet = new Set(state.gradingInProgress);
           newSet.delete(studentId);
           // Clear active student if it was this one
           const newActiveStudent = state.activeGradingStudent === studentId ? null : state.activeGradingStudent;
-          return { 
+          return {
             gradingInProgress: newSet,
             activeGradingStudent: newActiveStudent
           };
@@ -1025,7 +1025,7 @@ export const useGradingStore = create<GradingState>()(
           activeGradingStudent: null,
         });
       },
-      
+
       // Grading stream actions
       initGradingStream: (sessionId: string) => {
         const existingStream = get().gradingStreams[sessionId];
@@ -1043,18 +1043,18 @@ export const useGradingStore = create<GradingState>()(
           }));
         }
       },
-      
+
       // Track pending updates outside of state to avoid mutations
       _pendingStreamUpdates: {} as Record<string, any>,
       _updateScheduled: false,
-      
+
       appendToGradingStream: (sessionId: string, token: string) => {
         const stream = get().gradingStreams[sessionId];
         if (!stream) {
           console.warn(`[Store] No stream found for session: ${sessionId}`);
           return;
         }
-        
+
         // Store the update in the pending updates map
         const store = useGradingStore.getState() as any;
         if (!store._pendingStreamUpdates[sessionId]) {
@@ -1066,7 +1066,7 @@ export const useGradingStore = create<GradingState>()(
           // Append to the existing pending update
           store._pendingStreamUpdates[sessionId].streamBuffer += token;
         }
-        
+
         // Schedule a batch update using microtask if not already scheduled
         if (!store._updateScheduled) {
           store._updateScheduled = true;
@@ -1086,18 +1086,18 @@ export const useGradingStore = create<GradingState>()(
           });
         }
       },
-      
+
       processGradingStream: (sessionId: string, assignmentId: string, studentId: string) => {
         const { gradingStreams } = get();
         const stream = gradingStreams[sessionId];
-        
+
         if (!stream) {
           console.warn(`[Store] No stream to process for session: ${sessionId}`);
           return;
         }
-        
+
         const buffer = stream.streamBuffer;
-        
+
         // Try to parse complete JSON for final result
         const jsonStart = buffer.indexOf('{');
         if (jsonStart !== -1) {
@@ -1105,25 +1105,25 @@ export const useGradingStore = create<GradingState>()(
           let jsonEnd = -1;
           let inString = false;
           let escapeNext = false;
-          
+
           for (let i = jsonStart; i < buffer.length; i++) {
             const char = buffer[i];
-            
+
             if (escapeNext) {
               escapeNext = false;
               continue;
             }
-            
+
             if (char === '\\') {
               escapeNext = true;
               continue;
             }
-            
+
             if (char === '"' && !escapeNext) {
               inString = !inString;
               continue;
             }
-            
+
             if (!inString) {
               if (char === '{') braceCount++;
               else if (char === '}') {
@@ -1135,25 +1135,26 @@ export const useGradingStore = create<GradingState>()(
               }
             }
           }
-          
+
           // If we have a complete JSON object, parse it
           if (jsonEnd !== -1) {
             const jsonStr = buffer.substring(jsonStart, jsonEnd + 1);
             try {
               const parsed = JSON.parse(jsonStr);
               console.log('[Store] Complete grading result parsed:', parsed);
-              
+
               // Create the detailed result
               const detailedResult: DetailedAIGradeResult = {
                 comments: parsed.comments || [],
                 overallScore: parsed.overallScore || 0,
+                scoreBreakdown: parsed.scoreBreakdown || [],
                 shortFeedback: parsed.shortFeedback || '',
               };
-              
+
               // Save the detailed result immediately
               const { saveDetailedGradingRecord } = get();
               saveDetailedGradingRecord(assignmentId, studentId, detailedResult);
-              
+
               // Update stream with temp result
               set(state => ({
                 gradingStreams: {
@@ -1170,7 +1171,7 @@ export const useGradingStore = create<GradingState>()(
           }
         }
       },
-      
+
       clearGradingStream: (sessionId: string) => {
         console.log(`[Store] Clearing grading stream for session: ${sessionId}`);
         set(state => {
@@ -1178,7 +1179,7 @@ export const useGradingStore = create<GradingState>()(
           return { gradingStreams: rest };
         });
       },
-      
+
       getGradingStream: (sessionId: string) => {
         return get().gradingStreams[sessionId] || null;
       },
@@ -1198,17 +1199,17 @@ export const useGradingStore = create<GradingState>()(
           if (state) {
             // Restore rubric content for the selected assignment after hydration
             const { selectedAssignment, selectedSubmission, assignmentRubrics, gradingRecords } = state;
-            
+
             if (selectedAssignment && assignmentRubrics.length > 0) {
               const rubric = assignmentRubrics.find(r => r.assignmentId === selectedAssignment);
               if (rubric) {
                 state.rubricContent = rubric.rubricContent;
               }
             }
-            
+
             // Restore detailed AI grading results for the current selection
             if (selectedAssignment && selectedSubmission && gradingRecords.length > 0) {
-              const gradingRecord = gradingRecords.find(r => 
+              const gradingRecord = gradingRecords.find(r =>
                 r.assignmentId === selectedAssignment && r.studentId === selectedSubmission
               );
               if (gradingRecord) {
@@ -1218,7 +1219,7 @@ export const useGradingStore = create<GradingState>()(
                 state.finalFeedback = gradingRecord.finalFeedback || '';
               }
             }
-            
+
             // Restore grading progress state from persistence
             // Convert gradingInProgress array back to Set
             if (state.gradingInProgress && Array.isArray(state.gradingInProgress)) {
@@ -1227,7 +1228,7 @@ export const useGradingStore = create<GradingState>()(
               // Ensure it's initialized as an empty Set if not found
               state.gradingInProgress = new Set<string>();
             }
-            
+
             if (!state.activeGradingStudent) {
               state.activeGradingStudent = null;
             }

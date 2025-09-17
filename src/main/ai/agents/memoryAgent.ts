@@ -6,15 +6,15 @@
 
 import { BaseAgent, AgentConfig, AgentState, AgentResult, HandoffInfo, AgentCapabilities } from '../types/agent';
 import { ChatOpenAI } from '@langchain/openai';
-import { 
-  HumanMessage, 
-  SystemMessage, 
+import {
+  HumanMessage,
+  SystemMessage,
   AIMessage,
-  BaseMessage 
+  BaseMessage
 } from '@langchain/core/messages';
 import { Command } from '@langchain/langgraph';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
-import { 
+import {
   getUserInfoTool,
   saveUserInfoTool,
   recallConversationTool,
@@ -45,20 +45,20 @@ export class MemoryAgent extends BaseAgent {
 
     // Combine with any additional tools
     const allTools = [...memoryTools, ...tools];
-    
+
     // Update config with all tools
     const updatedConfig = {
       ...config,
       tools: allTools,
     };
-    
+
     super(updatedConfig, llm);
     this.memoryTools = memoryTools;
-    
+
     // Create agent for tool execution
     this.agent = this.createAgent();
   }
-  
+
   /**
    * Create the LangChain agent
    */
@@ -93,8 +93,8 @@ export class MemoryAgent extends BaseAgent {
     const lastMessage = state.messages[state.messages.length - 1];
     if (!lastMessage) return false;
 
-    const content = typeof lastMessage.content === 'string' 
-      ? lastMessage.content.toLowerCase() 
+    const content = typeof lastMessage.content === 'string'
+      ? lastMessage.content.toLowerCase()
       : '';
 
     // Keywords that indicate memory-related requests
@@ -138,7 +138,7 @@ export class MemoryAgent extends BaseAgent {
       // Check if we're executing a specific todo
       let taskContext = '';
       let isTodoExecution = false;
-      
+
       // Look for todo execution context in the last AI message
       const todoContextMessage = state.messages.filter(m => m._getType() === 'ai').pop();
       if (todoContextMessage && typeof todoContextMessage.content === 'string') {
@@ -149,7 +149,7 @@ export class MemoryAgent extends BaseAgent {
           console.log(`🧠 Memory Agent: Executing todo task`);
         }
       }
-      
+
       // Check if we should handle this request
       if (!this.shouldHandle(state) && !isTodoExecution) {
         // Suggest handoff to a more appropriate agent
@@ -171,9 +171,9 @@ export class MemoryAgent extends BaseAgent {
       // Enhance the system prompt with memory context
       const userId = state.metadata?.userId || 'default_user';
       const userProfile = await memoryManager.getUserProfile(userId);
-      
+
       let contextPrompt = '';
-      
+
       // Add course context if available
       const courseMemory = state.metadata?.courseMemory;
       if (courseMemory) {
@@ -184,7 +184,7 @@ ${JSON.stringify(courseMemory, null, 2)}
 
 `;
       }
-      
+
       if (userProfile) {
         contextPrompt += `
 Current user profile:
@@ -258,10 +258,10 @@ User ID: ${userId}
       // Check if this is a memory search request
       const lastMessage = state.messages[state.messages.length - 1];
       const content = typeof lastMessage?.content === 'string' ? lastMessage.content : '';
-      
+
       console.log(`🧠 [Memory Agent] Processing query: "${content.substring(0, 100)}..."`);
       console.log(`🧠 [Memory Agent] Has course context: ${!!courseMemory}`);
-      
+
       // Handle specific memory operations
       if (content.toLowerCase().includes('what do you know about me')) {
         console.log(`🧠 [Memory Agent] Handling "what do you know about me" query`);
@@ -280,19 +280,21 @@ User ID: ${userId}
       console.log(`🧠 [Memory Agent] Invoking LangChain agent with ${this.memoryTools.length + this.mcpTools.length} available tools`);
       const result = await this.agent.invoke({
         messages: messagesWithContext,
+      }, {
+        signal: state.signal,  // Pass abort signal for cancellation
       });
 
       // Debug: Log the raw result structure
       console.log(`🧠 [Memory Agent] Raw result keys:`, Object.keys(result));
       console.log(`🧠 [Memory Agent] Result messages count:`, result.messages?.length || 0);
-      
+
       // Extract response messages - only get NEW messages (not the ones we passed in)
       const inputMessageCount = messagesWithContext.length;
       const allResultMessages = result.messages || [];
       let responseMessages: BaseMessage[] = allResultMessages.slice(inputMessageCount);
-      
+
       console.log(`🧠 [Memory Agent] Input messages: ${inputMessageCount}, Total result messages: ${allResultMessages.length}, New messages: ${responseMessages.length}`);
-      
+
       // If no new messages were generated, check if there's an AI message in the full result
       if (responseMessages.length === 0) {
         console.log(`🧠 [Memory Agent] No new messages found, checking for AI response in all messages...`);
@@ -313,8 +315,8 @@ ${courseMemory.summary ? `**Summary:** ${courseMemory.summary}\n` : ''}
 **Activities:** ${courseMemory.activities?.length || 0}
 
 ### Assignments
-${courseMemory.assignments && courseMemory.assignments.length > 0 
-  ? courseMemory.assignments.map((a: any) => 
+${courseMemory.assignments && courseMemory.assignments.length > 0
+  ? courseMemory.assignments.map((a: any) =>
       `- ${a.name}${a.dueDate ? ` (Due: ${new Date(a.dueDate * 1000).toLocaleDateString()})` : ''}`
     ).join('\n')
   : 'No assignments available'}
@@ -331,7 +333,7 @@ ${courseMemory.activities && courseMemory.activities.length > 0
   : 'No activities available'}
 
 Last Updated: ${courseMemory.lastUpdated}`;
-            
+
             responseMessages = [new AIMessage(courseDescription)];
             console.log(`🧠 [Memory Agent] Generated course description from context`);
           } else {
@@ -339,7 +341,7 @@ Last Updated: ${courseMemory.lastUpdated}`;
           }
         }
       }
-      
+
       // Log message types
       if (responseMessages.length > 0) {
         responseMessages.forEach((msg, idx) => {
@@ -348,7 +350,7 @@ Last Updated: ${courseMemory.lastUpdated}`;
           console.log(`   Message ${idx}: Type=${msgType}, Content="${preview}..."`);
         });
       }
-      
+
       // Log tool usage
       const toolMessages = responseMessages.filter((m: any) => m.constructor.name === 'ToolMessage');
       console.log(`🧠 [Memory Agent] Used ${toolMessages.length} tools`);
@@ -363,18 +365,18 @@ Last Updated: ${courseMemory.lastUpdated}`;
       // Check for handoff requests in the response
       const lastAiMessage = responseMessages.find(m => m instanceof AIMessage);
       if (lastAiMessage) {
-        const aiContent = typeof lastAiMessage.content === 'string' 
-          ? lastAiMessage.content 
+        const aiContent = typeof lastAiMessage.content === 'string'
+          ? lastAiMessage.content
           : '';
-        
+
         // Check if we should hand off to another agent
         const handoffPattern = /hand(?:ing)?\s*off\s*to\s*(\w+)(?:_agent)?/i;
         const handoffMatch = aiContent.match(handoffPattern);
-        
+
         if (handoffMatch) {
           const targetAgent = handoffMatch[1].toLowerCase();
           console.log(`🔄 Memory Agent handing off to ${targetAgent}`);
-          
+
           return {
             messages: responseMessages,
             command: new Command({
@@ -390,24 +392,24 @@ Last Updated: ${courseMemory.lastUpdated}`;
 
       // Update memory statistics in metadata
       const stats = memoryManager.getStats();
-      
+
       // Log the final response
       if (responseMessages.length > 0) {
         const finalMessage = responseMessages[responseMessages.length - 1];
-        const preview = typeof finalMessage.content === 'string' 
-          ? finalMessage.content.substring(0, 200) 
+        const preview = typeof finalMessage.content === 'string'
+          ? finalMessage.content.substring(0, 200)
           : JSON.stringify(finalMessage.content).substring(0, 200);
         console.log(`🧠 [Memory Agent] Final response preview: "${preview}..."`);
       }
-      
+
       // Calculate tool results for reporting
       const toolResults = toolMessages.map((tm: any) => ({
         tool: tm.name || 'unknown',
         result: tm.content
       }));
-      
+
       console.log(`🧠 [Memory Agent] Returning ${responseMessages.length} messages, ${toolResults.length} tool results`);
-      
+
       // Add COMPLETED token if this is a todo execution
       if (isTodoExecution && responseMessages.length > 0) {
         const lastMessage = responseMessages[responseMessages.length - 1];
@@ -416,7 +418,7 @@ Last Updated: ${courseMemory.lastUpdated}`;
           console.log(`🧠 Memory Agent: Added COMPLETED token to response`);
         }
       }
-      
+
       return {
         messages: responseMessages,
         toolResults, // Include tool results for proper reporting
@@ -429,7 +431,7 @@ Last Updated: ${courseMemory.lastUpdated}`;
       };
     } catch (error) {
       console.error('Memory Agent execution error:', error);
-      
+
       return {
         messages: [
           new AIMessage(`I encountered an error while accessing memory: ${(error as Error).message}. Let me try to help you another way.`),
@@ -449,15 +451,15 @@ Last Updated: ${courseMemory.lastUpdated}`;
     const profile = await memoryManager.getUserProfile(userId);
     const recentSessions = await memoryManager.getRecentSessions(userId, 5);
     const stats = memoryManager.getStats();
-    
+
     let summary = '📊 **Your Memory Profile**\n\n';
-    
+
     // User information
     if (profile) {
       summary += '**Personal Information:**\n';
       if (profile.name) summary += `- Name: ${profile.name}\n`;
       if (profile.language) summary += `- Language: ${profile.language}\n`;
-      
+
       if (profile.preferences && Object.keys(profile.preferences).length > 0) {
         summary += '\n**Preferences:**\n';
         if (profile.preferences.responseStyle) {
@@ -470,7 +472,7 @@ Last Updated: ${courseMemory.lastUpdated}`;
           summary += `- AI temperature: ${profile.preferences.temperature}\n`;
         }
       }
-      
+
       if (profile.context && Object.keys(profile.context).length > 0) {
         summary += '\n**Context:**\n';
         if (profile.context.role) {
@@ -486,7 +488,7 @@ Last Updated: ${courseMemory.lastUpdated}`;
     } else {
       summary += 'No personal profile found. You can tell me about yourself and I\'ll remember it!\n';
     }
-    
+
     // Recent conversations
     if (recentSessions.length > 0) {
       summary += '\n**Recent Conversations:**\n';
@@ -502,19 +504,19 @@ Last Updated: ${courseMemory.lastUpdated}`;
         }
       });
     }
-    
+
     // Memory statistics
     summary += '\n**Memory Statistics:**\n';
     summary += `- Total conversations: ${stats.sessions}\n`;
     summary += `- Total messages: ${stats.totalMessages}\n`;
     summary += `- User profiles stored: ${stats.userProfiles}\n`;
-    
+
     summary += '\n💡 **Tips:**\n';
     summary += '- Ask me to "remember" specific information with a key\n';
     summary += '- Tell me your preferences and I\'ll save them\n';
     summary += '- Search past conversations by asking about previous topics\n';
     summary += '- Update your profile anytime by telling me about changes\n';
-    
+
     return summary;
   }
 
@@ -525,8 +527,8 @@ Last Updated: ${courseMemory.lastUpdated}`;
     const lastMessage = state.messages[state.messages.length - 1];
     if (!lastMessage) return null;
 
-    const content = typeof lastMessage.content === 'string' 
-      ? lastMessage.content.toLowerCase() 
+    const content = typeof lastMessage.content === 'string'
+      ? lastMessage.content.toLowerCase()
       : '';
 
     // Suggest handoffs based on content

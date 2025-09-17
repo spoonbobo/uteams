@@ -12,6 +12,8 @@ import { PlanWidget } from '@/components/PlanWidget';
 import { useIntl } from 'react-intl';
 import { useChatStore } from '@/stores/useChatStore';
 import { useGradingStore } from '@/stores/useGradingStore';
+import RubricBreakdown from './RubricBreakdown';
+import type { DetailedAIGradeResult } from '@/types/grading';
 
 interface GradingResultsProps {
   selectedAssignment: string;
@@ -36,7 +38,7 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
   // Track the last highlights to prevent duplicate updates
   const lastHighlightsRef = useRef<string>('');
   const lastCommentsRef = useRef<string>('');
-  
+
   // Memoize callbacks with duplicate prevention
   const memoizedOnHighlightsChange = useCallback((highlights: ElementHighlight[]) => {
     const highlightsStr = JSON.stringify(highlights);
@@ -45,7 +47,7 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
       onHighlightsChange(highlights);
     }
   }, [onHighlightsChange]);
-  
+
   const memoizedOnGradingCommentsChange = useCallback((comments: any[]) => {
     const commentsStr = JSON.stringify(comments);
     if (commentsStr !== lastCommentsRef.current) {
@@ -54,10 +56,10 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
     }
   }, [onGradingCommentsChange]);
   const intl = useIntl();
-  
+
   // Get grading store hook to be reactive to changes
-  const { 
-    getDetailedAIGradeResult, 
+  const {
+    getDetailedAIGradeResult,
     gradingRecords,
     gradingInProgress,
     activeGradingStudent,
@@ -67,31 +69,22 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
     clearGradingStream,
     getGradingStream,
   } = useGradingStore();
-  
-  const [gradingResult, setGradingResult] = useState<{
-    comments: Array<{
-      elementType: string;
-      elementIndex: string;
-      color: 'red' | 'yellow' | 'green';
-      comment: string;
-    }>;
-    overallScore: number;
-    shortFeedback: string;
-  } | null>(null);
+
+  const [gradingResult, setGradingResult] = useState<DetailedAIGradeResult | null>(null);
 
   // Session ID for plan widget and chat store
-  const sessionId = selectedAssignment && selectedSubmission 
-    ? `grading-${selectedAssignment}-${selectedSubmission}` 
+  const sessionId = selectedAssignment && selectedSubmission
+    ? `grading-${selectedAssignment}-${selectedSubmission}`
     : '';
-  
+
   // Only log in development mode
   if (process.env.NODE_ENV === 'development') {
     console.debug(`[GradingResults] SessionId: ${sessionId}, Selected: ${selectedSubmission}, ActiveGrading: ${activeGradingStudent}`);
   }
-  
+
   // Get plan and todos from chat store for PlanWidget
-  const { 
-    todosBySession, 
+  const {
+    todosBySession,
     planBySession,
     setPlan,
     setTodos,
@@ -99,14 +92,14 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
     clearPlan,
     clearTodos
   } = useChatStore();
-  
+
   const todos = todosBySession[sessionId] || [];
   const plan = planBySession?.[sessionId];
 
   // Listen for IPC events and delegate to store
   useEffect(() => {
     if (!sessionId || !selectedAssignment || !selectedSubmission) return;
-    
+
     // Only log in development mode
     if (process.env.NODE_ENV === 'development') {
       console.debug(`[GradingResults] Setting up IPC listeners for session: ${sessionId}`);
@@ -127,10 +120,10 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
     const onToken = (payload: { sessionId: string; token: string; node?: string }) => {
       // Only process tokens for the currently selected student
       if (payload?.sessionId !== sessionId) return;
-      
+
       // Append to stream buffer in store
       appendToGradingStream(sessionId, payload.token);
-      
+
       // Process the stream to extract results
       processGradingStream(sessionId, selectedAssignment, selectedSubmission);
     };
@@ -228,17 +221,17 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
   useEffect(() => {
     // Only log in development mode
     if (process.env.NODE_ENV === 'development') {
-      console.debug('[GradingResults] Checking for existing results:', { 
-        selectedAssignment, 
+      console.debug('[GradingResults] Checking for existing results:', {
+        selectedAssignment,
         selectedSubmission,
-        gradingRecordsLength: gradingRecords?.length 
+        gradingRecordsLength: gradingRecords?.length
       });
     }
-    
+
     if (selectedAssignment && selectedSubmission) {
       // First check if there's a result in the store
       const existingResult = getDetailedAIGradeResult(selectedAssignment, selectedSubmission);
-      
+
       if (existingResult) {
         // Only update if the result has changed
         if (JSON.stringify(existingResult) !== JSON.stringify(gradingResult)) {
@@ -246,13 +239,13 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
             console.debug('[GradingResults] Found existing result in store');
           }
         setGradingResult(existingResult);
-        
+
           // Convert to highlights
           const highlights: ElementHighlight[] = existingResult.comments
           .map((comment: any) => {
             const elementIndex = parseInt(comment.elementIndex, 10);
               if (isNaN(elementIndex) || elementIndex < 0) return null;
-            
+
             return {
               elementType: comment.elementType,
               elementIndex: elementIndex,
@@ -261,7 +254,7 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
             } as ElementHighlight;
           })
             .filter((h): h is ElementHighlight => h !== null);
-        
+
           memoizedOnHighlightsChange(highlights);
           memoizedOnGradingCommentsChange(existingResult.comments);
         }
@@ -275,13 +268,13 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
               console.debug('[GradingResults] Found temp result in stream');
             }
             setGradingResult(stream.tempResult);
-            
+
             // Convert to highlights
             const highlights: ElementHighlight[] = stream.tempResult.comments
               .map((comment: any) => {
                 const elementIndex = parseInt(comment.elementIndex, 10);
                 if (isNaN(elementIndex) || elementIndex < 0) return null;
-                
+
                 return {
                   elementType: comment.elementType,
                   elementIndex: elementIndex,
@@ -290,7 +283,7 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
                 } as ElementHighlight;
               })
               .filter((h): h is ElementHighlight => h !== null);
-            
+
             memoizedOnHighlightsChange(highlights);
             memoizedOnGradingCommentsChange(stream.tempResult.comments);
           }
@@ -310,7 +303,7 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
   // Check for grading stream updates periodically
   useEffect(() => {
     if (!sessionId || !selectedSubmission || !gradingInProgress.has(selectedSubmission)) return;
-    
+
     const interval = setInterval(() => {
       const stream = getGradingStream(sessionId);
       if (stream?.tempResult) {
@@ -320,13 +313,13 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
             console.debug('[GradingResults] Found new result in stream');
           }
           setGradingResult(stream.tempResult);
-          
+
           // Convert to highlights
           const highlights: ElementHighlight[] = stream.tempResult.comments
             .map((comment: any) => {
               const elementIndex = parseInt(comment.elementIndex, 10);
               if (isNaN(elementIndex) || elementIndex < 0) return null;
-              
+
               return {
                 elementType: comment.elementType,
                 elementIndex: elementIndex,
@@ -335,13 +328,13 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
               } as ElementHighlight;
             })
             .filter((h): h is ElementHighlight => h !== null);
-          
+
           memoizedOnHighlightsChange(highlights);
           memoizedOnGradingCommentsChange(stream.tempResult.comments);
         }
       }
     }, 500); // Check every 500ms
-    
+
     return () => clearInterval(interval);
   }, [sessionId, selectedSubmission, gradingInProgress, gradingResult, getGradingStream, memoizedOnHighlightsChange, memoizedOnGradingCommentsChange]);
 
@@ -350,10 +343,10 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
       <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
         {intl.formatMessage({ id: 'grading.aiGradingProgress' })}
       </Typography>
-      
-      <Card sx={{ 
-        flex: 1, 
-        position: 'relative', 
+
+      <Card sx={{
+        flex: 1,
+        position: 'relative',
         overflow: 'hidden',
         bgcolor: 'background.paper',
         border: '1px solid',
@@ -361,7 +354,7 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
       }}>
         {/* Show grading results if available */}
         {gradingResult ? (
-          <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
             {/* Score and Feedback Display */}
             <Box sx={{ textAlign: 'center', p: 3 }}>
               {/* Score Display */}
@@ -369,11 +362,11 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   {intl.formatMessage({ id: 'grading.ai.score', defaultMessage: 'Score' })}
                 </Typography>
-                <Typography 
-                  variant="h2" 
+                <Typography
+                  variant="h2"
                   sx={{
                     fontWeight: 700,
-                    color: gradingResult.overallScore >= 70 ? 'success.main' : 
+                    color: gradingResult.overallScore >= 70 ? 'success.main' :
                            gradingResult.overallScore >= 50 ? 'warning.main' : 'error.main',
                     mb: 1
                   }}
@@ -384,14 +377,14 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
                   out of 100
                 </Typography>
               </Box>
-              
+
               {/* Feedback Display */}
               {gradingResult.shortFeedback && (
-                <Box>
+                <Box sx={{ mb: 3 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     {intl.formatMessage({ id: 'grading.ai.feedback', defaultMessage: 'Feedback' })}
                   </Typography>
-                  <Typography variant="body1" sx={{ 
+                  <Typography variant="body1" sx={{
                     lineHeight: 1.6,
                     color: 'text.primary'
                   }}>
@@ -400,6 +393,16 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
                 </Box>
               )}
             </Box>
+
+            {/* Rubric Breakdown */}
+            {gradingResult.scoreBreakdown && gradingResult.scoreBreakdown.length > 0 && (
+              <Box sx={{ px: 3, pb: 3 }}>
+                <RubricBreakdown
+                  scoreBreakdown={gradingResult.scoreBreakdown}
+                  overallScore={gradingResult.overallScore}
+                />
+              </Box>
+            )}
           </CardContent>
         ) : (
           /* Show spinner or PlanWidget based on grading state */
@@ -407,7 +410,7 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
             const isCurrentlyGrading = selectedSubmission && gradingInProgress.has(selectedSubmission);
             const hasActivePlan = plan || todos.length > 0;
             const shouldShowSpinner = isCurrentlyGrading && !hasActivePlan;
-            
+
             return shouldShowSpinner ? (
               <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                 <CircularProgress size={40} sx={{ mb: 2 }} />

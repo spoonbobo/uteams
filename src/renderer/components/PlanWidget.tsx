@@ -23,7 +23,7 @@ interface PlanWidgetProps {
 
 export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) => {
   const intl = useIntl();
-  const { todosBySession, planBySession } = useChatStore();
+  const { todosBySession, planBySession, abortSession } = useChatStore();
   const todos = todosBySession[sessionId] || [];
   const plan = planBySession?.[sessionId];
   const [isVisible, setIsVisible] = useState(false);
@@ -42,6 +42,24 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
 
   // Determine current active todo (first incomplete one)
   const activeTodoIndex = todos.findIndex(t => !t.completed);
+
+  const handleClose = async () => {
+    try {
+      // Abort the session execution
+      await abortSession(sessionId, 'User cancelled via plan widget');
+
+      // Hide the widget
+      setIsVisible(false);
+
+      // Call the optional onClose callback
+      onClose?.();
+    } catch (error) {
+      console.error('Error aborting session:', error);
+      // Still close the widget even if abort fails
+      setIsVisible(false);
+      onClose?.();
+    }
+  };
 
   if (!isVisible || (todos.length === 0 && !plan)) {
     return null;
@@ -82,21 +100,23 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
           >
             {intl.formatMessage({ id: 'plan.title' })}
           </Typography>
-          {onClose && (
-            <IconButton
-              size="small"
-              onClick={onClose}
-              sx={{
-                p: 0.5,
-                color: 'text.secondary',
-                '&:hover': {
-                  color: 'text.primary',
-                },
-              }}
-            >
-              <CloseIcon sx={{ fontSize: 18 }} />
-            </IconButton>
-          )}
+          <IconButton
+            size="small"
+            onClick={handleClose}
+            sx={{
+              p: 0.5,
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'error.main',
+              },
+            }}
+            title={intl.formatMessage({
+              id: 'plan.abort',
+              defaultMessage: 'Cancel execution'
+            })}
+          >
+            <CloseIcon sx={{ fontSize: 18 }} />
+          </IconButton>
         </Box>
 
         {/* Simple Progress Bar */}

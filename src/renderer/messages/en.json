@@ -151,7 +151,7 @@
     "bgMinimalDesc": "Ultra clean minimal look",
     "colorSchemes": {
       "blue": "Ocean Blue",
-      "green": "Forest Green", 
+      "green": "Forest Green",
       "purple": "Royal Purple",
       "orange": "Sunset Orange",
       "red": "Cherry Red",
@@ -320,7 +320,7 @@
   },
   "research": {
     "trends": "Market Trends",
-    "statistics": "Betting Statistics", 
+    "statistics": "Betting Statistics",
     "odds": "Odds Analysis",
     "predictions": "AI Predictions",
     "news": "Latest News",
@@ -385,7 +385,9 @@
     "systemResponse": "Got it! \"{message}\" - I'll keep that in mind for your {sessionName} betting strategy.",
     "hint": "Try asking about students, assignments, activities, or any course-related information",
     "clear": "Clear Message",
-    "clearAll": "Clear all messages"
+    "clearAll": "Clear all messages",
+    "stop": "Stop",
+    "thinking": "Agent is working on a response"
   },
   "plan": {
     "title": "Agent In Work",
@@ -393,7 +395,8 @@
     "processing": "Working on it...",
     "allTasksCompleted": "All tasks completed",
     "synthesizingResponse": "Synthesizing response...",
-    "testStreaming": "Test streaming"
+    "testStreaming": "Test streaming",
+    "abort": "Cancel execution"
   },
   "overlay": {
     "companionTitle": "Companion Overlay",
@@ -525,7 +528,7 @@
       "noSubmission": "Not submitted"
     },
     "studentSelected": "Student Selected",
-    "submissionStatus": "Submission Status", 
+    "submissionStatus": "Submission Status",
     "submitted": "Submitted",
     "notSubmitted": "Not Submitted",
     "unknownStudent": "Unknown Student",
@@ -573,6 +576,14 @@
         "green": "Good point",
         "yellow": "Can improve",
         "red": "Not very good"
+      }
+    },
+    "rubric": {
+      "breakdown": {
+        "title": "Score Breakdown",
+        "overall": "Overall Score",
+        "total": "Total",
+        "points": "points"
       }
     },
     "submit": {
@@ -642,7 +653,7 @@
       "title": "Timeline",
       "period": "Next 7 days",
       "next7days": "Next 7 days",
-      "next30days": "Next 30 days", 
+      "next30days": "Next 30 days",
       "next90days": "Next 90 days",
       "sortBy": "Sort by dates",
       "sortByDates": "Sort by dates",

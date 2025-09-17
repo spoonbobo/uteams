@@ -4,17 +4,17 @@
  */
 
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
-import { 
-  HumanMessage, 
-  SystemMessage, 
+import {
+  HumanMessage,
+  SystemMessage,
   AIMessage,
-  BaseMessage 
+  BaseMessage
 } from '@langchain/core/messages';
-import { 
-  BaseAgent, 
-  AgentConfig, 
-  AgentState, 
-  AgentResult 
+import {
+  BaseAgent,
+  AgentConfig,
+  AgentState,
+  AgentResult
 } from '../types/agent';
 
 export class PlaywrightAgent extends BaseAgent {
@@ -67,8 +67,8 @@ When scraping:
     // Get Playwright-specific tools from MCP tools
     const playwrightTools = this.mcpTools.filter((t: any) => {
       const name = String(t?.name || '').toLowerCase();
-      return name.includes('playwright') || 
-             name.includes('navigate') || 
+      return name.includes('playwright') ||
+             name.includes('navigate') ||
              name.includes('screenshot') ||
              name.includes('click') ||
              name.includes('scrape');
@@ -93,7 +93,7 @@ When scraping:
       // Check if we're executing a specific todo
       let taskContext = '';
       let isTodoExecution = false;
-      
+
       // Look for todo execution context in the last AI message
       const lastAiMessage = state.messages.filter(m => m._getType() === 'ai').pop();
       if (lastAiMessage && typeof lastAiMessage.content === 'string') {
@@ -103,11 +103,11 @@ When scraping:
           isTodoExecution = true;
         }
       }
-      
+
       // Extract the latest user message
       const userMessages = state.messages.filter(m => m._getType() === 'human');
       const lastUserMessage = userMessages[userMessages.length - 1];
-      
+
       if (!lastUserMessage) {
         return {
           messages: [new AIMessage('No scraping request provided')],
@@ -138,7 +138,7 @@ When scraping:
 
       // Format results
       let formattedResult = this.formatScrapingResults(results);
-      
+
       // Add COMPLETED token if this is a todo execution
       if (isTodoExecution) {
         formattedResult += '\n\nCOMPLETED';
@@ -181,7 +181,7 @@ When scraping:
    * Plan the scraping operation
    */
   private async planScraping(
-    request: string, 
+    request: string,
     state: AgentState
   ): Promise<any> {
     const systemPrompt = new SystemMessage(
@@ -199,7 +199,9 @@ When scraping:
     );
 
     try {
-      const response = await this.llm.invoke([systemPrompt, userPrompt]);
+      const response = await this.llm.invoke([systemPrompt, userPrompt], {
+        signal: state.signal,  // Pass abort signal for cancellation
+      });
       const content = String((response as any)?.content || '{}');
       return JSON.parse(content);
     } catch {
@@ -239,7 +241,9 @@ When scraping:
 
       // Navigate to URL
       if (navigateTool && plan.url) {
-        const navResult = await navigateTool.invoke({ url: plan.url });
+        const navResult = await navigateTool.invoke({ url: plan.url }, {
+          signal: state.signal,  // Pass abort signal for cancellation
+        });
         results.push({ type: 'navigation', result: navResult });
       }
 
@@ -252,40 +256,48 @@ When scraping:
                 const scrapeResult = await scrapeTool.invoke({
                   selector: action.selector || 'body',
                   attribute: action.attribute || 'text',
+                }, {
+                  signal: state.signal,  // Pass abort signal for cancellation
                 });
                 results.push({ type: 'scrape', result: scrapeResult });
               }
               break;
-            
+
             case 'screenshot':
               if (screenshotTool) {
                 const screenshotResult = await screenshotTool.invoke({
                   selector: action.selector,
+                }, {
+                  signal: state.signal,  // Pass abort signal for cancellation
                 });
                 results.push({ type: 'screenshot', result: screenshotResult });
               }
               break;
 
             case 'click':
-              const clickTool = this.mcpTools.find((t: any) => 
+              const clickTool = this.mcpTools.find((t: any) =>
                 String(t?.name || '').toLowerCase().includes('click')
               );
               if (clickTool) {
                 const clickResult = await clickTool.invoke({
                   selector: action.selector,
+                }, {
+                  signal: state.signal,  // Pass abort signal for cancellation
                 });
                 results.push({ type: 'click', result: clickResult });
               }
               break;
 
             case 'fill':
-              const fillTool = this.mcpTools.find((t: any) => 
+              const fillTool = this.mcpTools.find((t: any) =>
                 String(t?.name || '').toLowerCase().includes('fill')
               );
               if (fillTool) {
                 const fillResult = await fillTool.invoke({
                   selector: action.selector,
                   value: action.value,
+                }, {
+                  signal: state.signal,  // Pass abort signal for cancellation
                 });
                 results.push({ type: 'fill', result: fillResult });
               }
@@ -304,6 +316,8 @@ When scraping:
         const extractResult = await scrapeTool.invoke({
           selector: plan.extractData.selector,
           attribute: plan.extractData.attribute || 'text',
+        }, {
+          signal: state.signal,  // Pass abort signal for cancellation
         });
         results.push({ type: 'extract', result: extractResult });
       }
@@ -327,7 +341,7 @@ When scraping:
         case 'navigation':
           formatted += `✅ **Navigated to page**\n\n`;
           break;
-        
+
         case 'scrape':
           formatted += `### Scraped Content:\n`;
           if (typeof result.result === 'string') {
@@ -336,24 +350,24 @@ When scraping:
             formatted += `\`\`\`json\n${JSON.stringify(result.result, null, 2)}\n\`\`\`\n\n`;
           }
           break;
-        
+
         case 'extract':
           formatted += `### Extracted Data:\n`;
           formatted += `\`\`\`json\n${JSON.stringify(result.result, null, 2)}\n\`\`\`\n\n`;
           break;
-        
+
         case 'screenshot':
           formatted += `📸 **Screenshot captured**\n\n`;
           break;
-        
+
         case 'click':
           formatted += `🖱️ **Clicked element**\n\n`;
           break;
-        
+
         case 'fill':
           formatted += `✏️ **Filled form field**\n\n`;
           break;
-        
+
         case 'error':
           formatted += `❌ **Error:** ${result.error}\n\n`;
           break;
@@ -377,14 +391,14 @@ When scraping:
    */
   private shouldHandoff(request: string): boolean {
     const text = request.toLowerCase();
-    
+
     // Hand off to tavily for general web search
     if (text.includes('search') && !text.includes('scrape')) {
       return true;
     }
 
     // Hand off to screenpipe for local content
-    if (text.includes('screen') || text.includes('local') || 
+    if (text.includes('screen') || text.includes('local') ||
         text.includes('clipboard')) {
       return true;
     }

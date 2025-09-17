@@ -1,6 +1,6 @@
 /**
  * AI Grading Prompt Generator
- * 
+ *
  * Creates a structured prompt for AI-powered academic grading that analyzes
  * student submissions against rubric criteria and provides detailed feedback.
  */
@@ -17,7 +17,7 @@ export interface GradingPromptParams {
  */
 export const createGradingPrompt = (params: GradingPromptParams): string => {
   const { rubricData, submissionData } = params;
-  
+
   return `You are an expert academic grader. Analyze the student submission against the provided rubric and provide detailed feedback.
 
 ## GRADING RUBRIC:
@@ -46,19 +46,45 @@ You MUST respond with ONLY a valid JSON object (no markdown code blocks, no expl
       "comment": "Strong thesis statement that clearly addresses the assignment requirements"
     },
     {
-      "elementType": "paragraph", 
+      "elementType": "paragraph",
       "elementIndex": "2",
       "color": "yellow",
       "comment": "Good analysis but could benefit from more specific examples"
     },
     {
       "elementType": "paragraph",
-      "elementIndex": "5", 
+      "elementIndex": "5",
       "color": "red",
       "comment": "Missing citations - please add proper references for this claim"
     }
   ],
   "overallScore": 85,
+  "scoreBreakdown": [
+    {
+      "criteriaName": "Content Quality",
+      "score": 20,
+      "maxScore": 25,
+      "feedback": "Good understanding of topic but lacks depth in some areas"
+    },
+    {
+      "criteriaName": "Organization & Structure",
+      "score": 22,
+      "maxScore": 25,
+      "feedback": "Well-organized with clear introduction and conclusion"
+    },
+    {
+      "criteriaName": "Evidence & Support",
+      "score": 18,
+      "maxScore": 25,
+      "feedback": "Some good examples but needs more supporting evidence"
+    },
+    {
+      "criteriaName": "Writing Quality",
+      "score": 25,
+      "maxScore": 25,
+      "feedback": "Excellent grammar, spelling, and sentence structure"
+    }
+  ],
   "shortFeedback": "Well-structured essay with clear arguments. Main strengths include strong introduction and logical flow. Areas for improvement: add more supporting evidence in body paragraphs and strengthen the conclusion."
 }
 
@@ -76,8 +102,10 @@ You MUST respond with ONLY a valid JSON object (no markdown code blocks, no expl
 
 3. Provide at least 5-10 specific comments tied to actual elements in the submission
 4. Make comments constructive and actionable
-5. Score should be out of 100
-6. Short feedback should be 2-3 sentences summarizing overall performance
+5. Overall score should be out of 100
+6. Score breakdown should include individual criteria with their scores, max scores, and specific feedback
+7. Ensure score breakdown totals match or are close to the overall score
+8. Short feedback should be 2-3 sentences summarizing overall performance
 
 IMPORTANT: Return ONLY the JSON object, nothing else.`;
 };

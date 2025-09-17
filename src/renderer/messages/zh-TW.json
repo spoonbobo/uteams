@@ -151,7 +151,7 @@
     "bgMinimalDesc": "超簡潔極簡外觀",
     "colorSchemes": {
       "blue": "海洋藍",
-      "green": "森林綠", 
+      "green": "森林綠",
       "purple": "皇家紫",
       "orange": "夕陽橙",
       "red": "櫻桃紅",
@@ -319,7 +319,7 @@
   },
   "research": {
     "trends": "市場趨勢",
-    "statistics": "投注統計", 
+    "statistics": "投注統計",
     "odds": "賠率分析",
     "predictions": "預測分析",
     "news": "最新消息",
@@ -388,7 +388,9 @@
     "systemResponse": "收到！\"{message}\" —— 我會在您的 {sessionName} 投注策略中留意這點。",
     "hint": "嘗試詢問學生、作業、活動或任何與課程相關的資訊",
     "clear": "清除訊息",
-    "clearAll": "清除所有訊息"
+    "clearAll": "清除所有訊息",
+    "stop": "停止",
+    "thinking": "助手正在準備回應"
   },
   "plan": {
     "title": "Agent In Work",
@@ -396,7 +398,8 @@
     "processing": "正在處理...",
     "allTasksCompleted": "所有任務已完成",
     "synthesizingResponse": "正在綜合回應...",
-    "testStreaming": "測試串流"
+    "testStreaming": "測試串流",
+    "abort": "取消執行"
   },
   "overlay": {
     "companionTitle": "夥伴覆蓋視窗",
@@ -604,6 +607,14 @@
         "yellow": "可改善",
         "red": "需改進"
       }
+    },
+    "rubric": {
+      "breakdown": {
+        "title": "分數細項",
+        "overall": "總分",
+        "total": "總計",
+        "points": "分"
+      }
     }
   },
   "dashboard": {
@@ -621,7 +632,7 @@
       "title": "時間軸",
       "period": "未來 7 天",
       "next7days": "未來 7 天",
-      "next30days": "未來 30 天", 
+      "next30days": "未來 30 天",
       "next90days": "未來 90 天",
       "sortBy": "依日期排序",
       "sortByDates": "依日期排序",

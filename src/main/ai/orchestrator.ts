@@ -244,6 +244,7 @@ export class Orchestrator extends EventEmitter {
             context: userProfile.context,
           } : undefined,
         },
+        signal: abortSignal,  // Pass abort signal to agents
       };
 
       // Compile the graph with checkpointer if memory is enabled
@@ -252,13 +253,17 @@ export class Orchestrator extends EventEmitter {
         checkpointer,
       });
 
-      // Prepare config with thread ID for memory
-      const runConfig = useMemory ? {
-        configurable: {
-          thread_id: threadId,
-          store: this.memoryManager.getStore(),
-        },
-      } : undefined;
+      // Prepare config with thread ID for memory and abort signal
+      const runConfig = {
+        ...(useMemory ? {
+          configurable: {
+            thread_id: threadId,
+            store: this.memoryManager.getStore(),
+          },
+        } : {}),
+        // Pass the abort signal to LangChain for proper cancellation
+        signal: abortSignal,
+      };
 
       try {
         // Use regular stream for now, handle tokens differently

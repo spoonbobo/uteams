@@ -41,6 +41,8 @@ export interface MultiAgentState {
   // Execution fields
   toolResults?: any[];
   needsSynthesis?: boolean;
+  // Cancellation support
+  signal?: AbortSignal;
 }
 
 /**
@@ -79,5 +81,6 @@ export interface GraphChannels {
     default: () => any[];
   };
   needsSynthesis: { reducer: (x: any, y: any) => any };
+  signal?: { reducer: (x: any, y: any) => any };
 }
 

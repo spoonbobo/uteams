@@ -11,7 +11,7 @@ import { GraphChannels } from './types';
  */
 export function createGraphChannels(): GraphChannels {
   return {
-    messages: { 
+    messages: {
       reducer: (x: BaseMessage[], y: BaseMessage[]) => [...x, ...y],
       default: () => [],
     },
@@ -24,14 +24,15 @@ export function createGraphChannels(): GraphChannels {
     plan: { reducer: (x: any, y: any) => y ?? x },
     todos: { reducer: (x: any, y: any) => y ?? x },
     currentTodoIndex: { reducer: (x: any, y: any) => y ?? x },
-    completedTodos: { 
+    completedTodos: {
       reducer: (x: any[], y: any[]) => [...(x || []), ...(y || [])],
       default: () => [],
     },
-    toolResults: { 
+    toolResults: {
       reducer: (x: any[], y: any[]) => [...(x || []), ...(y || [])],
       default: () => [],
     },
     needsSynthesis: { reducer: (x: any, y: any) => y ?? x },
+    signal: { reducer: (x: any, y: any) => y ?? x },
   };
 }

@@ -191,7 +191,9 @@ ${isTodoExecution ? '- End with "COMPLETED" when the task is done' : ''}
 
       // Generate response
       console.log(`🎯 General Agent: Generating response...`);
-      const response = await this.llm.invoke(messages);
+      const response = await this.llm.invoke(messages, {
+        signal: state.signal,  // Pass abort signal for cancellation
+      });
 
       let responseContent = typeof response.content === 'string'
         ? response.content

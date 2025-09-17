@@ -39,6 +39,8 @@ type ChatState = {
   clearTodos: (sessionId: string) => void;
   // Thinking state management
   setThinking: (sessionId: string, isThinking: boolean) => void;
+  // Abort management
+  abortSession: (sessionId: string, reason?: string) => Promise<void>;
 };
 
 export const useChatStore = create<ChatState>()(
@@ -578,6 +580,41 @@ export const useChatStore = create<ChatState>()(
         false,
         'chat:thinking:set',
       );
+    },
+
+    abortSession: async (sessionId: string, reason?: string) => {
+      try {
+        console.log(`[Chat] Aborting session ${sessionId}${reason ? `: ${reason}` : ''}`);
+
+        // Call IPC to abort the session
+        const result = await (window as any).electron?.ipcRenderer?.invoke('chat:agent:abort', {
+          sessionId,
+          reason: reason || 'User cancelled'
+        });
+
+        if (result?.success) {
+          console.log(`[Chat] Session ${sessionId} aborted successfully`);
+
+          // Clear local state immediately
+          set(
+            (s) => ({
+              streamingBySession: { ...s.streamingBySession, [sessionId]: undefined },
+              isThinkingBySession: { ...s.isThinkingBySession, [sessionId]: false },
+              planBySession: { ...s.planBySession, [sessionId]: undefined },
+              todosBySession: { ...s.todosBySession, [sessionId]: undefined },
+            }),
+            false,
+            'chat:abort:cleanup',
+          );
+
+          // Clear thinking messages
+          get().clearThinkingMessages(sessionId);
+        } else {
+          console.error(`[Chat] Failed to abort session ${sessionId}:`, result?.error);
+        }
+      } catch (error) {
+        console.error(`[Chat] Error aborting session ${sessionId}:`, error);
+      }
     },
   }))
 );

@@ -28,6 +28,14 @@ export interface AIGradeResult {
   feedback: string;
 }
 
+// Score breakdown item interface
+export interface ScoreBreakdownItem {
+  criteriaName: string;
+  score: number;
+  maxScore: number;
+  feedback: string;
+}
+
 // Detailed AI grading result interface
 export interface DetailedAIGradeResult {
   comments: Array<{
@@ -37,6 +45,7 @@ export interface DetailedAIGradeResult {
     comment: string;
   }>;
   overallScore: number;
+  scoreBreakdown: ScoreBreakdownItem[];
   shortFeedback: string;
 }
 
