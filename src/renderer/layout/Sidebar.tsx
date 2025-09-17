@@ -73,6 +73,7 @@ export const Sidebar: React.FC = () => {
       sx={{
         width: SIDEBAR_WIDTH,
         flexShrink: 0,
+        height: '100%',
         '& .MuiDrawer-paper': {
           width: SIDEBAR_WIDTH,
           boxSizing: 'border-box',
@@ -82,6 +83,10 @@ export const Sidebar: React.FC = () => {
             theme.palette.mode === 'dark'
               ? 'none'
               : '0 0 10px rgba(0,0,0,0.02)',
+          height: '100%',
+          position: 'static',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
     >

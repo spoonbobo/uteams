@@ -1,0 +1,30 @@
+/* TitleBar specific styles for electron app */
+
+/* Ensure draggable region works properly */
+.titlebar-drag {
+  -webkit-app-region: drag;
+  /* stylelint-disable-next-line property-no-unknown */
+  app-region: drag;
+}
+
+.titlebar-no-drag {
+  -webkit-app-region: no-drag;
+  /* stylelint-disable-next-line property-no-unknown */
+  app-region: no-drag;
+}
+
+/* Prevent text selection in title bar */
+.titlebar-container {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Ensure buttons and menus are clickable */
+.titlebar-container button,
+.titlebar-container [role="button"] {
+  -webkit-app-region: no-drag;
+  /* stylelint-disable-next-line property-no-unknown */
+  app-region: no-drag;
+}

@@ -175,37 +175,23 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
       initGradingStream(sessionId);
     };
 
-    // Handle completion
+    // Handle completion: UI-only cleanup; store will finalize/clear stream safely
     const onDone = (payload: { sessionId: string; final?: string }) => {
       if (payload?.sessionId && payload.sessionId.startsWith(`grading-${selectedAssignment}-`)) {
         if (process.env.NODE_ENV === 'development') {
           console.debug('Grading complete for session:', payload.sessionId);
         }
-        
-        // Clear plan/todos for completed session
         clearPlan(payload.sessionId);
         clearTodos(payload.sessionId);
-        
-        // Clear the grading stream
-        if (payload.sessionId === sessionId) {
-          clearGradingStream(sessionId);
-        }
       }
     };
 
-    // Handle errors
+    // Handle errors: UI-only cleanup; store will clear stream on error
     const onError = (payload: { sessionId: string; error: string }) => {
       if (payload?.sessionId && payload.sessionId.startsWith(`grading-${selectedAssignment}-`)) {
         console.error('❌ AI Error for session:', payload.sessionId, payload.error);
-        
-        // Clear plan/todos for errored session
         clearPlan(payload.sessionId);
         clearTodos(payload.sessionId);
-        
-        // Clear the grading stream
-        if (payload.sessionId === sessionId) {
-          clearGradingStream(sessionId);
-        }
       }
     };
 
@@ -259,23 +245,23 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
           if (process.env.NODE_ENV === 'development') {
             console.debug('[GradingResults] Found existing result in store');
           }
-          setGradingResult(existingResult);
-          
+        setGradingResult(existingResult);
+        
           // Convert to highlights
           const highlights: ElementHighlight[] = existingResult.comments
-            .map((comment: any) => {
-              const elementIndex = parseInt(comment.elementIndex, 10);
+          .map((comment: any) => {
+            const elementIndex = parseInt(comment.elementIndex, 10);
               if (isNaN(elementIndex) || elementIndex < 0) return null;
-              
-              return {
-                elementType: comment.elementType,
-                elementIndex: elementIndex,
-                color: comment.color,
-                comment: comment.comment,
-              } as ElementHighlight;
-            })
+            
+            return {
+              elementType: comment.elementType,
+              elementIndex: elementIndex,
+              color: comment.color,
+              comment: comment.comment,
+            } as ElementHighlight;
+          })
             .filter((h): h is ElementHighlight => h !== null);
-          
+        
           memoizedOnHighlightsChange(highlights);
           memoizedOnGradingCommentsChange(existingResult.comments);
         }
@@ -313,7 +299,7 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
           if (process.env.NODE_ENV === 'development') {
             console.debug('[GradingResults] No results found, clearing state');
           }
-          setGradingResult(null);
+        setGradingResult(null);
           memoizedOnHighlightsChange([]);
           memoizedOnGradingCommentsChange([]);
         }

@@ -43,6 +43,8 @@ function Dashboard() {
       document.documentElement.style.height = '100%';
       document.documentElement.style.width = '100%';
       document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.margin = '0';
+      document.documentElement.style.padding = '0';
       
       if (overlay === 'companion') {
         document.body.style.background = 'transparent';
@@ -54,9 +56,11 @@ function Dashboard() {
       document.body.style.margin = '0';
       document.body.style.padding = '0';
       document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = '0';
-      document.body.style.left = '0';
+      
+      // Remove fixed positioning to prevent layout issues
+      if (overlay !== 'companion') {
+        document.body.style.position = 'relative';
+      }
     }
   }, [overlay]);
 
@@ -94,16 +98,18 @@ export default function App() {
       document.documentElement.style.height = '100%';
       document.documentElement.style.overflow = 'hidden';
       
-      // Prevent any potential layout shifts on startup
-      const preventLayoutShift = () => {
-        const root = document.getElementById('root');
-        if (root) {
-          root.style.visibility = 'visible';
-        }
-      };
-      
-      // Small delay to ensure everything is rendered
-      setTimeout(preventLayoutShift, 50);
+      // Ensure root element takes full height
+      const root = document.getElementById('root');
+      if (root) {
+        root.style.height = '100vh';
+        root.style.overflow = 'hidden';
+        root.style.position = 'fixed';
+        root.style.top = '0';
+        root.style.left = '0';
+        root.style.right = '0';
+        root.style.bottom = '0';
+        root.style.visibility = 'visible';
+      }
     }
   }, []);
 

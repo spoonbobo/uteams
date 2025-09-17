@@ -37,6 +37,42 @@ export const registerAppIpcHandlers = () => {
     ipcMain.handle('app:get-info', () => getAppInfo());
     ipcMain.handle('app:get-product-name', () => getAppInfo().productName);
     ipcMain.handle('app:get-description', () => getAppInfo().description);
+    ipcMain.handle('app:get-version', () => getAppInfo().version);
+    
+    // Window control handlers
+    ipcMain.handle('window:minimize', () => {
+      const win = BrowserWindow.getFocusedWindow();
+      if (win) win.minimize();
+    });
+    
+    ipcMain.handle('window:maximize', () => {
+      const win = BrowserWindow.getFocusedWindow();
+      if (win) {
+        if (win.isMaximized()) {
+          win.unmaximize();
+        } else {
+          win.maximize();
+        }
+      }
+    });
+    
+    ipcMain.handle('window:close', () => {
+      const win = BrowserWindow.getFocusedWindow();
+      if (win) win.close();
+    });
+    
+    ipcMain.handle('window:is-maximized', () => {
+      const win = BrowserWindow.getFocusedWindow();
+      return win ? win.isMaximized() : false;
+    });
+    
+    // Developer tools handler
+    ipcMain.handle('window:toggle-dev-tools', () => {
+      const win = BrowserWindow.getFocusedWindow();
+      if (win) {
+        win.webContents.toggleDevTools();
+      }
+    });
     
     // Zoom handlers
     ipcMain.handle('app:zoom-in', () => {

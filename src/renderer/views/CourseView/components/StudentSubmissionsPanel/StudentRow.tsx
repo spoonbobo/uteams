@@ -67,11 +67,6 @@ export const StudentRow: React.FC<StudentRowProps> = ({
     f.filename.toLowerCase().endsWith('.docx')
   );
 
-  // Debug logging for grading state
-  if (isCurrentlyGrading || hasAIResults) {
-    console.log(`[Row] Student ${data.student.fullname} (${data.student.id}): isCurrentlyGrading=${isCurrentlyGrading}, hasAIResults=${hasAIResults}`);
-  }
-
   return (
     <TableRow
       key={data.student.id}

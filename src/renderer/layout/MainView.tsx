@@ -16,9 +16,7 @@ export const MainView: React.FC<MainViewProps> = ({
       sx={{
         flexGrow: 1,
         width: `calc(100vw - ${sidebarWidth}px)`,
-        height: '100vh',
-        minHeight: '100vh',
-        maxHeight: '100vh', // Prevent growing beyond viewport
+        height: '100%', // Changed from 100vh to 100%
         maxWidth: `calc(100vw - ${sidebarWidth}px)`,
         marginLeft: 0,
         display: 'flex',

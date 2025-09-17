@@ -298,6 +298,11 @@ export const useGradingActions = (selectedAssignment: string) => {
     getGradingRecord,
     clearGradingRecord,
     saveDetailedGradingRecord,
+    initGradingStream,
+    appendToGradingStream,
+    processGradingStream,
+    getGradingStream,
+    getDetailedAIGradeResult,
     getRubricForAssignment,
     gradingInProgress,
     startGrading,
@@ -390,41 +395,114 @@ export const useGradingActions = (selectedAssignment: string) => {
       
       console.log('🎯 Starting AI Grading for student:', studentId, 'Session:', sessionId);
       
+      // Initialize grading stream BEFORE starting any async operations
+      initGradingStream(sessionId);
+      
       return new Promise<void>((resolve, reject) => {
         let resultReceived = false;
         let timeout: NodeJS.Timeout;
+
+        // Track token reception for debugging
+        let tokenCount = 0;
+        let lastTokenTime = Date.now();
         
         // Handlers receive payload only per preload bridge contract
         const onToken = (payload: { sessionId: string; token: string; node?: string }) => {
           if (payload?.sessionId !== sessionId) return;
+          tokenCount++;
+          const now = Date.now();
+          const timeSinceLastToken = now - lastTokenTime;
+          lastTokenTime = now;
+          
+          // Log every 50th token for debugging
+          if (tokenCount % 50 === 0) {
+            console.log(`[Tokens] Session ${sessionId}: Received ${tokenCount} tokens, last gap: ${timeSinceLastToken}ms`);
+          }
+          
+          try {
+            appendToGradingStream(sessionId, payload.token);
+            processGradingStream(sessionId, selectedAssignment, studentId);
+          } catch (e) {
+            console.error(`[Tokens] Error processing token for session ${sessionId}:`, e);
+          }
         };
 
+        // Track if onDone has been called
+        let onDoneReceived = false;
+        
         const onDone = (payload: { sessionId: string; resultSummary?: string }) => {
           if (payload?.sessionId !== sessionId) return;
           
-          console.log('✅ Grading complete for session:', sessionId, 'ResultSummary:', !!payload.resultSummary);
+          console.log('✅ Grading complete for session:', sessionId, {
+            hasResultSummary: !!payload.resultSummary,
+            resultSummaryType: typeof payload.resultSummary,
+            resultSummaryLength: typeof payload.resultSummary === 'string' ? payload.resultSummary.length : 'N/A'
+          });
+          onDoneReceived = true;
           
-          if (payload.resultSummary) {
+          // Ensure stream exists (in case onDone fires very early)
+          try {
+            initGradingStream(sessionId);
+          } catch {}
+          
+          // Try to parse resultSummary if provided (could be from event or fallback)
+          if (payload.resultSummary && typeof payload.resultSummary === 'string') {
             try {
               const jsonMatch = payload.resultSummary.match(/\{[\s\S]*\}/);
               if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);
-                console.log('📋 Parsed grading result for student:', studentId, parsed);
+                console.log('📋 Parsed grading result from resultSummary for student:', studentId, parsed);
                 
+                // Append the JSON to stream buffer to be processed
+                appendToGradingStream(sessionId, JSON.stringify(parsed));
+                
+                // Process the stream to extract the result
+                processGradingStream(sessionId, selectedAssignment, studentId);
+                
+                // Also save directly as fallback
                 saveDetailedGradingRecord(selectedAssignment, studentId, parsed);
-                console.log('💾 Grading results saved for student:', studentId);
+                console.log('💾 Grading results saved from resultSummary for student:', studentId);
                 resultReceived = true;
+              } else {
+                console.warn('⚠️ resultSummary exists but no JSON found:', payload.resultSummary);
               }
             } catch (parseError) {
-              console.error('❌ Failed to parse grading response:', parseError);
+              console.error('❌ Failed to parse grading response from resultSummary:', parseError, 'Content:', payload.resultSummary);
             }
+          } else if (payload.resultSummary) {
+            console.warn('⚠️ resultSummary is not a string:', typeof payload.resultSummary, payload.resultSummary);
           }
           
-          finishGrading(studentId);
-          
-          if (timeout) clearTimeout(timeout);
-          cleanup();
-          resolve();
+          // Process any final buffered stream content before finishing
+          try {
+            processGradingStream(sessionId, selectedAssignment, studentId);
+          } catch {}
+
+          // Check if we have a result now
+          const currentResult = getDetailedAIGradeResult(selectedAssignment, studentId);
+          if (currentResult) {
+            console.log('✅ Result available, finishing grading for student:', studentId);
+            resultReceived = true;
+            finishGrading(studentId);
+            if (timeout) clearTimeout(timeout);
+            cleanup();
+            resolve();
+          } else {
+            // Log stream state when no result found
+            console.log('⏳ No result yet in onDone, checking stream state...');
+            const stream = getGradingStream ? getGradingStream(sessionId) : null;
+            console.log(`[onDone] Stream state for ${sessionId}:`, {
+              hasStream: !!stream,
+              bufferLength: stream?.streamBuffer?.length || 0,
+              hasTempResult: !!stream?.tempResult,
+              tokenCount: tokenCount,
+              bufferPreview: stream?.streamBuffer ? 
+                (stream.streamBuffer.length > 200 ? 
+                  stream.streamBuffer.substring(0, 100) + '...' + stream.streamBuffer.substring(stream.streamBuffer.length - 100) :
+                  stream.streamBuffer) : 'No buffer'
+            });
+            console.log('⏳ Waiting for IPC response or timeout...');
+          }
         };
 
         const onError = (payload: { sessionId: string; error: string }) => {
@@ -472,25 +550,73 @@ export const useGradingActions = (selectedAssignment: string) => {
         }).then((response: any) => {
           console.log('📬 IPC Response for session:', sessionId, { 
             success: response?.success, 
-            hasResultSummary: !!response?.resultSummary 
+            hasResultSummary: !!response?.resultSummary,
+            onDoneReceived,
+            resultReceived 
           });
           
           if (response?.success && response?.resultSummary && !resultReceived) {
-            try {
-              const jsonMatch = response.resultSummary.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[0]);
-                console.log('📋 Immediate grading result for student:', studentId, parsed);
-                saveDetailedGradingRecord(selectedAssignment, studentId, parsed);
-                resultReceived = true;
+            // Check if resultSummary is actually a string with JSON content
+            if (typeof response.resultSummary === 'string') {
+              try {
+                const jsonMatch = response.resultSummary.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  const parsed = JSON.parse(jsonMatch[0]);
+                  console.log('📋 Immediate grading result for student:', studentId, parsed);
+                  saveDetailedGradingRecord(selectedAssignment, studentId, parsed);
+                  resultReceived = true;
+                  
+                  // If onDone was already called and we didn't have results then, finish now
+                  if (onDoneReceived) {
+                    console.log('📋 onDone was already called, finishing now with IPC results');
+                    // Process stream once more (in case there were tokens) then finish
+                    try { processGradingStream(sessionId, selectedAssignment, studentId); } catch {}
+                    finishGrading(studentId);
+                    if (timeout) clearTimeout(timeout);
+                    cleanup();
+                    resolve();
+                  }
+                  // Otherwise, onDone will handle finishing when it arrives
+                } else {
+                  console.warn('⚠️ IPC resultSummary exists but no JSON found:', response.resultSummary);
+                  // If onDone was called, we need to finish anyway
+                  if (onDoneReceived) {
+                    console.warn('⚠️ Finishing without results as onDone was called');
+                    finishGrading(studentId);
+                    if (timeout) clearTimeout(timeout);
+                    cleanup();
+                    resolve();
+                  }
+                }
+              } catch (parseError) {
+                console.error('❌ Failed to parse immediate response:', parseError, 'Content:', response.resultSummary);
+                // If onDone was called, we need to finish anyway
+                if (onDoneReceived) {
+                  console.warn('⚠️ Finishing without results due to parse error');
+                  finishGrading(studentId);
+                  if (timeout) clearTimeout(timeout);
+                  cleanup();
+                  resolve();
+                }
+              }
+            } else {
+              console.warn('⚠️ IPC resultSummary is not a string:', typeof response.resultSummary, response.resultSummary);
+              // If onDone was called, we need to finish anyway
+              if (onDoneReceived) {
+                console.warn('⚠️ Finishing without results as resultSummary is not parseable');
                 finishGrading(studentId);
                 if (timeout) clearTimeout(timeout);
                 cleanup();
                 resolve();
               }
-            } catch (parseError) {
-              console.error('❌ Failed to parse immediate response:', parseError);
             }
+          } else if (onDoneReceived && !resultReceived) {
+            // onDone was called but we still don't have results
+            console.warn('⚠️ IPC response received after onDone but no results available');
+            finishGrading(studentId);
+            if (timeout) clearTimeout(timeout);
+            cleanup();
+            resolve();
           }
         }).catch((error: any) => {
           console.error('❌ IPC invoke error for session:', sessionId, error);

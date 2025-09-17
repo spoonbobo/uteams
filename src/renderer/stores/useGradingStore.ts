@@ -806,11 +806,54 @@ export const useGradingStore = create<GradingState>()(
 
       finishGrading: (studentId: string) => {
         console.log(`[Store] ✅ Finishing grading for student: ${studentId}`);
-        const { selectedAssignment, clearGradingStream } = get();
+        const { selectedAssignment, clearGradingStream, processGradingStream, getGradingStream, getDetailedAIGradeResult } = get();
         
-        // Clear plan widget data and grading stream for this student's session
+        // Process any remaining data in the stream before clearing
         if (selectedAssignment) {
           const sessionId = `grading-${selectedAssignment}-${studentId}`;
+          console.log(`[Store] Processing final stream data for session: ${sessionId}`);
+          
+          // Process the stream one more time to ensure we capture any final results
+          processGradingStream(sessionId, selectedAssignment, studentId);
+          
+          // Check if there's a temp result in the stream that needs to be saved
+          const stream = getGradingStream(sessionId);
+          
+          // Log final stream state for debugging
+          console.log(`[Store] Final stream state for ${sessionId}:`, {
+            hasStream: !!stream,
+            bufferLength: stream?.streamBuffer?.length || 0,
+            hasTempResult: !!stream?.tempResult,
+            tempResultScore: stream?.tempResult?.overallScore,
+            appliedCommentsCount: stream?.appliedComments?.size || 0,
+            bufferPreview: stream?.streamBuffer ? 
+              (stream.streamBuffer.length > 200 ? 
+                stream.streamBuffer.substring(0, 100) + '...' + stream.streamBuffer.substring(stream.streamBuffer.length - 100) :
+                stream.streamBuffer) : 'No buffer'
+          });
+          
+          if (stream?.tempResult) {
+            console.log(`[Store] Found temp result in stream, ensuring it's saved for student: ${studentId}`);
+            // The processGradingStream should have saved it, but let's make sure
+            const { saveDetailedGradingRecord } = get();
+            saveDetailedGradingRecord(selectedAssignment, studentId, stream.tempResult);
+          }
+          
+          // Final check if result was saved
+          const finalResult = getDetailedAIGradeResult(selectedAssignment, studentId);
+          if (!finalResult) {
+            console.error(`[Store] ⚠️ WARNING: No grading result saved for student ${studentId} after finishing!`);
+            if (stream?.streamBuffer) {
+              console.error(`[Store] Stream buffer was not empty but no result extracted. Buffer content:`, stream.streamBuffer);
+            }
+          } else {
+            console.log(`[Store] ✅ Grading result confirmed for student ${studentId}:`, {
+              score: finalResult.overallScore,
+              commentsCount: finalResult.comments?.length || 0
+            });
+          }
+          
+          // Now clear plan widget data and grading stream
           console.log(`[Store] Clearing plan widget data and stream for session: ${sessionId}`);
           
           // Use chat store to clear the session data
@@ -818,7 +861,7 @@ export const useGradingStore = create<GradingState>()(
           clearPlan(sessionId);
           clearTodos(sessionId);
           
-          // Clear the grading stream
+          // Clear the grading stream after ensuring results are saved
           clearGradingStream(sessionId);
         }
         
@@ -837,17 +880,20 @@ export const useGradingStore = create<GradingState>()(
 
       setGradingError: (studentId: string) => {
         console.log(`[Store] ❌ Grading error for student: ${studentId}`);
-        const { selectedAssignment } = get();
+        const { selectedAssignment, clearGradingStream } = get();
         
-        // Clear plan widget data for this student's session on error
+        // Clear plan widget data and grading stream for this student's session on error
         if (selectedAssignment) {
           const sessionId = `grading-${selectedAssignment}-${studentId}`;
-          console.log(`[Store] Clearing plan widget data for session (error): ${sessionId}`);
+          console.log(`[Store] Clearing plan widget data and stream for session (error): ${sessionId}`);
           
           // Use chat store to clear the session data
           const { clearPlan, clearTodos } = useChatStore.getState();
           clearPlan(sessionId);
           clearTodos(sessionId);
+          
+          // Clear the grading stream on error
+          clearGradingStream(sessionId);
         }
         
         set(state => {
@@ -865,18 +911,21 @@ export const useGradingStore = create<GradingState>()(
 
       abortGrading: (studentId: string) => {
         console.log(`[Store] 🛑 Aborting grading for student: ${studentId}`);
-        const { selectedAssignment } = get();
+        const { selectedAssignment, clearGradingStream } = get();
         
-        // Clear plan widget data for this student's session on abort
+        // Clear plan widget data and grading stream for this student's session on abort
         if (selectedAssignment) {
           const sessionId = `grading-${selectedAssignment}-${studentId}`;
-          console.log(`[Store] Clearing plan widget data for session (abort): ${sessionId}`);
+          console.log(`[Store] Clearing plan widget data and stream for session (abort): ${sessionId}`);
           
           // Use chat store to clear the session data
           const { clearPlan, clearTodos, clearThinkingMessages } = useChatStore.getState();
           clearPlan(sessionId);
           clearTodos(sessionId);
           clearThinkingMessages(sessionId);
+          
+          // Clear the grading stream on abort
+          clearGradingStream(sessionId);
           
           // Send abort request to backend
           window.electron.ipcRenderer.invoke('chat:agent:abort', {
@@ -929,17 +978,20 @@ export const useGradingStore = create<GradingState>()(
       
       // Grading stream actions
       initGradingStream: (sessionId: string) => {
-        console.log(`[Store] Initializing grading stream for session: ${sessionId}`);
-        set(state => ({
-          gradingStreams: {
-            ...state.gradingStreams,
-            [sessionId]: {
-              streamBuffer: '',
-              appliedComments: new Set<string>(),
-              tempResult: null,
+        const existingStream = get().gradingStreams[sessionId];
+        if (!existingStream) {
+          console.log(`[Store] Initializing grading stream for session: ${sessionId}`);
+          set(state => ({
+            gradingStreams: {
+              ...state.gradingStreams,
+              [sessionId]: {
+                streamBuffer: '',
+                appliedComments: new Set<string>(),
+                tempResult: null,
+              }
             }
-          }
-        }));
+          }));
+        }
       },
       
       appendToGradingStream: (sessionId: string, token: string) => {

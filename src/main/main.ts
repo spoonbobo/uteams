@@ -107,11 +107,19 @@ const createWindow = async () => {
     show: false,
     width: 1024,
     height: 728,
+    minWidth: 800,
+    minHeight: 600,
     icon: getAssetPath('icon.png'),
+    frame: false, // Remove default frame
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default', // macOS specific
+    transparent: false, // Set to true if you want transparency
     webPreferences: {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      webSecurity: true,
     },
   });
 

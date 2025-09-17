@@ -108,29 +108,40 @@ export const SubmitGradeDialog: React.FC<SubmitGradeDialogProps> = ({
     
     try {
       if (isBatchMode && selectedSubmissions) {
-        // Batch submit mode
+        // Batch submit mode - similar to single mode but for multiple students
         let successCount = 0;
         const errors: string[] = [];
+        const skipped: string[] = [];
         
         for (let i = 0; i < selectedSubmissions.length; i++) {
           const studentId = selectedSubmissions[i];
+          const studentData = selectedSubmissionsData?.[i];
+          const studentName = studentData?.student.fullname || studentId;
           const grade = finalGrades[studentId];
           const feedback = finalFeedbacks[studentId];
           
+          // Skip if no grade or feedback
           if (!grade || !feedback) {
-            errors.push(`Missing grade/feedback for student ${studentId}`);
+            skipped.push(studentName);
+            continue;
+          }
+          
+          // Validate grade range
+          const gradeNum = parseFloat(grade);
+          if (isNaN(gradeNum) || gradeNum < 0 || gradeNum > 100) {
+            errors.push(`${studentName}: Invalid grade (must be 0-100)`);
             continue;
           }
           
           try {
-            // Update the final grading record
+            // Update the final grading record in store
             updateFinalGrading(selectedAssignment, studentId, grade, feedback);
             
             // Submit grade to Moodle
             const result = await submitGrade(
               selectedAssignment,
               studentId,
-              parseFloat(grade),
+              gradeNum,
               feedback,
               config
             );
@@ -139,28 +150,35 @@ export const SubmitGradeDialog: React.FC<SubmitGradeDialogProps> = ({
               successCount++;
               setSubmittedCount(successCount);
             } else {
-              errors.push(`Student ${studentId}: ${result.error || 'Failed'}`);
+              errors.push(`${studentName}: ${result.error || 'Failed to submit'}`);
             }
           } catch (error: any) {
-            errors.push(`Student ${studentId}: ${error.message || 'Failed'}`);
+            errors.push(`${studentName}: ${error.message || 'Failed to submit'}`);
           }
         }
         
-        // Show results
-        if (successCount === selectedSubmissions.length) {
-          alert(intl.formatMessage({ id: 'grading.submit.batchSuccess' }, { count: successCount }));
-        } else if (successCount > 0) {
-          alert(intl.formatMessage({ id: 'grading.submit.batchPartial' }, { success: successCount, total: selectedSubmissions.length }));
+        // Build result message
+        let resultMessage = '';
+        if (successCount > 0) {
+          resultMessage += intl.formatMessage({ id: 'grading.submit.batchSuccess' }, { count: successCount });
         }
-        
+        if (skipped.length > 0) {
+          resultMessage += '\n' + intl.formatMessage({ id: 'grading.submit.skipped' }, { count: skipped.length });
+          resultMessage += '\n' + skipped.join(', ');
+        }
         if (errors.length > 0) {
           setSubmitError(errors.join('\n'));
         }
         
-        // Reload assignment data
+        // Show results
+        if (resultMessage) {
+          alert(resultMessage);
+        }
+        
+        // Reload assignment data to refresh the UI
         await loadAssignmentData(selectedAssignment, config);
         
-        // Close if all successful
+        // Close if all successful (no errors and no skipped)
         if (successCount === selectedSubmissions.length) {
           onClose();
         }
@@ -230,41 +248,107 @@ export const SubmitGradeDialog: React.FC<SubmitGradeDialogProps> = ({
 
       <DialogContent>
         {isBatchMode ? (
-          // Batch mode UI - Show summary
+          // Batch mode UI - Show editable forms for each student
           <>
             <Alert severity="info" sx={{ mb: 2 }}>
               {intl.formatMessage({ id: 'grading.submit.batchInfo' }, { count: submissionCount })}
             </Alert>
             
             <Typography variant="body2" sx={{ mb: 2 }}>
-              {intl.formatMessage({ id: 'grading.submit.batchConfirm' })}
+              {intl.formatMessage({ id: 'grading.submit.batchEditInfo' })}
             </Typography>
             
-            {/* Show list of students to be submitted */}
-            <Box sx={{ maxHeight: 300, overflow: 'auto', mb: 2 }}>
+            {/* Show editable list of students */}
+            <Box sx={{ maxHeight: 400, overflow: 'auto', mb: 2 }}>
               {selectedSubmissions?.map((studentId, index) => {
                 const studentData = selectedSubmissionsData?.[index];
-                const grade = finalGrades[studentId];
-                const feedback = finalFeedbacks[studentId];
+                const gradingRecord = getGradingRecord(selectedAssignment, studentId);
+                const aiGradeResult = gradingRecord?.aiGradeResult;
                 
                 return (
                   <Box key={studentId} sx={{ 
-                    p: 1, 
-                    mb: 1, 
+                    p: 2, 
+                    mb: 2, 
                     border: '1px solid',
                     borderColor: 'divider',
                     borderRadius: 1,
-                    bgcolor: index === currentIndex ? 'action.selected' : 'background.paper'
+                    bgcolor: 'background.paper'
                   }}>
-                    <Typography variant="subtitle2">
-                      {studentData?.student.fullname || studentId}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Grade: {grade || 'N/A'} | Feedback: {feedback ? feedback.substring(0, 50) + '...' : 'N/A'}
-                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Typography variant="subtitle2">
+                        {studentData?.student.fullname || studentId}
+                      </Typography>
+                      {aiGradeResult && (
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={() => {
+                            setFinalGrades({ ...finalGrades, [studentId]: aiGradeResult.grade?.toString() || '' });
+                            setFinalFeedbacks({ ...finalFeedbacks, [studentId]: aiGradeResult.feedback || '' });
+                          }}
+                        >
+                          {intl.formatMessage({ id: 'grading.submit.resetToAI' })}
+                        </Button>
+                      )}
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <TextField
+                        label={intl.formatMessage({ id: 'grading.submit.grade' })}
+                        type="number"
+                        value={finalGrades[studentId] || ''}
+                        onChange={(e) => setFinalGrades({ ...finalGrades, [studentId]: e.target.value })}
+                        placeholder="0-100"
+                        size="small"
+                        sx={{ width: 100 }}
+                        InputProps={{
+                          inputProps: { min: 0, max: 100 }
+                        }}
+                      />
+                      
+                      <TextField
+                        label={intl.formatMessage({ id: 'grading.submit.feedback' })}
+                        value={finalFeedbacks[studentId] || ''}
+                        onChange={(e) => setFinalFeedbacks({ ...finalFeedbacks, [studentId]: e.target.value })}
+                        size="small"
+                        multiline
+                        rows={2}
+                        fullWidth
+                      />
+                    </Box>
+                    
+                    {aiGradeResult && (
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        AI Grade: {aiGradeResult.grade} | AI Feedback: {aiGradeResult.feedback?.substring(0, 50)}...
+                      </Typography>
+                    )}
                   </Box>
                 );
               })}
+            </Box>
+            
+            {/* Batch actions */}
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button
+                size="small"
+                onClick={() => {
+                  // Reset all to AI grades
+                  const grades: Record<string, string> = {};
+                  const feedbacks: Record<string, string> = {};
+                  
+                  selectedSubmissions?.forEach(studentId => {
+                    const gradingRecord = getGradingRecord(selectedAssignment, studentId);
+                    const aiGradeResult = gradingRecord?.aiGradeResult;
+                    grades[studentId] = aiGradeResult?.grade?.toString() || '';
+                    feedbacks[studentId] = aiGradeResult?.feedback || '';
+                  });
+                  
+                  setFinalGrades(grades);
+                  setFinalFeedbacks(feedbacks);
+                }}
+              >
+                {intl.formatMessage({ id: 'grading.submit.resetAllToAI' })}
+              </Button>
             </Box>
           </>
         ) : (
@@ -322,7 +406,11 @@ export const SubmitGradeDialog: React.FC<SubmitGradeDialogProps> = ({
         <Button
           variant="contained"
           onClick={handleSubmitGrade}
-          disabled={isSubmitting || (!isBatchMode && (!finalGrades[currentStudentId || ''] || !finalFeedbacks[currentStudentId || '']))}
+          disabled={
+            isSubmitting || 
+            (!isBatchMode && (!finalGrades[currentStudentId || ''] || !finalFeedbacks[currentStudentId || ''])) ||
+            (isBatchMode && !Object.keys(finalGrades).some(id => finalGrades[id] && finalFeedbacks[id]))
+          }
         >
           {isSubmitting ? (
             <>

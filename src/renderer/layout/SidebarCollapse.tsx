@@ -84,6 +84,7 @@ export const SidebarCollapse: React.FC = () => {
       sx={{
         width: currentWidth,
         flexShrink: 0,
+        height: '100%',
         transition: 'width 0.3s ease',
         '& .MuiDrawer-paper': {
           width: currentWidth,
@@ -96,10 +97,10 @@ export const SidebarCollapse: React.FC = () => {
               : '0 0 10px rgba(0,0,0,0.02)',
           transition: 'width 0.3s ease',
           overflow: 'visible',
-          position: 'relative',
-          height: '100vh',
-          minHeight: '100vh',
-          maxHeight: '100vh',
+          position: 'static', // Changed from relative to static
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
     >
