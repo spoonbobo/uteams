@@ -70,9 +70,9 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
             justifyContent: 'space-between',
           }}
         >
-          <Typography 
-            variant="subtitle2" 
-            sx={{ 
+          <Typography
+            variant="subtitle2"
+            sx={{
               fontWeight: 500,
               color: 'text.secondary',
               letterSpacing: 0.5,
@@ -83,10 +83,10 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
             {intl.formatMessage({ id: 'plan.title' })}
           </Typography>
           {onClose && (
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               onClick={onClose}
-              sx={{ 
+              sx={{
                 p: 0.5,
                 color: 'text.secondary',
                 '&:hover': {
@@ -102,18 +102,18 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
         {/* Simple Progress Bar */}
         <Box sx={{ px: 2, pb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-            <Typography 
-              variant="caption" 
-              sx={{ 
+            <Typography
+              variant="caption"
+              sx={{
                 color: 'text.secondary',
                 fontSize: '0.7rem',
               }}
             >
               {intl.formatMessage({ id: 'plan.progress' })}
             </Typography>
-            <Typography 
-              variant="caption" 
-              sx={{ 
+            <Typography
+              variant="caption"
+              sx={{
                 ml: 'auto',
                 color: progress === 100 ? 'success.main' : 'text.secondary',
                 fontWeight: progress === 100 ? 600 : 400,
@@ -142,9 +142,9 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
         {/* Plan Reasoning - Minimal */}
         {plan?.reasoning && (
           <Box sx={{ px: 2, pb: 2 }}>
-            <Typography 
-              variant="caption" 
-              sx={{ 
+            <Typography
+              variant="caption"
+              sx={{
                 color: 'text.secondary',
                 fontSize: '0.7rem',
                 lineHeight: 1.4,
@@ -157,9 +157,9 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
         )}
 
         {/* Clean Todo List */}
-        <Box 
-          sx={{ 
-            flex: 1, 
+        <Box
+          sx={{
+            flex: 1,
             overflow: 'auto',
             px: 2,
             // Custom scrollbar
@@ -203,11 +203,11 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
                     }}
                   >
                     {isCompleted ? (
-                      <CheckIcon 
-                        sx={{ 
+                      <CheckIcon
+                        sx={{
                           fontSize: 16,
                           color: 'success.main',
-                        }} 
+                        }}
                       />
                     ) : isActive ? (
                       <Box
@@ -238,11 +238,11 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
                         />
                       </Box>
                     ) : (
-                      <PendingIcon 
-                        sx={{ 
+                      <PendingIcon
+                        sx={{
                           fontSize: 16,
                           color: 'text.disabled',
-                        }} 
+                        }}
                       />
                     )}
                   </Box>
@@ -254,10 +254,10 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
                       sx={{
                         fontSize: '0.8rem',
                         lineHeight: 1.4,
-                        color: isCompleted 
-                          ? 'text.disabled' 
-                          : isActive 
-                          ? 'text.primary' 
+                        color: isCompleted
+                          ? 'text.disabled'
+                          : isActive
+                          ? 'text.primary'
                           : 'text.secondary',
                         textDecoration: 'none',
                         fontWeight: isActive ? 500 : 400,
@@ -305,8 +305,8 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
                   gap: 1,
                 }}
               >
-                <CircularProgress 
-                  size={20} 
+                <CircularProgress
+                  size={20}
                   thickness={4}
                   sx={{
                     color: 'success.main',

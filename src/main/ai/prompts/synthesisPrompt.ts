@@ -10,7 +10,7 @@ export interface SynthesisPromptParams {
 
 export const createSynthesisPrompt = (params: SynthesisPromptParams): string => {
   const { lastUserMessage, planReasoning, toolResults } = params;
-  
+
   return `You are a helpful assistant. The user asked: "${lastUserMessage}"
 
 ${planReasoning ? `Analysis: ${planReasoning}` : ''}
@@ -27,23 +27,58 @@ export interface SwarmSynthesisPromptParams {
   lastUserMessage?: string;
   planReasoning?: string;
   resultsContent: string;
+  todos?: Array<{
+    id: string;
+    text: string;
+    completed: boolean;
+    order: number;
+  }>;
+  completedTodos?: Array<{
+    id: string;
+    text: string;
+    completed: boolean;
+    order: number;
+  }>;
 }
 
 export const createSwarmSynthesisPrompt = (params: SwarmSynthesisPromptParams): string => {
-  const { lastUserMessage, planReasoning, resultsContent } = params;
-  
-  return `You are a helpful assistant. The user asked: "${lastUserMessage}"
+  const { lastUserMessage, planReasoning, resultsContent, todos, completedTodos } = params;
 
-${planReasoning ? `Context: ${planReasoning}` : ''}
+  // Build todos context if available
+  let todosContext = '';
+  if (todos && todos.length > 0) {
+    const todosList = todos.map((todo, idx) =>
+      `${idx + 1}. ${todo.text} [${todo.completed ? '✓' : ' '}]`
+    ).join('\n');
+    todosContext = `\n\nTasks planned to address your request:\n${todosList}`;
+  }
 
-Information gathered:
+  // Build completed todos summary if available
+  let completedContext = '';
+  if (completedTodos && completedTodos.length > 0) {
+    const completedList = completedTodos.map(todo => `- ${todo.text}`).join('\n');
+    completedContext = `\n\nCompleted tasks:\n${completedList}`;
+  }
+
+  return `You are a helpful assistant synthesizing the results of a multi-step task.
+
+Original user request: "${lastUserMessage}"
+
+${planReasoning ? `Initial analysis: ${planReasoning}` : ''}${todosContext}${completedContext}
+
+Information gathered from completing these tasks:
 ${resultsContent}
 
-Based on this information, provide a clear, helpful, and natural response to the user.
+Based on the completed tasks and gathered information, provide a comprehensive response that:
+1. Directly addresses the user's original request
+2. Synthesizes all the gathered information coherently
+3. Presents the information in a natural, conversational way
+4. Ensures all aspects of the original request are covered
+
 IMPORTANT:
 - Do NOT include raw URLs, technical details, or tool output formatting
 - Do NOT mention "Title:", "URL:", "Content:", or similar technical markers
-- Provide a natural, conversational response
-- Focus on answering what the user actually asked
-- If the information is search results, summarize the key points naturally`;
+- Do NOT list the tasks or mention them explicitly - focus on the results
+- Provide a natural, conversational response that feels like a direct answer to the original question
+- If the information is search results, summarize and synthesize the key points naturally`;
 };

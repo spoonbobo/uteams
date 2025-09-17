@@ -400,11 +400,13 @@ export const useGradingActions = (selectedAssignment: string) => {
       
       return new Promise<void>((resolve, reject) => {
         let resultReceived = false;
-        let timeout: NodeJS.Timeout;
 
         // Track token reception for debugging
         let tokenCount = 0;
         let lastTokenTime = Date.now();
+        
+        // Debounce timer for processing stream
+        let processDebounceTimer: NodeJS.Timeout | null = null;
         
         // Handlers receive payload only per preload bridge contract
         const onToken = (payload: { sessionId: string; token: string; node?: string }) => {
@@ -420,8 +422,20 @@ export const useGradingActions = (selectedAssignment: string) => {
           }
           
           try {
+            // Always append the token immediately
             appendToGradingStream(sessionId, payload.token);
-            processGradingStream(sessionId, selectedAssignment, studentId);
+            
+            // Debounce the processing to avoid excessive updates
+            if (processDebounceTimer) {
+              clearTimeout(processDebounceTimer);
+            }
+            processDebounceTimer = setTimeout(() => {
+              try {
+                processGradingStream(sessionId, selectedAssignment, studentId);
+              } catch (e) {
+                console.error(`[Tokens] Error processing stream for session ${sessionId}:`, e);
+              }
+            }, 100); // Process every 100ms at most
           } catch (e) {
             console.error(`[Tokens] Error processing token for session ${sessionId}:`, e);
           }
@@ -439,6 +453,12 @@ export const useGradingActions = (selectedAssignment: string) => {
             resultSummaryLength: typeof payload.resultSummary === 'string' ? payload.resultSummary.length : 'N/A'
           });
           onDoneReceived = true;
+          
+          // Clear any pending debounce timer and process immediately
+          if (processDebounceTimer) {
+            clearTimeout(processDebounceTimer);
+            processDebounceTimer = null;
+          }
           
           // Ensure stream exists (in case onDone fires very early)
           try {
@@ -465,12 +485,25 @@ export const useGradingActions = (selectedAssignment: string) => {
                 resultReceived = true;
               } else {
                 console.warn('⚠️ resultSummary exists but no JSON found:', payload.resultSummary);
+                // Set error for format issue - AI returned text instead of JSON
+                setGradingError(studentId, 'AI returned text feedback instead of structured grading data. The response format may need adjustment.', 'format');
+                cleanup();
+                reject(new Error('AI returned text instead of structured grading data'));
+                return;
               }
             } catch (parseError) {
               console.error('❌ Failed to parse grading response from resultSummary:', parseError, 'Content:', payload.resultSummary);
+              setGradingError(studentId, `Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`, 'parsing');
+              cleanup();
+              reject(parseError);
+              return;
             }
           } else if (payload.resultSummary) {
             console.warn('⚠️ resultSummary is not a string:', typeof payload.resultSummary, payload.resultSummary);
+            setGradingError(studentId, `Invalid response format: Expected string but got ${typeof payload.resultSummary}`, 'format');
+            cleanup();
+            reject(new Error('Invalid response format'));
+            return;
           }
           
           // Process any final buffered stream content before finishing
@@ -484,7 +517,6 @@ export const useGradingActions = (selectedAssignment: string) => {
             console.log('✅ Result available, finishing grading for student:', studentId);
             resultReceived = true;
             finishGrading(studentId);
-            if (timeout) clearTimeout(timeout);
             cleanup();
             resolve();
           } else {
@@ -511,7 +543,6 @@ export const useGradingActions = (selectedAssignment: string) => {
           
           setGradingError(studentId);
           
-          if (timeout) clearTimeout(timeout);
           cleanup();
           reject(new Error(payload.error));
         };
@@ -531,18 +562,17 @@ export const useGradingActions = (selectedAssignment: string) => {
         const offAborted = ipc?.on?.('chat:agent:aborted' as any, onAborted as any);
 
         const cleanup = () => {
+          // Clear debounce timer if it exists
+          if (processDebounceTimer) {
+            clearTimeout(processDebounceTimer);
+            processDebounceTimer = null;
+          }
           try { offToken?.(); } catch {}
           try { offDone?.(); } catch {}
           try { offError?.(); } catch {}
           try { offAborted?.(); } catch {}
         };
 
-        timeout = setTimeout(() => {
-          console.log('⏱️ Grading timeout for session:', sessionId);
-          setGradingError(studentId);
-          cleanup();
-          reject(new Error('Grading timeout after 4 minutes'));
-        }, 240000);
 
         ipc?.invoke?.('chat:agent:run', { 
           sessionId, 
@@ -572,29 +602,26 @@ export const useGradingActions = (selectedAssignment: string) => {
                     // Process stream once more (in case there were tokens) then finish
                     try { processGradingStream(sessionId, selectedAssignment, studentId); } catch {}
                     finishGrading(studentId);
-                    if (timeout) clearTimeout(timeout);
                     cleanup();
                     resolve();
                   }
                   // Otherwise, onDone will handle finishing when it arrives
                 } else {
                   console.warn('⚠️ IPC resultSummary exists but no JSON found:', response.resultSummary);
+                  setGradingError(studentId, 'AI returned text feedback instead of structured grading data. The response format may need adjustment.', 'format');
                   // If onDone was called, we need to finish anyway
                   if (onDoneReceived) {
-                    console.warn('⚠️ Finishing without results as onDone was called');
-                    finishGrading(studentId);
-                    if (timeout) clearTimeout(timeout);
+                    console.warn('⚠️ Finishing with error as onDone was called');
                     cleanup();
                     resolve();
                   }
                 }
               } catch (parseError) {
                 console.error('❌ Failed to parse immediate response:', parseError, 'Content:', response.resultSummary);
+                setGradingError(studentId, `Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`, 'parsing');
                 // If onDone was called, we need to finish anyway
                 if (onDoneReceived) {
-                  console.warn('⚠️ Finishing without results due to parse error');
-                  finishGrading(studentId);
-                  if (timeout) clearTimeout(timeout);
+                  console.warn('⚠️ Finishing with error due to parse error');
                   cleanup();
                   resolve();
                 }
@@ -605,7 +632,6 @@ export const useGradingActions = (selectedAssignment: string) => {
               if (onDoneReceived) {
                 console.warn('⚠️ Finishing without results as resultSummary is not parseable');
                 finishGrading(studentId);
-                if (timeout) clearTimeout(timeout);
                 cleanup();
                 resolve();
               }
@@ -614,14 +640,12 @@ export const useGradingActions = (selectedAssignment: string) => {
             // onDone was called but we still don't have results
             console.warn('⚠️ IPC response received after onDone but no results available');
             finishGrading(studentId);
-            if (timeout) clearTimeout(timeout);
             cleanup();
             resolve();
           }
         }).catch((error: any) => {
           console.error('❌ IPC invoke error for session:', sessionId, error);
           setGradingError(studentId);
-          if (timeout) clearTimeout(timeout);
           cleanup();
           reject(error);
         });

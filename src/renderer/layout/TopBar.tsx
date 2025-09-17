@@ -115,7 +115,7 @@ export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
   const tabValues = React.useMemo(() => tabs.map((t) => t.value), [tabs]);
   const currentIndex = currentTabValue ? tabValues.indexOf(currentTabValue) : -1;
   const safeCurrentIndex = currentIndex >= 0 ? currentIndex : tabValues.length > 0 ? 0 : -1;
-    
+
   const showTabs = tabs.length > 1;
   const activeSessionId = courseSessionContext?.sessionId;
   const activeSessionName = courseSessionContext?.sessionName;
@@ -260,8 +260,8 @@ export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
           >
             {tabs.map((tab, index) => {
               // Handle custom labels (not translation keys)
-              const labelText = (tab as any).customLabel 
-                ? tab.label 
+              const labelText = (tab as any).customLabel
+                ? tab.label
                 : intl.formatMessage({ id: tab.label });
               const tabIconNode = (
                 <Box

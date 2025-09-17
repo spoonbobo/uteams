@@ -41,7 +41,7 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
   onNext,
 }) => {
   const intl = useIntl();
-  
+
   const [docxContent, setDocxContent] = useState<DocxContent | null>(null);
   const [highlights, setHighlights] = useState<ElementHighlight[]>([]);
   const [gradingComments, setGradingComments] = useState<Array<{
@@ -90,22 +90,26 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
       {/* Main Content Area - Split Layout */}
       <Box sx={{ display: 'flex', gap: 3, flex: 1, mb: 3 }}>
         {/* Left Side - Submission Preview */}
-        <SubmissionPreview
-          selectedAssignment={selectedAssignment}
-          selectedSubmission={selectedSubmission}
-          selectedAssignmentData={selectedAssignmentData}
-          selectedSubmissionData={selectedSubmissionData}
-          highlights={highlights}
-        />
+        <Box sx={{ flex: 1 }}>
+          <SubmissionPreview
+            selectedAssignment={selectedAssignment}
+            selectedSubmission={selectedSubmission}
+            selectedAssignmentData={selectedAssignmentData}
+            selectedSubmissionData={selectedSubmissionData}
+            highlights={highlights}
+          />
+        </Box>
 
         {/* Right Side - Grading Results */}
-        <GradingResults
-          selectedAssignment={selectedAssignment}
-          selectedSubmission={selectedSubmission}
-          docxContent={docxContent}
-          onHighlightsChange={handleHighlightsChange}
-          onGradingCommentsChange={handleGradingCommentsChange}
-        />
+        <Box sx={{ flex: 1 }}>
+          <GradingResults
+            selectedAssignment={selectedAssignment}
+            selectedSubmission={selectedSubmission}
+            docxContent={docxContent}
+            onHighlightsChange={handleHighlightsChange}
+            onGradingCommentsChange={handleGradingCommentsChange}
+          />
+        </Box>
       </Box>
 
     </Box>

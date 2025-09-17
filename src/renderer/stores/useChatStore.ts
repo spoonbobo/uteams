@@ -173,24 +173,24 @@ export const useChatStore = create<ChatState>()(
 
     sendUserMessage: async (sessionId, text, courseId?: string) => {
       if (!text?.trim()) return;
-      
+
       // Set thinking state immediately when user sends message
       get().setThinking(sessionId, true);
-      
+
       // If courseId is available, enhance the prompt to encourage memory agent usage
       let enhancedText = text;
       if (courseId) {
         // Add a subtle hint to the prompt that course context is available
         enhancedText = `${text}\n\n[Context: Course ${courseId} data is available in memory]`;
       }
-      
+
       // Store the original user message (without the hint)
       await get().addMessage(sessionId, {
         id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
         text, // Original text without enhancement
         sender: 'user',
       });
-      
+
       // Defer starting stream until content (non-thinking) arrives
       try {
         // Subscribe to chunk/done/error events for this session
@@ -199,31 +199,35 @@ export const useChatStore = create<ChatState>()(
           if (payload?.sessionId !== sessionId) return;
           console.log('[chat] onChunk', { sessionId, preview: String(payload.chunk).slice(0, 60) });
           const chunk = String(payload.chunk ?? '');
-          
+
           // We no longer show thinking messages, just track state
           // Start streaming immediately when we get chunks
           const current = get().streamingBySession[sessionId];
           if (!current) {
             const streamId = get().beginStream(sessionId);
             console.log('[chat] beginStream', { sessionId, streamId });
-            // Clear thinking state when real content starts
-            get().setThinking(sessionId, false);
+            // Clear thinking state when real content starts (only if it's still true)
+            if (get().isThinkingBySession[sessionId]) {
+              get().setThinking(sessionId, false);
+            }
           }
           get().appendStream(sessionId, chunk);
         };
         const onDone = (payload: { sessionId: string; final?: string }) => {
           if (payload?.sessionId !== sessionId) return;
           console.log('[chat] onDone', { sessionId });
-          // Clear thinking state when done
-          get().setThinking(sessionId, false);
+          // Clear thinking state when done (only if still set)
+          if (get().isThinkingBySession[sessionId]) {
+            get().setThinking(sessionId, false);
+          }
           get().clearThinkingMessages(sessionId);
-          
+
           // End streaming if active (tokens were streamed)
           const current = get().streamingBySession[sessionId];
           if (current) {
             get().endStream(sessionId);
           }
-          
+
           // Legacy: handle final text if provided (fallback for non-streaming)
           const final = String(payload?.final ?? '');
           if (final && !current) {
@@ -250,8 +254,10 @@ export const useChatStore = create<ChatState>()(
           if (payload?.sessionId !== sessionId) return;
           console.log('[chat] onError', { sessionId, error: payload.error });
           get().appendStream(sessionId, `\n[error] ${payload.error}`);
-          // Ensure we also clean up any thinking state on error
-          get().setThinking(sessionId, false);
+          // Ensure we also clean up any thinking state on error (only if still set)
+          if (get().isThinkingBySession[sessionId]) {
+            get().setThinking(sessionId, false);
+          }
           get().clearThinkingMessages(sessionId);
           get().clearPlan(sessionId);
           get().clearTodos(sessionId);
@@ -285,19 +291,42 @@ export const useChatStore = create<ChatState>()(
           // Stream tokens directly to the chat
           const current = get().streamingBySession[sessionId];
           if (!current) {
-            // Start streaming if not already started
-            const streamId = get().beginStream(sessionId);
+            // Start streaming and clear thinking state in a single update
+            const streamId = globalThis.crypto?.randomUUID?.() ?? String(Date.now());
+            set(
+              (s) => {
+                const updates: any = {
+                  streamingBySession: {
+                    ...s.streamingBySession,
+                    [sessionId]: { id: streamId, text: payload.token },
+                  },
+                };
+                // Only update thinking if it's currently true
+                if (s.isThinkingBySession[sessionId]) {
+                  updates.isThinkingBySession = {
+                    ...s.isThinkingBySession,
+                    [sessionId]: false,
+                  };
+                }
+                return updates;
+              },
+              false,
+              'chat:token:firstToken',
+            );
             console.log('[chat] beginStream for tokens', { sessionId, streamId });
-            get().setThinking(sessionId, false);
             get().clearThinkingMessages(sessionId);
+          } else {
+            // Just append to existing stream
+            get().appendStream(sessionId, payload.token);
           }
-          get().appendStream(sessionId, payload.token);
         };
         const onSynthesisStart = (payload: { sessionId: string; progress: number }) => {
           if (payload?.sessionId !== sessionId) return;
           console.log('[chat] synthesis starting, preparing for token stream', { sessionId });
-          // Clear thinking state when synthesis starts
-          get().setThinking(sessionId, false);
+          // Clear thinking state when synthesis starts (only if still set)
+          if (get().isThinkingBySession[sessionId]) {
+            get().setThinking(sessionId, false);
+          }
           get().clearThinkingMessages(sessionId);
         };
 
@@ -535,6 +564,10 @@ export const useChatStore = create<ChatState>()(
     },
 
     setThinking: (sessionId: string, isThinking: boolean) => {
+      // Only update if the value actually changes to avoid unnecessary re-renders
+      const currentThinking = get().isThinkingBySession[sessionId];
+      if (currentThinking === isThinking) return;
+
       set(
         (s) => ({
           isThinkingBySession: {

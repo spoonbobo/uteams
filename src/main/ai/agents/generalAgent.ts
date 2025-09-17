@@ -4,16 +4,16 @@
  */
 
 import { ChatOpenAI } from '@langchain/openai';
-import { 
-  HumanMessage, 
-  SystemMessage, 
+import {
+  HumanMessage,
+  SystemMessage,
   AIMessage,
-  BaseMessage 
+  BaseMessage
 } from '@langchain/core/messages';
-import { 
-  BaseAgent, 
-  AgentConfig, 
-  AgentState, 
+import {
+  BaseAgent,
+  AgentConfig,
+  AgentState,
   AgentResult,
   AgentCapabilities
 } from '../types/agent';
@@ -84,12 +84,12 @@ When synthesizing:
     // - Formatting tasks
     // - Direct responses
     // - General questions
-    
+
     const lastMessage = state.messages[state.messages.length - 1];
     if (!lastMessage) return false;
 
-    const content = typeof lastMessage.content === 'string' 
-      ? lastMessage.content.toLowerCase() 
+    const content = typeof lastMessage.content === 'string'
+      ? lastMessage.content.toLowerCase()
       : '';
 
     // Keywords that indicate general/synthesis tasks
@@ -100,8 +100,8 @@ When synthesizing:
     ];
 
     // If it doesn't match specialized agents, general agent handles it
-    const needsSpecializedAgent = 
-      content.includes('search') || content.includes('scrape') || 
+    const needsSpecializedAgent =
+      content.includes('search') || content.includes('scrape') ||
       content.includes('remember') || content.includes('recall');
 
     return !needsSpecializedAgent || generalKeywords.some(keyword => content.includes(keyword));
@@ -117,7 +117,7 @@ When synthesizing:
       // Check if we're executing a specific todo
       let taskContext = '';
       let isTodoExecution = false;
-      
+
       // Look for todo execution context in the last AI message
       const todoContextMessage = state.messages.filter(m => m._getType() === 'ai').pop();
       if (todoContextMessage && typeof todoContextMessage.content === 'string') {
@@ -132,17 +132,17 @@ When synthesizing:
       // Extract context from state
       const toolResults = (state as any).toolResults;
       const plan = (state as any).plan;
-      
+
       // Build context for synthesis
       let contextPrompt = '';
-      
+
       if (plan) {
         contextPrompt += `\nPlan Context:\n- Reasoning: ${plan.reasoning}\n`;
         if (plan.steps && plan.steps.length > 0) {
           contextPrompt += `- Steps: ${plan.steps.join(', ')}\n`;
         }
       }
-      
+
       if (toolResults && toolResults.length > 0) {
         contextPrompt += '\nPrevious Results:\n';
         toolResults.forEach((result: any, index: number) => {
@@ -181,7 +181,7 @@ ${isTodoExecution ? '- End with "COMPLETED" when the task is done' : ''}
       // Get the user's original request
       const userMessages = state.messages.filter(m => m._getType() === 'human');
       const lastUserMessage = userMessages[userMessages.length - 1];
-      
+
       // Prepare messages for LLM
       const messages = [
         systemMessage,
@@ -192,11 +192,11 @@ ${isTodoExecution ? '- End with "COMPLETED" when the task is done' : ''}
       // Generate response
       console.log(`🎯 General Agent: Generating response...`);
       const response = await this.llm.invoke(messages);
-      
-      let responseContent = typeof response.content === 'string' 
-        ? response.content 
+
+      let responseContent = typeof response.content === 'string'
+        ? response.content
         : JSON.stringify(response.content);
-      
+
       // Add COMPLETED token if this is a todo execution and not already present
       if (isTodoExecution && !responseContent.includes('COMPLETED')) {
         responseContent += '\n\nCOMPLETED';
@@ -204,7 +204,7 @@ ${isTodoExecution ? '- End with "COMPLETED" when the task is done' : ''}
       }
 
       console.log(`🎯 General Agent: Response generated (${responseContent.length} chars)`);
-      
+
       return {
         messages: [new AIMessage(responseContent)],
         metadata: {
@@ -215,7 +215,7 @@ ${isTodoExecution ? '- End with "COMPLETED" when the task is done' : ''}
       };
     } catch (error) {
       console.error('General Agent execution error:', error);
-      
+
       return {
         messages: [
           new AIMessage(`I encountered an error while processing your request: ${(error as Error).message}. Let me try to help you another way.`),
@@ -233,7 +233,7 @@ ${isTodoExecution ? '- End with "COMPLETED" when the task is done' : ''}
    */
   private shouldHandoff(content: string): boolean {
     const text = content.toLowerCase();
-    
+
     // Hand off to specialized agents when needed
     if (text.includes('search') && text.includes('web')) {
       return true;
@@ -244,7 +244,7 @@ ${isTodoExecution ? '- End with "COMPLETED" when the task is done' : ''}
     if (text.includes('remember') || text.includes('recall')) {
       return true;
     }
-    
+
     return false;
   }
 

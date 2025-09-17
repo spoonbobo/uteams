@@ -7,10 +7,9 @@
 export { MultiAgentGraphBuilder } from './multiAgentGraphBuilder';
 
 // Types
-export { 
-  MultiAgentState, 
-  MultiAgentConfig, 
-  MultiAgentArchitecture,
+export {
+  MultiAgentState,
+  MultiAgentConfig,
   GraphChannels
 } from './types';
 

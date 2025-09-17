@@ -21,7 +21,7 @@ interface TitleBarProps {
   title?: string;
 }
 
-export const TitleBar: React.FC<TitleBarProps> = ({ title = 'THEiTeams' }) => {
+export default function TitleBar({ title = 'THEiTeams' }: TitleBarProps) {
   const theme = useTheme();
   const [isMaximized, setIsMaximized] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -31,12 +31,14 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title = 'THEiTeams' }) => {
   // Check if window is maximized on mount and listen for changes
   useEffect(() => {
     const checkMaximized = async () => {
-      const maximized = await (window as any).electron?.ipcRenderer?.invoke('window:is-maximized');
+      const maximized = await (window as any).electron?.ipcRenderer?.invoke(
+        'window:is-maximized',
+      );
       setIsMaximized(maximized || false);
     };
-    
+
     checkMaximized();
-    
+
     // Listen for window state changes if needed
     const interval = setInterval(checkMaximized, 500);
     return () => clearInterval(interval);
@@ -46,7 +48,9 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title = 'THEiTeams' }) => {
   useEffect(() => {
     const fetchVersion = async () => {
       try {
-        const version = await (window as any).electron?.ipcRenderer?.invoke('app:get-version');
+        const version = await (window as any).electron?.ipcRenderer?.invoke(
+          'app:get-version',
+        );
         setAppVersion(version || '');
       } catch (error) {
         console.error('Failed to fetch app version:', error);
@@ -68,7 +72,10 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title = 'THEiTeams' }) => {
     (window as any).electron?.ipcRenderer?.invoke('window:close');
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, menuName: string) => {
+  const handleMenuOpen = (
+    event: React.MouseEvent<HTMLElement>,
+    menuName: string,
+  ) => {
     setAnchorEl(event.currentTarget);
     setActiveMenu(menuName);
   };
@@ -103,7 +110,6 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title = 'THEiTeams' }) => {
     handleMenuClose();
   };
 
-  const isWindows = navigator.platform.indexOf('Win') > -1;
   const isMac = navigator.platform.indexOf('Mac') > -1;
 
   return (
@@ -155,28 +161,6 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title = 'THEiTeams' }) => {
           gap: 0.5,
         }}
       >
-
-        {/* Edit Menu */}
-        <Box
-          onClick={(e) => handleMenuOpen(e, 'edit')}
-          sx={{
-            px: 1.5,
-            py: 0.25,
-            cursor: 'pointer',
-            borderRadius: 0.5,
-            display: 'flex',
-            alignItems: 'center',
-            height: '100%',
-            '&:hover': {
-              backgroundColor: alpha(theme.palette.action.hover, 0.08),
-            },
-          }}
-        >
-          <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-            Edit
-          </Typography>
-        </Box>
-
         {/* View Menu */}
         <Box
           onClick={(e) => handleMenuOpen(e, 'view')}
@@ -197,29 +181,8 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title = 'THEiTeams' }) => {
             View
           </Typography>
         </Box>
-
-        {/* Help Menu */}
-        <Box
-          onClick={(e) => handleMenuOpen(e, 'help')}
-          sx={{
-            px: 1.5,
-            py: 0.25,
-            cursor: 'pointer',
-            borderRadius: 0.5,
-            display: 'flex',
-            alignItems: 'center',
-            height: '100%',
-            '&:hover': {
-              backgroundColor: alpha(theme.palette.action.hover, 0.08),
-            },
-          }}
-        >
-          <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-            Help
-          </Typography>
-        </Box>
       </Box>
-      
+
       {/* Spacer for draggable area */}
       <Box sx={{ flex: 1 }} />
 
@@ -261,7 +224,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title = 'THEiTeams' }) => {
         >
           <MinimizeIcon sx={{ fontSize: 16 }} />
         </IconButton>
-        
+
         <IconButton
           size="small"
           onClick={handleMaximize}
@@ -280,7 +243,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title = 'THEiTeams' }) => {
             <MaximizeIcon sx={{ fontSize: 16 }} />
           )}
         </IconButton>
-        
+
         <IconButton
           size="small"
           onClick={handleClose}
@@ -299,28 +262,6 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title = 'THEiTeams' }) => {
       </Box>
 
       {/* Menu Dropdowns */}
-
-      <Menu
-        anchorEl={anchorEl}
-        open={activeMenu === 'edit'}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'left',
-        }}
-      >
-        <MenuItem onClick={handleMenuClose}>Undo</MenuItem>
-        <MenuItem onClick={handleMenuClose}>Redo</MenuItem>
-        <Divider />
-        <MenuItem onClick={handleMenuClose}>Cut</MenuItem>
-        <MenuItem onClick={handleMenuClose}>Copy</MenuItem>
-        <MenuItem onClick={handleMenuClose}>Paste</MenuItem>
-        <MenuItem onClick={handleMenuClose}>Select All</MenuItem>
-      </Menu>
 
       <Menu
         anchorEl={anchorEl}
@@ -354,23 +295,10 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title = 'THEiTeams' }) => {
           Reset Zoom {isMac ? '⌘0' : 'Ctrl+0'}
         </MenuItem>
       </Menu>
-
-      <Menu
-        anchorEl={anchorEl}
-        open={activeMenu === 'help'}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'left',
-        }}
-      >
-        <MenuItem onClick={handleMenuClose}>Documentation</MenuItem>
-        <MenuItem onClick={handleMenuClose}>About</MenuItem>
-      </Menu>
     </Box>
   );
+}
+
+TitleBar.defaultProps = {
+  title: 'THEiTeams',
 };

@@ -109,7 +109,7 @@ interface GradingState {
   // Grading progress actions
   startGrading: (studentId: string) => void;
   finishGrading: (studentId: string) => void;
-  setGradingError: (studentId: string) => void;
+  setGradingError: (studentId: string, errorMessage?: string, errorType?: 'parsing' | 'format' | 'network' | 'unknown') => void;
   abortGrading: (studentId: string) => void;
   isStudentBeingGraded: (studentId: string) => boolean;
   clearAllGradingProgress: () => void;
@@ -424,7 +424,11 @@ export const useGradingStore = create<GradingState>()(
           isAIGraded: true,
           gradedAt: Date.now(),
           finalGrade: String(aiGradeResult.grade),
-          finalFeedback: aiGradeResult.feedback
+          finalFeedback: aiGradeResult.feedback,
+          // Clear error state when successful results are saved
+          hasError: false,
+          errorMessage: undefined,
+          errorType: undefined
         };
         
         // Remove existing record for this assignment-student combination and add new one
@@ -473,7 +477,11 @@ export const useGradingStore = create<GradingState>()(
             feedback: detailedResult.shortFeedback
           },
           finalGrade: String(detailedResult.overallScore),
-          finalFeedback: detailedResult.shortFeedback
+          finalFeedback: detailedResult.shortFeedback,
+          // Clear error state when successful results are saved
+          hasError: false,
+          errorMessage: undefined,
+          errorType: undefined
         } : {
           assignmentId,
           studentId,
@@ -485,7 +493,11 @@ export const useGradingStore = create<GradingState>()(
           isAIGraded: true,
           gradedAt: Date.now(),
           finalGrade: String(detailedResult.overallScore),
-          finalFeedback: detailedResult.shortFeedback
+          finalFeedback: detailedResult.shortFeedback,
+          // Ensure no error state for new records
+          hasError: false,
+          errorMessage: undefined,
+          errorType: undefined
         };
         
         // Remove existing record and add updated one
@@ -878,8 +890,8 @@ export const useGradingStore = create<GradingState>()(
         console.log(`[Store] Students still grading:`, Array.from(get().gradingInProgress));
       },
 
-      setGradingError: (studentId: string) => {
-        console.log(`[Store] ❌ Grading error for student: ${studentId}`);
+      setGradingError: (studentId: string, errorMessage?: string, errorType?: 'parsing' | 'format' | 'network' | 'unknown') => {
+        console.log(`[Store] ❌ Grading error for student: ${studentId}`, errorMessage ? `Error: ${errorMessage}` : '');
         const { selectedAssignment, clearGradingStream } = get();
         
         // Clear plan widget data and grading stream for this student's session on error
@@ -894,18 +906,56 @@ export const useGradingStore = create<GradingState>()(
           
           // Clear the grading stream on error
           clearGradingStream(sessionId);
+          
+          // Save error information to grading record
+          set(state => {
+            const existingRecordIndex = state.gradingRecords.findIndex(
+              record => record.assignmentId === selectedAssignment && record.studentId === studentId
+            );
+            
+            const errorRecord = {
+              assignmentId: selectedAssignment,
+              studentId: studentId,
+              aiGradeResult: null,
+              detailedAIGradeResult: null,
+              isAIGraded: false,
+              hasError: true,
+              errorMessage: errorMessage || 'Unknown grading error occurred',
+              errorType: errorType || 'unknown' as const,
+              gradedAt: Date.now(),
+            };
+            
+            const newRecords = [...state.gradingRecords];
+            if (existingRecordIndex >= 0) {
+              newRecords[existingRecordIndex] = errorRecord;
+            } else {
+              newRecords.push(errorRecord);
+            }
+            
+            const newSet = new Set(state.gradingInProgress);
+            newSet.delete(studentId);
+            // Clear active student if it was this one
+            const newActiveStudent = state.activeGradingStudent === studentId ? null : state.activeGradingStudent;
+            
+            return { 
+              gradingRecords: newRecords,
+              gradingInProgress: newSet,
+              activeGradingStudent: newActiveStudent
+            };
+          });
+        } else {
+          set(state => {
+            const newSet = new Set(state.gradingInProgress);
+            newSet.delete(studentId);
+            // Clear active student if it was this one
+            const newActiveStudent = state.activeGradingStudent === studentId ? null : state.activeGradingStudent;
+            return { 
+              gradingInProgress: newSet,
+              activeGradingStudent: newActiveStudent
+            };
+          });
         }
         
-        set(state => {
-          const newSet = new Set(state.gradingInProgress);
-          newSet.delete(studentId);
-          // Clear active student if it was this one
-          const newActiveStudent = state.activeGradingStudent === studentId ? null : state.activeGradingStudent;
-          return { 
-            gradingInProgress: newSet,
-            activeGradingStudent: newActiveStudent
-          };
-        });
         console.log(`[Store] Students still grading:`, Array.from(get().gradingInProgress));
       },
 
@@ -994,24 +1044,47 @@ export const useGradingStore = create<GradingState>()(
         }
       },
       
+      // Track pending updates outside of state to avoid mutations
+      _pendingStreamUpdates: {} as Record<string, any>,
+      _updateScheduled: false,
+      
       appendToGradingStream: (sessionId: string, token: string) => {
-        set(state => {
-          const stream = state.gradingStreams[sessionId];
-          if (!stream) {
-            console.warn(`[Store] No stream found for session: ${sessionId}`);
-            return state;
-          }
-          
-          return {
-            gradingStreams: {
-              ...state.gradingStreams,
-              [sessionId]: {
-                ...stream,
-                streamBuffer: stream.streamBuffer + token
-              }
-            }
+        const stream = get().gradingStreams[sessionId];
+        if (!stream) {
+          console.warn(`[Store] No stream found for session: ${sessionId}`);
+          return;
+        }
+        
+        // Store the update in the pending updates map
+        const store = useGradingStore.getState() as any;
+        if (!store._pendingStreamUpdates[sessionId]) {
+          store._pendingStreamUpdates[sessionId] = {
+            ...stream,
+            streamBuffer: stream.streamBuffer + token
           };
-        });
+        } else {
+          // Append to the existing pending update
+          store._pendingStreamUpdates[sessionId].streamBuffer += token;
+        }
+        
+        // Schedule a batch update using microtask if not already scheduled
+        if (!store._updateScheduled) {
+          store._updateScheduled = true;
+          queueMicrotask(() => {
+            const pendingUpdates = store._pendingStreamUpdates;
+            if (Object.keys(pendingUpdates).length > 0) {
+              set(state => ({
+                gradingStreams: {
+                  ...state.gradingStreams,
+                  ...pendingUpdates
+                }
+              }));
+              // Clear pending updates
+              store._pendingStreamUpdates = {};
+            }
+            store._updateScheduled = false;
+          });
+        }
       },
       
       processGradingStream: (sessionId: string, assignmentId: string, studentId: string) => {

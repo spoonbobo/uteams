@@ -1,12 +1,12 @@
 {
   "name": "theiteams",
   "version": "0.4.0",
-  "description": "A foundation for scalable desktop apps",
+  "description": "ai for everyone in THEi",
   "license": "MIT",
   "author": {
-    "name": "Electron React Boilerplate Maintainers",
-    "email": "electronreactboilerplate@gmail.com",
-    "url": "https://github.com/electron-react-boilerplate"
+    "name": "seasonluke@gmail.com",
+    "email": "seasonluke@gmail.com",
+    "url": "https://github.com/spoonbobo"
   },
   "main": "./dist/main/main.js",
   "scripts": {

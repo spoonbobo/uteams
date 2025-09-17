@@ -81,6 +81,9 @@ export interface GradingRecord {
   gradedAt?: number;
   finalGrade?: string;
   finalFeedback?: string;
+  hasError?: boolean;
+  errorMessage?: string;
+  errorType?: 'parsing' | 'format' | 'network' | 'unknown';
 }
 
 // Persisted grading data per session

@@ -45,18 +45,18 @@ function Dashboard() {
       document.documentElement.style.overflow = 'hidden';
       document.documentElement.style.margin = '0';
       document.documentElement.style.padding = '0';
-      
+
       if (overlay === 'companion') {
         document.body.style.background = 'transparent';
       }
-      
+
       // Ensure body maintains proper layout
       document.body.style.height = '100vh';
       document.body.style.width = '100vw';
       document.body.style.margin = '0';
       document.body.style.padding = '0';
       document.body.style.overflow = 'hidden';
-      
+
       // Remove fixed positioning to prevent layout issues
       if (overlay !== 'companion') {
         document.body.style.position = 'relative';
@@ -70,10 +70,10 @@ function Dashboard() {
         return <HomeView />;
       case 'settings':
         return <SettingsView />;
-      
+
       case 'course-session':
         return <CourseView sessionContext={courseSessionContext} />;
-      
+
       default:
         return <HomeView />;
     }
@@ -97,7 +97,7 @@ export default function App() {
       document.body.classList.add('electron-app');
       document.documentElement.style.height = '100%';
       document.documentElement.style.overflow = 'hidden';
-      
+
       // Ensure root element takes full height
       const root = document.getElementById('root');
       if (root) {

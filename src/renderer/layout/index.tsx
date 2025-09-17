@@ -4,7 +4,7 @@ import { SidebarCollapse, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from './Sideb
 import { TopBar } from './TopBar';
 import { MainView } from './MainView';
 import { useLayoutStore } from '@/stores/useLayoutStore';
-import { TitleBar } from '@/components/TitleBar';
+import TitleBar from '@/components/TitleBar';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -31,7 +31,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     >
       {/* Custom Title Bar */}
       <TitleBar />
-      
+
       {/* Main Layout */}
       <Box
         className="app-main-layout"
@@ -43,10 +43,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           overflow: 'hidden',
         }}
       >
-        <Box 
-          className="app-sidebar" 
-          sx={{ 
-            position: 'relative', 
+        <Box
+          className="app-sidebar"
+          sx={{
+            position: 'relative',
             zIndex: 1201,
             height: '100%',
             display: 'flex',

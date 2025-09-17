@@ -231,9 +231,9 @@ export const StudentRow: React.FC<StudentRowProps> = ({
       {/* Autograde Result Column */}
       <TableCell align="center" sx={{ 
         borderLeft: '3px solid',
-        borderLeftColor: 'primary.main',
+        borderLeftColor: gradingRecord?.hasError ? 'error.main' : 'primary.main',
         borderRight: '3px solid',
-        borderRightColor: 'primary.main'
+        borderRightColor: gradingRecord?.hasError ? 'error.main' : 'primary.main'
       }}>
         {isCurrentlyGrading ? (
           /* Show spinner during grading with view detail link and stop button */
@@ -277,6 +277,30 @@ export const StudentRow: React.FC<StudentRowProps> = ({
               {intl.formatMessage({ id: 'grading.submissions.actions.viewDetail' })}
             </Typography>
           </Box>
+        ) : gradingRecord?.hasError ? (
+          /* Show error state with error message tooltip */
+          <Tooltip 
+            title={gradingRecord.errorMessage || 'An error occurred during grading'} 
+            arrow
+            placement="top"
+          >
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: 'error.main',
+                fontWeight: 600,
+                cursor: 'help',
+                textAlign: 'center'
+              }}
+            >
+              Error
+              {gradingRecord.errorType && (
+                <Typography variant="caption" sx={{ display: 'block', fontSize: '0.6rem', opacity: 0.8 }}>
+                  ({gradingRecord.errorType})
+                </Typography>
+              )}
+            </Typography>
+          </Tooltip>
         ) : hasAIResults && gradingRecord?.aiGradeResult ? (
           /* Score with hover feedback and view detail text */
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>

@@ -33,7 +33,7 @@ export type HomeContext = {
   view: 'dashboard';
 };
 
- 
+
 
 // Tab definition interface
 export interface TabDefinition {
@@ -91,7 +91,7 @@ interface ContextState {
   updateHomeView: (view: HomeContext['view']) => void;
   updateCourseSessionView: (view: CourseSessionContext['view']) => void;
   updateSettingsSection: (section: SettingsContext['section']) => void;
-  
+
 
   // Navigation utilities
   goBack: () => void;
@@ -116,7 +116,7 @@ export const useContextStore = create<ContextState>()(
         courseSessionContext: null,
         courseSessionStates: {}, // Empty object to store session states
         settingsContext: { section: 'general' },
-        
+
         navigationHistory: [{ context: 'home' as AppContext }],
         historyIndex: 0,
 
@@ -208,9 +208,9 @@ export const useContextStore = create<ContextState>()(
           );
         },
 
-        
 
-        
+
+
 
         // Context-specific updates (don't add to history)
         updateHomeView: (view) =>
@@ -253,7 +253,7 @@ export const useContextStore = create<ContextState>()(
             'updateSettingsSection',
           ),
 
-        
+
 
         // Navigation utilities
         goBack: () => {
@@ -322,7 +322,7 @@ export const useContextStore = create<ContextState>()(
         getContextTabs: () => {
           const state = get();
           const tabs = contextTabsConfig[state.currentContext] || [];
-          
+
           // Customize the ask tab label for course sessions
           if (state.currentContext === 'course-session' && state.courseSessionContext) {
             return tabs.map(tab => {
@@ -331,9 +331,9 @@ export const useContextStore = create<ContextState>()(
                 // If not available, extract from course name or create abbreviation
                 const sessionId = state.courseSessionContext!.sessionId;
                 const courseName = state.courseSessionContext!.sessionName;
-                
+
                 let courseCode = sessionId;
-                
+
                 // Check if sessionId looks like a proper course code
                 if (!/^[A-Z]{2,10}\d{0,6}$/i.test(sessionId)) {
                   // Try to extract course code from the course name
@@ -354,7 +354,7 @@ export const useContextStore = create<ContextState>()(
                   // Session ID is already a course code, just ensure uppercase
                   courseCode = sessionId.toUpperCase();
                 }
-                
+
                 return {
                   ...tab,
                   label: `Ask ${courseCode}`, // Custom label instead of translation key
@@ -364,7 +364,7 @@ export const useContextStore = create<ContextState>()(
               return tab;
             });
           }
-          
+
           return tabs;
         },
 
@@ -409,7 +409,7 @@ export const useContextStore = create<ContextState>()(
                 newValue as SettingsContext['section'],
               );
               break;
-            
+
           }
         },
 
@@ -445,7 +445,7 @@ export const useContextStore = create<ContextState>()(
             case 'settings':
               breadcrumb.push('Settings');
               break;
-            
+
           }
           return breadcrumb;
         },
