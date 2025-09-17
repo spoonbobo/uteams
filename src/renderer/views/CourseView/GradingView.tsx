@@ -26,8 +26,8 @@ export const GradingView: React.FC<GradingViewProps> = ({ sessionContext }) => {
   const theme = useTheme();
   const { getCourseContent, config } = useMoodleStore();
   const [selectedTab, setSelectedTab] = useState(0);
-  
-  
+
+
   // Use grading store
   const {
     selectedAssignment,
@@ -67,7 +67,7 @@ export const GradingView: React.FC<GradingViewProps> = ({ sessionContext }) => {
     loadAssignmentData,
     initializeFromPersistedData,
   } = useGradingStore();
-  
+
   const sessionId = sessionContext.sessionId;
   const courseContent = getCourseContent(sessionId);
   const assignments = courseContent?.assignments || [];
@@ -127,7 +127,7 @@ export const GradingView: React.FC<GradingViewProps> = ({ sessionContext }) => {
 
   const handleSubmissionSelect = (submissionId: string) => {
     setSelectedSubmission(submissionId);
-    
+
     // Load existing grading record for this student-assignment combination
     if (selectedAssignment && submissionId) {
       const existingRecord = getGradingRecord(selectedAssignment, submissionId);
@@ -146,7 +146,7 @@ export const GradingView: React.FC<GradingViewProps> = ({ sessionContext }) => {
   };
 
   // Status functions moved to individual panel components
-  
+
   // Get selected submission data from store
   const selectedSubmissionData = getSelectedSubmissionData();
   const selectedAssignmentData = assignments.find(a => a.id === selectedAssignment);
@@ -174,18 +174,18 @@ export const GradingView: React.FC<GradingViewProps> = ({ sessionContext }) => {
 
   const runAIGrading = () => {
     if (!selectedAssignment || !selectedSubmission) return;
-    
+
     setIsGrading(true);
     // Simulate AI grading
     setTimeout(() => {
       const grade = Math.floor(Math.random() * 30) + 70;
       const feedback = 'Good understanding of core concepts. Code structure is well-organized. Consider adding more comments for complex logic sections.';
-      
+
       const aiResult = { grade, feedback };
-      
+
       // Save the AI grading result to the grading record
       saveGradingRecord(selectedAssignment, selectedSubmission, aiResult);
-      
+
       setIsGrading(false);
     }, 2000);
   };
@@ -356,10 +356,7 @@ export const GradingView: React.FC<GradingViewProps> = ({ sessionContext }) => {
       {/* Header */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 500 }}>
-          {intl.formatMessage({ id: 'grading.title' })}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {sessionContext.sessionName}
+          {intl.formatMessage({ id: 'grading.title' })} • {sessionContext.sessionName}
         </Typography>
       </Box>
 

@@ -112,16 +112,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         display: 'flex',
         flexDirection: 'column',
         zIndex: 1,
-        backdropFilter: 'blur(10px)',
-        backgroundColor:
-          theme.palette.mode === 'dark'
-            ? 'rgba(30, 41, 59, 0.9)'
-            : 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: theme.palette.background.paper,
         border: `1px solid ${theme.palette.divider}`,
-        boxShadow:
-          theme.palette.mode === 'dark'
-            ? '0 8px 32px rgba(0, 0, 0, 0.5)'
-            : '0 8px 32px rgba(0, 0, 0, 0.1)',
+        boxShadow: theme.shadows[8],
         minHeight: 0,
         borderRadius: 1,
         overflow: 'hidden',
@@ -132,8 +125,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         elevation={0}
         color="default"
         sx={{
-          backgroundColor: 'transparent',
-          backdropFilter: 'blur(10px)',
+          backgroundColor: theme.palette.background.default,
         }}
       >
         <Toolbar variant="dense" sx={{ minHeight: '40px !important' }}>

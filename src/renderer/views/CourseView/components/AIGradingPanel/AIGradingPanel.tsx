@@ -87,10 +87,21 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
 
 
 
-      {/* Main Content Area - Split Layout */}
-      <Box sx={{ display: 'flex', gap: 3, flex: 1, mb: 3 }}>
+      {/* Main Content Area - Optimized Layout */}
+      <Box sx={{
+        display: 'flex',
+        gap: 2,
+        flex: 1,
+        height: 'calc(100vh - 200px)', // Fixed height to prevent overflow
+        minHeight: '600px'
+      }}>
         {/* Left Side - Submission Preview */}
-        <Box sx={{ flex: 1 }}>
+        <Box sx={{
+          flex: '1 1 60%',
+          minWidth: 0, // Allow shrinking
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
           <SubmissionPreview
             selectedAssignment={selectedAssignment}
             selectedSubmission={selectedSubmission}
@@ -101,7 +112,13 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
         </Box>
 
         {/* Right Side - Grading Results */}
-        <Box sx={{ flex: 1 }}>
+        <Box sx={{
+          flex: '1 1 40%',
+          minWidth: '320px',
+          maxWidth: '400px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
           <GradingResults
             selectedAssignment={selectedAssignment}
             selectedSubmission={selectedSubmission}

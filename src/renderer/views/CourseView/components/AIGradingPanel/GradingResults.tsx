@@ -339,71 +339,98 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
   }, [sessionId, selectedSubmission, gradingInProgress, gradingResult, getGradingStream, memoizedOnHighlightsChange, memoizedOnGradingCommentsChange]);
 
   return (
-    <Box sx={{ width: 350, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+    <Box sx={{
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }}>
+      <Typography
+        variant="h6"
+        sx={{
+          fontWeight: 600,
+          mb: 2,
+          color: 'text.primary',
+          fontSize: '1.1rem'
+        }}
+      >
         {intl.formatMessage({ id: 'grading.aiGradingProgress' })}
       </Typography>
 
-      <Card sx={{
+      <Box sx={{
         flex: 1,
-        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
         overflow: 'hidden',
         bgcolor: 'background.paper',
+        borderRadius: 1,
         border: '1px solid',
         borderColor: 'divider'
       }}>
         {/* Show grading results if available */}
         {gradingResult ? (
-          <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-            {/* Score and Feedback Display */}
-            <Box sx={{ textAlign: 'center', p: 3 }}>
-              {/* Score Display */}
+          <Box sx={{
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'auto',
+            p: 3
+          }}>
+            {/* Score Display - Simplified */}
+            <Box sx={{
+              textAlign: 'center',
+              mb: 3,
+              p: 2,
+              bgcolor: 'grey.50',
+              borderRadius: 1
+            }}>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 600,
+                  color: gradingResult.overallScore >= 70 ? 'success.main' :
+                         gradingResult.overallScore >= 50 ? 'warning.main' : 'error.main',
+                  mb: 0.5
+                }}
+              >
+                {gradingResult.overallScore}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {intl.formatMessage({ id: 'grading.ai.outOf', defaultMessage: 'out of 100' })}
+              </Typography>
+            </Box>
+
+            {/* Feedback Display - Simplified */}
+            {gradingResult.shortFeedback && (
               <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {intl.formatMessage({ id: 'grading.ai.score', defaultMessage: 'Score' })}
-                </Typography>
                 <Typography
-                  variant="h2"
+                  variant="body1"
                   sx={{
-                    fontWeight: 700,
-                    color: gradingResult.overallScore >= 70 ? 'success.main' :
-                           gradingResult.overallScore >= 50 ? 'warning.main' : 'error.main',
-                    mb: 1
+                    lineHeight: 1.6,
+                    color: 'text.primary',
+                    fontStyle: 'italic',
+                    p: 2,
+                    bgcolor: 'background.default',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'divider'
                   }}
                 >
-                  {gradingResult.overallScore}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  out of 100
+                  {gradingResult.shortFeedback}
                 </Typography>
               </Box>
-
-              {/* Feedback Display */}
-              {gradingResult.shortFeedback && (
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {intl.formatMessage({ id: 'grading.ai.feedback', defaultMessage: 'Feedback' })}
-                  </Typography>
-                  <Typography variant="body1" sx={{
-                    lineHeight: 1.6,
-                    color: 'text.primary'
-                  }}>
-                    {gradingResult.shortFeedback}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
+            )}
 
             {/* Rubric Breakdown */}
             {gradingResult.scoreBreakdown && gradingResult.scoreBreakdown.length > 0 && (
-              <Box sx={{ px: 3, pb: 3 }}>
+              <Box sx={{ flex: 1, overflow: 'auto' }}>
                 <RubricBreakdown
                   scoreBreakdown={gradingResult.scoreBreakdown}
                   overallScore={gradingResult.overallScore}
                 />
               </Box>
             )}
-          </CardContent>
+          </Box>
         ) : (
           /* Show spinner or PlanWidget based on grading state */
           (() => {
@@ -412,18 +439,25 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
             const shouldShowSpinner = isCurrentlyGrading && !hasActivePlan;
 
             return shouldShowSpinner ? (
-              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+              <Box sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                p: 3
+              }}>
                 <CircularProgress size={40} sx={{ mb: 2 }} />
                 <Typography variant="body2" color="text.secondary" textAlign="center">
                   {intl.formatMessage({ id: 'grading.ai.initializing', defaultMessage: 'Initializing AI grading...' })}
                 </Typography>
-              </CardContent>
+              </Box>
             ) : (
               <PlanWidget sessionId={sessionId} />
             );
           })()
         )}
-      </Card>
+      </Box>
     </Box>
   );
 };

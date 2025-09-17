@@ -6,15 +6,8 @@ import '@fontsource/ibm-plex-sans/400.css';
 import '@fontsource/ibm-plex-sans/500.css';
 import '@fontsource/ibm-plex-sans/600.css';
 import '@fontsource/ibm-plex-sans/700.css';
-// Chinese locale serif font for better CJK rendering
-import '@fontsource/noto-serif-hk/200.css';
-import '@fontsource/noto-serif-hk/300.css';
-import '@fontsource/noto-serif-hk/400.css';
-import '@fontsource/noto-serif-hk/500.css';
-import '@fontsource/noto-serif-hk/600.css';
-import '@fontsource/noto-serif-hk/700.css';
-import '@fontsource/noto-serif-hk/800.css';
-import '@fontsource/noto-serif-hk/900.css';
+// Chinese locale font for better CJK rendering
+import '@fontsource-variable/noto-sans-tc';
 
 import { ThemeProvider } from './providers/ThemeProvider';
 import { IntlProvider } from './providers/IntlProvider';
@@ -26,6 +19,7 @@ import { CourseView } from '@/views/CourseView';
 import { CompanionOverlay } from '@/views/CompanionOverlay';
 import { useContextStore } from '@/stores/useContextStore';
 import { useAppStore } from '@/stores/useAppStore';
+import { useBackgroundEffect } from '@/utils/background';
 import './App.css';
 
 
@@ -90,6 +84,11 @@ function Dashboard() {
 }
 
 export default function App() {
+  const { background } = useAppStore();
+
+  // Use the background effect hook from the utility
+  useBackgroundEffect(background);
+
   // Ensure proper layout initialization
   React.useEffect(() => {
     // Add utility classes to body for consistent behavior

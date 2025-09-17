@@ -5,12 +5,13 @@ import {
   ThemeOptions,
 } from '@mui/material/styles';
 import { CssBaseline, GlobalStyles } from '@mui/material';
-import { useAppStore, type ColorPalette } from '@/stores/useAppStore';
+import { useAppStore } from '@/stores/useAppStore';
+import type { ColorPalette } from '@/types/color';
 
 // Using locale-aware fonts via App.tsx imports
 
 // Color palette definitions
-const colorPalettes = {
+const colorPalettes: Record<ColorPalette, { main: string; light: string; dark: string }> = {
   blue: {
     main: '#2563eb',
     light: '#60a5fa',
@@ -90,7 +91,7 @@ const buildLightTheme = (isZh: boolean, colorPalette: ColorPalette) =>
     typography: {
       ...baseThemeConfig.typography,
       fontFamily: isZh
-        ? '"Noto Serif HK", "IBM Plex Sans", "Roboto", "Helvetica", "Arial", sans-serif'
+        ? '"Noto Sans TC Variable", "IBM Plex Sans", "Roboto", "Helvetica", "Arial", sans-serif'
         : baseThemeConfig.typography.fontFamily,
     },
     palette: {
@@ -159,7 +160,7 @@ const buildDarkTheme = (isZh: boolean, colorPalette: ColorPalette) =>
     typography: {
       ...baseThemeConfig.typography,
       fontFamily: isZh
-        ? '"Noto Serif HK", "IBM Plex Sans", "Roboto", "Helvetica", "Arial", sans-serif'
+        ? '"Noto Sans TC Variable", "IBM Plex Sans", "Roboto", "Helvetica", "Arial", sans-serif'
         : baseThemeConfig.typography.fontFamily,
     },
     palette: {
@@ -285,7 +286,7 @@ const globalStyles = (theme: any) => ({
     animation: 'fadeIn 0.3s ease-out',
   },
   'html:lang(zh), html:lang(zh-TW), html:lang(zh-HK), body:lang(zh), body:lang(zh-TW), body:lang(zh-HK)': {
-    fontFamily: '"Noto Serif HK", "IBM Plex Sans", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Noto Sans TC Variable", "IBM Plex Sans", "Roboto", "Helvetica", "Arial", sans-serif',
   },
 });
 

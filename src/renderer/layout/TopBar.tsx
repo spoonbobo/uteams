@@ -36,6 +36,7 @@ import { useContextStore } from '@/stores/useContextStore';
 
 interface TopBarProps {
   sidebarWidth: number;
+  transparentMode: boolean;
 }
 
 // Icon mapping function
@@ -57,7 +58,7 @@ const getTabIcon = (iconName: string) => {
   return iconMap[iconName] || null;
 };
 
-export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
+export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth, transparentMode }) => {
   const intl = useIntl();
   const theme = useTheme();
 
@@ -125,8 +126,8 @@ export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
       sx={{
         px: 2,
         py: 1.5,
-        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-        backgroundColor: theme.palette.background.paper,
+        borderBottom: `1px solid ${alpha(theme.palette.divider, transparentMode ? 0.2 : 0.08)}`,
+        backgroundColor: transparentMode ? 'transparent' : theme.palette.background.paper,
         display: 'flex',
         alignItems: 'center',
         gap: 1.5,

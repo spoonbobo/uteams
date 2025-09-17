@@ -1,15 +1,19 @@
 import React from 'react';
-import { Box } from '@mui/material';
+import { Box, useTheme } from '@mui/material';
 
 interface MainViewProps {
   children: React.ReactNode;
   sidebarWidth: number;
+  transparentMode: boolean;
 }
 
 export const MainView: React.FC<MainViewProps> = ({
   children,
   sidebarWidth,
+  transparentMode,
 }) => {
+  const theme = useTheme();
+
   return (
     <Box
       component="main"
@@ -24,6 +28,7 @@ export const MainView: React.FC<MainViewProps> = ({
         overflow: 'hidden',
         position: 'relative', // Establish containing block
         boxSizing: 'border-box',
+        backgroundColor: transparentMode ? 'transparent' : theme.palette.background.default,
       }}
     >
       {children}

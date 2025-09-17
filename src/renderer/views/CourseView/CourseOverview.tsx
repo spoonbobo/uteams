@@ -17,7 +17,7 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
   const intl = useIntl();
   const { fetchCourseContent, getCourseContent } = useMoodleStore();
   const [selectedTab, setSelectedTab] = useState(0);
-  
+
   // Search states for each section
   const [searchTerms, setSearchTerms] = useState({
     assignments: '',
@@ -30,19 +30,19 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
 
   // Filter state for materials (multi-select)
   const [materialsTypeFilter, setMaterialsTypeFilter] = useState<string[]>([]);
-  
+
   const sessionId = sessionContext.sessionId;
-  
+
   // Get course content from Moodle (already fetched by parent CourseView)
   const courseContent = getCourseContent(sessionId);
 
   // Extract course code for the title
   const courseName = sessionContext.sessionName;
-  
+
   // Session ID should now be the course shortname (e.g., COMP7404)
   // If not available, extract from course name or create abbreviation
   let courseCode = sessionId;
-  
+
   // Check if sessionId looks like a proper course code
   if (!/^[A-Z]{2,10}\d{0,6}$/i.test(sessionId)) {
     // Try to extract course code from the course name
@@ -78,7 +78,7 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
   const getMaterialTypeLabel = (modname: string) => {
     const labelKey = `courseOverview.materials.types.${modname}`;
     const fallback = modname.charAt(0).toUpperCase() + modname.slice(1);
-    
+
     // Try to get the translated label, fallback to capitalized modname if not found
     try {
       return intl.formatMessage({ id: labelKey });
@@ -100,8 +100,8 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
           controlsConfig={{
             search: {
               enabled: true,
-              placeholder: intl.formatMessage({ id: 'courseOverview.search.placeholder' }, { 
-                section: intl.formatMessage({ id: 'courseOverview.assignments.title' }).toLowerCase() 
+              placeholder: intl.formatMessage({ id: 'courseOverview.search.placeholder' }, {
+                section: intl.formatMessage({ id: 'courseOverview.assignments.title' }).toLowerCase()
               }),
               value: searchTerms.assignments,
               onChange: (value: string) => updateSearchTerm('assignments', value)
@@ -141,8 +141,8 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
           controlsConfig={{
             search: {
               enabled: true,
-              placeholder: intl.formatMessage({ id: 'courseOverview.search.placeholder' }, { 
-                section: intl.formatMessage({ id: 'courseOverview.materials.title' }).toLowerCase() 
+              placeholder: intl.formatMessage({ id: 'courseOverview.search.placeholder' }, {
+                section: intl.formatMessage({ id: 'courseOverview.materials.title' }).toLowerCase()
               }),
               value: searchTerms.materials,
               onChange: (value: string) => updateSearchTerm('materials', value)
@@ -181,8 +181,8 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
           controlsConfig={{
             search: {
               enabled: true,
-              placeholder: intl.formatMessage({ id: 'courseOverview.search.placeholder' }, { 
-                section: intl.formatMessage({ id: 'courseOverview.students.title' }).toLowerCase() 
+              placeholder: intl.formatMessage({ id: 'courseOverview.search.placeholder' }, {
+                section: intl.formatMessage({ id: 'courseOverview.students.title' }).toLowerCase()
               }),
               value: searchTerms.students,
               onChange: (value: string) => updateSearchTerm('students', value)
@@ -213,10 +213,7 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
       {/* Header */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 500 }}>
-          {courseCode} {intl.formatMessage({ id: 'courseOverview.title' })}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {sessionContext.sessionName}
+          {courseCode} {intl.formatMessage({ id: 'courseOverview.title' })} • {sessionContext.sessionName}
         </Typography>
       </Box>
 

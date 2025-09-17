@@ -9,6 +9,7 @@ import {
   useTheme,
   alpha,
 } from '@mui/material';
+import { useAppStore } from '@/stores/useAppStore';
 import {
   Minimize as MinimizeIcon,
   CropSquare as MaximizeIcon,
@@ -23,6 +24,7 @@ interface TitleBarProps {
 
 export default function TitleBar({ title = 'THEiTeams' }: TitleBarProps) {
   const theme = useTheme();
+  const { preferences } = useAppStore();
   const [isMaximized, setIsMaximized] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -121,8 +123,8 @@ export default function TitleBar({ title = 'THEiTeams' }: TitleBarProps) {
         height: 32,
         minHeight: 32,
         maxHeight: 32,
-        backgroundColor: theme.palette.background.paper,
-        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+        backgroundColor: preferences.transparentMode ? 'transparent' : theme.palette.background.paper,
+        borderBottom: `1px solid ${alpha(theme.palette.divider, preferences.transparentMode ? 0.2 : 0.08)}`,
         position: 'relative',
         zIndex: 1300,
         flexShrink: 0, // Prevent shrinking

@@ -17,15 +17,15 @@ export const AskView: React.FC<AskViewProps> = ({
   const { todosBySession, planBySession } = useChatStore();
   const [showPlan, setShowPlan] = useState(false);
   const hideTimeoutRef = useRef<NodeJS.Timeout>();
-  
+
   const sessionId = sessionContext.sessionId;
   const todos = todosBySession[sessionId] || [];
   const plan = planBySession?.[sessionId];
-  
+
   // More reactive plan visibility
   useEffect(() => {
     const hasPlan = todos.length > 0 || plan;
-    
+
     if (hasPlan) {
       // Clear any pending hide timeout
       if (hideTimeoutRef.current) {
@@ -40,7 +40,7 @@ export const AskView: React.FC<AskViewProps> = ({
         setShowPlan(false);
       }, 300);
     }
-    
+
     return () => {
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
@@ -55,7 +55,7 @@ export const AskView: React.FC<AskViewProps> = ({
       hideTimeoutRef.current = setTimeout(() => {
         setShowPlan(false);
       }, 5000);
-      
+
       return () => {
         if (hideTimeoutRef.current) {
           clearTimeout(hideTimeoutRef.current);
@@ -66,11 +66,11 @@ export const AskView: React.FC<AskViewProps> = ({
 
   // Extract course code for the title
   const courseName = sessionContext.sessionName;
-  
+
   // Session ID should now be the course shortname (e.g., COMP7404)
   // If not available, extract from course name or create abbreviation
   let courseCode = sessionId;
-  
+
   // Check if sessionId looks like a proper course code
   if (!/^[A-Z]{2,10}\d{0,6}$/i.test(sessionId)) {
     // Try to extract course code from the course name
@@ -95,15 +95,12 @@ export const AskView: React.FC<AskViewProps> = ({
   return (
     <Box sx={{ p: 4 }}>
       <Typography variant="h4" gutterBottom>
-        Ask {courseCode}
+        Ask {courseCode} • {sessionContext.sessionName}
       </Typography>
-      <Typography variant="body1" color="text.secondary">
-        {sessionContext.sessionName}
-      </Typography>
-      
+
       {/* Main content area with improved layout */}
-      <Box 
-        sx={{ 
+      <Box
+        sx={{
           mt: 4,
           display: 'flex',
           gap: 2,
@@ -124,16 +121,16 @@ export const AskView: React.FC<AskViewProps> = ({
             flexDirection: 'column',
           }}
         >
-          <ChatWidget 
+          <ChatWidget
             sessionId={sessionContext.sessionId}
             sessionName={sessionContext.sessionName}
             courseId={sessionContext.sessionId}
           />
-          
+
           {/* Hint text positioned under ChatWidget */}
-          <Typography 
-            variant="caption" 
-            sx={{ 
+          <Typography
+            variant="caption"
+            sx={{
               mt: 1,
               color: 'text.disabled',
               fontSize: '0.75rem',
@@ -167,7 +164,7 @@ export const AskView: React.FC<AskViewProps> = ({
               }}
             >
               {showPlan && (
-                <PlanWidget 
+                <PlanWidget
                   sessionId={sessionContext.sessionId}
                   onClose={() => {
                     setShowPlan(false);

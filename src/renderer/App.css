@@ -16,13 +16,13 @@
   --scrollbar-color: rgba(0, 0, 0, 0.2);
   --scrollbar-hover-color: rgba(0, 0, 0, 0.4);
   --scrollbar-track: transparent;
-  
+
   /* Layout stability variables */
   --app-height: 100vh;
   --app-width: 100vw;
   --sidebar-width: 240px;
   --topbar-height: 64px;
-  
+
   /* Dynamic background - can be overridden by JavaScript */
   --dynamic-background: var(--background-gradient);
 }
@@ -89,7 +89,7 @@ body {
 
 /* Allow text selection in most content areas by default (body no longer prevents it) */
 /* But prevent text selection for UI controls and interactive elements */
-button, 
+button,
 .MuiButton-root,
 .MuiIconButton-root,
 .MuiTab-root,
@@ -111,9 +111,9 @@ button,
 }
 
 /* Explicitly allow text selection for content areas */
-input, 
-textarea, 
-[contenteditable], 
+input,
+textarea,
+[contenteditable],
 .markdown-body,
 p,
 span:not(.MuiButton-root span):not(.MuiIconButton-root span),
@@ -530,4 +530,40 @@ a:hover {
   100% {
     opacity: 1;
   }
+}
+
+/* Background scrolling styles */
+.app-background {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.app-background-scroll {
+  display: flex !important;
+  height: 100%;
+  width: max-content !important;
+  will-change: transform;
+  transition: none !important;
+  /* Ensure smooth rendering */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+.app-background-scroll > div {
+  flex: 0 0 auto;
+  width: 100vw;
+  height: 100%;
+  display: inline-block;
+  /* Prevent gaps between images */
+  vertical-align: top;
+  font-size: 0;
+  line-height: 0;
 }

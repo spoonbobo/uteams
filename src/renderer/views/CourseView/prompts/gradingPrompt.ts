@@ -29,6 +29,13 @@ ${submissionData}
 ## GRADING TASK:
 Carefully evaluate the student submission against each rubric criterion. Provide specific, constructive feedback that helps the student understand their strengths and areas for improvement.
 
+SCORING INSTRUCTIONS:
+- If the rubric specifies maximum scores for each criterion, use those exact values as maxScore
+- If the rubric does not specify scores, analyze the number of criteria and distribute 100 points evenly across them
+- For example: 5 criteria = 20 points each, 4 criteria = 25 points each, 6 criteria = ~17 points each
+- The sum of all criterion scores MUST equal the overallScore exactly
+- Calculate overallScore by summing all individual criterion scores
+
 IMPORTANT: Complete the grading efficiently in MAXIMUM 2 STEPS:
 - Step 1: Analyze the submission against rubric criteria
 - Step 2: Generate the final grading feedback
@@ -62,27 +69,33 @@ You MUST respond with ONLY a valid JSON object (no markdown code blocks, no expl
   "scoreBreakdown": [
     {
       "criteriaName": "Content Quality",
-      "score": 20,
-      "maxScore": 25,
+      "score": 16,
+      "maxScore": 20,
       "feedback": "Good understanding of topic but lacks depth in some areas"
     },
     {
       "criteriaName": "Organization & Structure",
-      "score": 22,
-      "maxScore": 25,
+      "score": 18,
+      "maxScore": 20,
       "feedback": "Well-organized with clear introduction and conclusion"
     },
     {
       "criteriaName": "Evidence & Support",
-      "score": 18,
-      "maxScore": 25,
+      "score": 14,
+      "maxScore": 20,
       "feedback": "Some good examples but needs more supporting evidence"
     },
     {
       "criteriaName": "Writing Quality",
-      "score": 25,
-      "maxScore": 25,
+      "score": 20,
+      "maxScore": 20,
       "feedback": "Excellent grammar, spelling, and sentence structure"
+    },
+    {
+      "criteriaName": "Format & Standards",
+      "score": 17,
+      "maxScore": 20,
+      "feedback": "Mostly follows academic format with minor citation issues"
     }
   ],
   "shortFeedback": "Well-structured essay with clear arguments. Main strengths include strong introduction and logical flow. Areas for improvement: add more supporting evidence in body paragraphs and strengthen the conclusion."
@@ -104,8 +117,10 @@ You MUST respond with ONLY a valid JSON object (no markdown code blocks, no expl
 4. Make comments constructive and actionable
 5. Overall score should be out of 100
 6. Score breakdown should include individual criteria with their scores, max scores, and specific feedback
-7. Ensure score breakdown totals match or are close to the overall score
+7. The sum of all criterion scores MUST equal the overallScore exactly (no approximations)
 8. Short feedback should be 2-3 sentences summarizing overall performance
+9. Count the number of criteria in the rubric and distribute 100 points evenly: divide 100 by the number of criteria
+10. For rubrics with quality levels (Excellent/Good/Satisfactory/Needs Improvement), map performance to point ranges within each criterion's allocation
 
 IMPORTANT: Return ONLY the JSON object, nothing else.`;
 };

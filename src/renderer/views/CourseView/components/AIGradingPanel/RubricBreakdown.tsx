@@ -1,10 +1,6 @@
 import {
   Box,
-  Card,
-  CardContent,
   Typography,
-  LinearProgress,
-  Chip,
   Stack,
 } from '@mui/material';
 import { useIntl } from 'react-intl';
@@ -44,102 +40,106 @@ function RubricBreakdown({
   };
 
   return (
-    <Card sx={{ mb: 2 }}>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          {intl.formatMessage({ id: 'grading.rubric.breakdown.title' })}
-        </Typography>
+    <Box>
+      <Typography
+        variant="subtitle1"
+        sx={{
+          fontWeight: 600,
+          mb: 2,
+          color: 'text.primary'
+        }}
+      >
+        {intl.formatMessage({ id: 'grading.rubric.breakdown.title', defaultMessage: 'Score Breakdown' })}
+      </Typography>
 
-        {/* Overall Score Summary */}
-        <Box
-          sx={{
-            mb: 3,
-            p: 2,
-            bgcolor: 'background.paper',
-            borderRadius: 1,
-            border: 1,
-            borderColor: 'divider',
-          }}
-        >
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ mb: 1 }}
+      {/* Individual Criteria Breakdown */}
+      <Stack spacing={2}>
+        {scoreBreakdown.map((item) => (
+          <Box
+            key={item.criteriaName}
+            sx={{
+              p: 2,
+              bgcolor: 'background.default',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'divider'
+            }}
           >
-            <Typography variant="subtitle1" fontWeight="bold">
-              {intl.formatMessage({ id: 'grading.rubric.breakdown.overall' })}
-            </Typography>
-            <Chip
-              label={`${overallScore}/100`}
-              color={getOverallScoreColor()}
-              variant="filled"
-            />
-          </Stack>
-          <LinearProgress
-            variant="determinate"
-            value={overallScore}
-            sx={{ height: 8, borderRadius: 4 }}
-            color={getOverallScoreColor()}
-          />
-        </Box>
-
-        {/* Individual Criteria Breakdown */}
-        <Stack spacing={2}>
-          {scoreBreakdown.map((item) => (
-            <Box
-              key={item.criteriaName}
-              sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              sx={{ mb: 1.5 }}
             >
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                sx={{ mb: 1 }}
+              <Typography
+                variant="body1"
+                sx={{
+                  fontWeight: 500,
+                  color: 'text.primary'
+                }}
               >
-                <Typography variant="subtitle2" fontWeight="medium">
-                  {item.criteriaName}
-                </Typography>
-                <Chip
-                  label={`${item.score}/${item.maxScore}`}
-                  color={getScoreColor(item.score, item.maxScore)}
-                  size="small"
-                  variant="outlined"
-                />
-              </Stack>
+                {item.criteriaName}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: getScoreColor(item.score, item.maxScore) === 'success' ? 'success.main' :
+                         getScoreColor(item.score, item.maxScore) === 'warning' ? 'warning.main' : 'error.main',
+                  bgcolor: getScoreColor(item.score, item.maxScore) === 'success' ? 'success.light' :
+                           getScoreColor(item.score, item.maxScore) === 'warning' ? 'warning.light' : 'error.light',
+                  px: 1,
+                  py: 0.5,
+                  borderRadius: 0.5
+                }}
+              >
+                {item.score}/{item.maxScore}
+              </Typography>
+            </Stack>
 
-              <LinearProgress
-                variant="determinate"
-                value={(item.score / item.maxScore) * 100}
-                sx={{ mb: 1, height: 6, borderRadius: 3 }}
-                color={getScoreColor(item.score, item.maxScore)}
-              />
-
-              <Typography variant="body2" color="text.secondary">
+            {item.feedback && (
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'text.secondary',
+                  lineHeight: 1.5,
+                  fontStyle: 'italic'
+                }}
+              >
                 {item.feedback}
               </Typography>
-            </Box>
-          ))}
-        </Stack>
+            )}
+          </Box>
+        ))}
+      </Stack>
 
-        {/* Score Summary */}
-        <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
+      {/* Score Summary */}
+      <Box sx={{
+        mt: 2,
+        pt: 2,
+        borderTop: '1px solid',
+        borderColor: 'divider'
+      }}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+        >
+          <Typography variant="body2" color="text.secondary">
+            {intl.formatMessage({ id: 'grading.rubric.breakdown.total', defaultMessage: 'Total Points' })}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 500,
+              color: 'text.primary'
+            }}
           >
-            <Typography variant="body2" color="text.secondary">
-              {intl.formatMessage({ id: 'grading.rubric.breakdown.total' })}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {totalScore}/{totalMaxScore}{' '}
-              {intl.formatMessage({ id: 'grading.rubric.breakdown.points' })}
-            </Typography>
-          </Stack>
-        </Box>
-      </CardContent>
-    </Card>
+            {totalScore}/{totalMaxScore}
+          </Typography>
+        </Stack>
+      </Box>
+    </Box>
   );
 }
 

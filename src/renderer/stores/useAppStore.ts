@@ -8,9 +8,23 @@ interface AppState {
   locale: 'en' | 'zh-TW';
   colorPalette: ColorPalette;
 
+  // Background settings
+  background: {
+    type: 'none' | 'color' | 'image';
+    value: string; // color hex or single image path
+    images?: string[]; // array of image paths for scrolling (max 3)
+    scrollEnabled?: boolean; // enable scrolling mode
+    scrollSpeed?: number; // speed in pixels per second (10-100)
+    scrollDirection?: 'left' | 'right'; // scroll direction
+    opacity: number; // 0-100 for transparency
+    blur: number; // 0-10 for blur effect
+  };
+
   // User preferences (persisted)
   preferences: {
     notificationsEnabled: boolean;
+    developerMode: boolean;
+    transparentMode: boolean;
   };
 
   // Loading states (not persisted)
@@ -20,6 +34,7 @@ interface AppState {
   setTheme: (theme: 'light' | 'dark') => void;
   setLocale: (locale: 'en' | 'zh-TW') => void;
   setColorPalette: (palette: ColorPalette) => void;
+  setBackground: (background: Partial<AppState['background']>) => void;
   setLoading: (loading: boolean) => void;
   updatePreferences: (preferences: Partial<AppState['preferences']>) => void;
   initializeFromSystem: () => void;
@@ -54,8 +69,20 @@ export const useAppStore = create<AppState>()(
         theme: getSystemTheme(),
         locale: getSystemLocale(),
         colorPalette: 'blue',
+        background: {
+          type: 'none',
+          value: '',
+          images: [],
+          scrollEnabled: false,
+          scrollSpeed: 30, // default 30 pixels per second
+          scrollDirection: 'left',
+          opacity: 20,
+          blur: 2,
+        },
         preferences: {
           notificationsEnabled: true,
+          developerMode: false,
+          transparentMode: false,
         },
         isLoading: false,
 
@@ -72,6 +99,15 @@ export const useAppStore = create<AppState>()(
         setLocale: (locale) => set({ locale }, false, 'setLocale'),
 
         setColorPalette: (colorPalette) => set({ colorPalette }, false, 'setColorPalette'),
+
+        setBackground: (newBackground) =>
+          set(
+            (state) => ({
+              background: { ...state.background, ...newBackground },
+            }),
+            false,
+            'setBackground',
+          ),
 
         setLoading: (isLoading) => set({ isLoading }, false, 'setLoading'),
 
@@ -134,6 +170,7 @@ export const useAppStore = create<AppState>()(
           theme: state.theme,
           locale: state.locale,
           colorPalette: state.colorPalette,
+          background: state.background,
           preferences: state.preferences,
         }),
         // Initialize system settings after rehydration

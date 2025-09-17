@@ -30,6 +30,10 @@ import { useAuthenticationState } from '@/stores/useUserStore';
 
 const SIDEBAR_WIDTH = 240;
 
+interface SidebarProps {
+  transparentMode?: boolean;
+}
+
 // Helper function to get the first letter of course name
 const getCourseInitial = (name: string) => {
   return name.charAt(0).toUpperCase();
@@ -44,7 +48,7 @@ const formatCourseDate = (timestamp?: number) => {
   return `${year % 100}/${nextYear % 100}`;
 };
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC<SidebarProps> = ({ transparentMode = false }) => {
   const intl = useIntl();
   const theme = useTheme();
   const { theme: appTheme, setTheme } = useAppStore();
@@ -77,10 +81,10 @@ export const Sidebar: React.FC = () => {
         '& .MuiDrawer-paper': {
           width: SIDEBAR_WIDTH,
           boxSizing: 'border-box',
-          backgroundColor: theme.palette.background.paper,
-          borderRight: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+          backgroundColor: transparentMode ? 'transparent' : theme.palette.background.paper,
+          borderRight: `1px solid ${alpha(theme.palette.divider, transparentMode ? 0.2 : 0.08)}`,
           boxShadow:
-            theme.palette.mode === 'dark'
+            theme.palette.mode === 'dark' || transparentMode
               ? 'none'
               : '0 0 10px rgba(0,0,0,0.02)',
           height: '100%',
@@ -184,8 +188,8 @@ export const Sidebar: React.FC = () => {
                   },
                 }}
               >
-                <RefreshIcon 
-                  fontSize="inherit" 
+                <RefreshIcon
+                  fontSize="inherit"
                   sx={{
                     fontSize: '0.875rem',
                     animation: isLoadingCourses ? 'spin 1s linear infinite' : 'none',
@@ -222,7 +226,7 @@ export const Sidebar: React.FC = () => {
               </Tooltip>
             </Box>
           )}
-          
+
           {isAuthenticated && isConnected && isLoadingCourses && (
             <Box sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="caption" color="text.secondary">
@@ -230,7 +234,7 @@ export const Sidebar: React.FC = () => {
               </Typography>
             </Box>
           )}
-          
+
           {isAuthenticated && isConnected && !isLoadingCourses && courses.slice(0, 6).map((course) => {
             const isActive =
               currentContext === 'course-session' &&

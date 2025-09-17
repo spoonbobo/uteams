@@ -34,6 +34,10 @@ import { useAuthenticationState } from '@/stores/useUserStore';
 const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 64;
 
+interface SidebarCollapseProps {
+  transparentMode: boolean;
+}
+
 // Helper function to get the first letter of course name
 const getCourseInitial = (name: string) => {
   return name.charAt(0).toUpperCase();
@@ -48,7 +52,7 @@ const formatCourseDate = (timestamp?: number) => {
   return `${year % 100}/${nextYear % 100}`;
 };
 
-export const SidebarCollapse: React.FC = () => {
+export const SidebarCollapse: React.FC<SidebarCollapseProps> = ({ transparentMode }) => {
   const intl = useIntl();
   const theme = useTheme();
   const { theme: appTheme, setTheme } = useAppStore();
@@ -56,9 +60,9 @@ export const SidebarCollapse: React.FC = () => {
   const { courses, isLoadingCourses, fetchCourses, isConfigured, isConnected } = useMoodleStore();
   const { isAuthenticated } = useAuthenticationState();
   const [isHoveringEdge, setIsHoveringEdge] = useState(false);
-  
+
   // Disclaimer is handled in Settings
-  
+
   // Fetch courses on mount if configured and authenticated
   React.useEffect(() => {
     if (isAuthenticated && isConnected && isConfigured() && courses.length === 0) {
@@ -89,10 +93,10 @@ export const SidebarCollapse: React.FC = () => {
         '& .MuiDrawer-paper': {
           width: currentWidth,
           boxSizing: 'border-box',
-          backgroundColor: theme.palette.background.paper,
-          borderRight: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+          backgroundColor: transparentMode ? 'transparent' : theme.palette.background.paper,
+          borderRight: `1px solid ${alpha(theme.palette.divider, transparentMode ? 0.2 : 0.08)}`,
           boxShadow:
-            theme.palette.mode === 'dark'
+            theme.palette.mode === 'dark' || transparentMode
               ? 'none'
               : '0 0 10px rgba(0,0,0,0.02)',
           transition: 'width 0.3s ease',
@@ -113,8 +117,8 @@ export const SidebarCollapse: React.FC = () => {
           transform: 'translateY(-50%)',
           width: 24,
           height: 48,
-          backgroundColor: theme.palette.background.paper,
-          border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+          backgroundColor: transparentMode ? 'rgba(255, 255, 255, 0.1)' : theme.palette.background.paper,
+          border: `1px solid ${alpha(theme.palette.divider, transparentMode ? 0.2 : 0.08)}`,
           borderLeft: 'none',
           borderRadius: '0 8px 8px 0',
           cursor: 'pointer',
@@ -124,13 +128,13 @@ export const SidebarCollapse: React.FC = () => {
           justifyContent: 'center',
           opacity: isHoveringEdge ? 1 : 0,
           transition: 'opacity 0.2s ease',
-          boxShadow: theme.palette.mode === 'dark' 
-            ? '0 2px 8px rgba(0,0,0,0.4)' 
+          boxShadow: theme.palette.mode === 'dark'
+            ? '0 2px 8px rgba(0,0,0,0.4)'
             : '0 2px 8px rgba(0,0,0,0.1)',
           '&:hover': {
             backgroundColor: alpha(theme.palette.primary.main, 0.04),
-            boxShadow: theme.palette.mode === 'dark' 
-              ? '0 4px 12px rgba(0,0,0,0.6)' 
+            boxShadow: theme.palette.mode === 'dark'
+              ? '0 4px 12px rgba(0,0,0,0.6)'
               : '0 4px 12px rgba(0,0,0,0.15)',
           },
         }}
@@ -259,8 +263,8 @@ export const SidebarCollapse: React.FC = () => {
                     },
                   }}
                 >
-                  <RefreshIcon 
-                    fontSize="inherit" 
+                  <RefreshIcon
+                    fontSize="inherit"
                     sx={{
                       fontSize: '0.875rem',
                       animation: isLoadingCourses ? 'spin 1s linear infinite' : 'none',
@@ -301,8 +305,8 @@ export const SidebarCollapse: React.FC = () => {
                     },
                   }}
                 >
-                  <RefreshIcon 
-                    fontSize="small" 
+                  <RefreshIcon
+                    fontSize="small"
                     sx={{
                       animation: isLoadingCourses ? 'spin 1s linear infinite' : 'none',
                       '@keyframes spin': {
@@ -339,7 +343,7 @@ export const SidebarCollapse: React.FC = () => {
               </Tooltip>
             </Box>
           )}
-          
+
           {isAuthenticated && isConnected && isLoadingCourses && (
             <Box sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="caption" color="text.secondary">
@@ -347,7 +351,7 @@ export const SidebarCollapse: React.FC = () => {
               </Typography>
             </Box>
           )}
-          
+
           {isAuthenticated && isConnected && !isLoadingCourses && courses.slice(0, 8).map((course) => {
             const isActive =
               currentContext === 'course-session' &&
@@ -484,9 +488,9 @@ export const SidebarCollapse: React.FC = () => {
       {/* Theme toggle and actions (no user) */}
       <Box sx={{ p: !sidebarCollapsed ? 1.5 : 0.5 }}>
         {/* Action Buttons */}
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 0.5, 
+        <Box sx={{
+          display: 'flex',
+          gap: 0.5,
           alignItems: 'center',
           justifyContent: !sidebarCollapsed ? 'flex-start' : 'center',
           flexWrap: !sidebarCollapsed ? 'wrap' : 'nowrap',

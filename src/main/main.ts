@@ -27,7 +27,7 @@ import {
   initializeSqliteOnStartup,
 } from './db';
 import { setupMoodleHandlers } from './moodle';
-import { setupFileIOHandlers } from './fileio';
+import { setupFileIOHandlers, registerLocalFileProtocol } from './fileio';
 import { setupDocxHandlers } from './msftdocx';
 import { setupAlertHandlers } from './alert';
 
@@ -263,12 +263,15 @@ process.on('unhandledRejection', async (reason, promise) => {
 app
   .whenReady()
   .then(async () => {
+    // Register custom protocol for serving local files
+    registerLocalFileProtocol();
+
     // Register database IPC handlers
     registerDatabaseIpcHandlers();
-    
+
     // Initialize SQLite after app is ready (so userData path is available)
     initializeSqliteOnStartup();
-    
+
     // Register app info IPC
     try {
       registerAppIpcHandlers();
@@ -284,7 +287,7 @@ app
   } catch (error) {
     console.error('⚠️ Error initializing agents:', error);
       console.log('📝 App will continue with limited agent functionality');
-      
+
       // Notify renderer about partial agent availability
       if (mainWindow) {
         mainWindow.webContents.send('agents:partial-availability', {
