@@ -12,7 +12,10 @@ export const SubmissionsTableHeader: React.FC = () => {
   return (
     <TableHead>
       <TableRow>
-        <TableCell sx={{ width: '220px' }}>
+        <TableCell padding="checkbox" sx={{ width: '50px' }}>
+          {/* Empty header for checkbox column */}
+        </TableCell>
+        <TableCell sx={{ width: '200px' }}>
           {intl.formatMessage({ id: 'grading.submissions.table.student' })}
         </TableCell>
         <TableCell align="center" sx={{ width: '110px' }}>

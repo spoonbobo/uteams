@@ -208,7 +208,9 @@ export const useDialogStates = () => {
     dialogFilename,
     setDialogFilename,
     submitGradeDialogOpen,
+    setSubmitGradeDialogOpen,
     submitGradeDialogData,
+    setSubmitGradeDialogData,
     handleDialogClose,
     handleSubmitGradeDialogOpen,
     handleSubmitGradeDialogClose
@@ -232,6 +234,65 @@ export const useCollapsibleCategories = () => {
   return { collapsedCategories, toggleCategoryCollapse };
 };
 
+export const useStudentSelection = () => {
+  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
+
+  const toggleStudentSelection = (studentId: string) => {
+    setSelectedStudents(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(studentId)) {
+        newSet.delete(studentId);
+      } else {
+        newSet.add(studentId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllInCategory = (studentIds: string[]) => {
+    setSelectedStudents(prev => {
+      const newSet = new Set(prev);
+      studentIds.forEach(id => newSet.add(id));
+      return newSet;
+    });
+  };
+
+  const deselectAllInCategory = (studentIds: string[]) => {
+    setSelectedStudents(prev => {
+      const newSet = new Set(prev);
+      studentIds.forEach(id => newSet.delete(id));
+      return newSet;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedStudents(new Set());
+  };
+
+  const isStudentSelected = (studentId: string) => {
+    return selectedStudents.has(studentId);
+  };
+
+  const getSelectedCount = () => {
+    return selectedStudents.size;
+  };
+
+  const getSelectedStudentIds = () => {
+    return Array.from(selectedStudents);
+  };
+
+  return {
+    selectedStudents,
+    toggleStudentSelection,
+    selectAllInCategory,
+    deselectAllInCategory,
+    clearSelection,
+    isStudentSelected,
+    getSelectedCount,
+    getSelectedStudentIds,
+  };
+};
+
 export const useGradingActions = (selectedAssignment: string) => {
   const {
     getGradingRecord,
@@ -242,6 +303,7 @@ export const useGradingActions = (selectedAssignment: string) => {
     startGrading,
     finishGrading,
     setGradingError,
+    abortGrading,
     isStudentBeingGraded,
     clearAllGradingProgress,
     setActiveGradingStudent
@@ -332,11 +394,12 @@ export const useGradingActions = (selectedAssignment: string) => {
         let resultReceived = false;
         let timeout: NodeJS.Timeout;
         
-        const onToken = (_event: any, payload: { sessionId: string; token: string; node?: string }) => {
+        // Handlers receive payload only per preload bridge contract
+        const onToken = (payload: { sessionId: string; token: string; node?: string }) => {
           if (payload?.sessionId !== sessionId) return;
         };
 
-        const onDone = (_event: any, payload: { sessionId: string; resultSummary?: string }) => {
+        const onDone = (payload: { sessionId: string; resultSummary?: string }) => {
           if (payload?.sessionId !== sessionId) return;
           
           console.log('✅ Grading complete for session:', sessionId, 'ResultSummary:', !!payload.resultSummary);
@@ -364,7 +427,7 @@ export const useGradingActions = (selectedAssignment: string) => {
           resolve();
         };
 
-        const onError = (_event: any, payload: { sessionId: string; error: string }) => {
+        const onError = (payload: { sessionId: string; error: string }) => {
           if (payload?.sessionId !== sessionId) return;
           console.error('❌ AI Error for session:', sessionId, payload.error);
           
@@ -375,21 +438,26 @@ export const useGradingActions = (selectedAssignment: string) => {
           reject(new Error(payload.error));
         };
 
-        const cleanup = () => {
-          try { 
-            ipc?.off?.('chat:agent:token', onToken);
-          } catch {}
-          try { 
-            ipc?.off?.('chat:agent:done', onDone);
-          } catch {}
-          try { 
-            ipc?.off?.('chat:agent:error', onError);
-          } catch {}
+        const onAborted = (payload: { sessionId: string; reason: string }) => {
+          if (payload?.sessionId !== sessionId) return;
+          console.log(`[Grading] Session aborted: ${payload.reason}`);
+          cleanup();
+          setGradingError(studentId);
+          reject(new Error(payload.reason || 'Grading aborted'));
         };
 
-        ipc?.on?.('chat:agent:token', onToken);
-        ipc?.on?.('chat:agent:done', onDone);
-        ipc?.on?.('chat:agent:error', onError);
+        // Subscribe and retain unsubscribe closures for proper cleanup
+        const offToken = ipc?.on?.('chat:agent:token' as any, onToken as any);
+        const offDone = ipc?.on?.('chat:agent:done' as any, onDone as any);
+        const offError = ipc?.on?.('chat:agent:error' as any, onError as any);
+        const offAborted = ipc?.on?.('chat:agent:aborted' as any, onAborted as any);
+
+        const cleanup = () => {
+          try { offToken?.(); } catch {}
+          try { offDone?.(); } catch {}
+          try { offError?.(); } catch {}
+          try { offAborted?.(); } catch {}
+        };
 
         timeout = setTimeout(() => {
           console.log('⏱️ Grading timeout for session:', sessionId);
@@ -449,6 +517,7 @@ export const useGradingActions = (selectedAssignment: string) => {
     startGrading,
     finishGrading,
     setGradingError,
+    abortGrading,
     isStudentBeingGraded,
     clearAllGradingProgress,
     setActiveGradingStudent,

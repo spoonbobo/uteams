@@ -21,8 +21,8 @@ import {
   School as SchoolIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
-import type { MoodleUser } from '../../../types/moodle';
-import { useMoodleStore } from '../../../stores/useMoodleStore';
+import type { MoodleUser } from '@/types/moodle';
+import { useMoodleStore } from '@/stores/useMoodleStore';
 
 interface StudentsPanelProps {
   students: MoodleUser[];

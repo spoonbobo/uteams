@@ -4,6 +4,27 @@ import { orchestrator } from './ai';
 import { UserProfile } from './ai/memory';
 
 export const registerChatIpc = () => {
+  // Abort IPC handler
+  ipcMain.handle('chat:agent:abort', async (_event, { sessionId, reason }) => {
+    try {
+      console.log(`[Chat] Aborting session ${sessionId}: ${reason || 'User requested'}`);
+      const aborted = orchestrator.abort(sessionId, reason);
+      
+      if (aborted) {
+        // Send abort event to renderer
+        _event.sender.send('chat:agent:aborted', {
+          sessionId,
+          reason: reason || 'User requested abort',
+        });
+      }
+      
+      return { success: aborted };
+    } catch (error) {
+      console.error(`[Chat] Error aborting session ${sessionId}:`, error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // Chat IPC handlers
   ipcMain.handle('chat:list', async (_event, { chatId }) => {
     try {
@@ -200,6 +221,13 @@ export const registerChatIpc = () => {
                   sessionId,
                   progress: 100,
                   type: 'complete'
+                });
+              } else if (payload.type === 'aborted') {
+                // Handle abort event
+                console.log(`[Chat] Session ${sessionId} aborted: ${payload.reason}`);
+                event?.sender?.send?.('chat:agent:aborted', {
+                  sessionId,
+                  reason: payload.reason,
                 });
               }
             }

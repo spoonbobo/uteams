@@ -14,8 +14,8 @@ import {
 import {
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { DocxPreview } from '../../../components/DocxPreview/DocxPreview';
-import type { DocxContent } from '../../../components/DocxPreview/types';
+import { DocxPreview } from '@/components/DocxPreview/DocxPreview';
+import type { DocxContent } from '@/components/DocxPreview/types';
 import { useIntl } from 'react-intl';
 
 interface DocxDialogProps {

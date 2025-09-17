@@ -60,9 +60,9 @@ export default class MenuBuilder {
           label: 'About ElectronReact',
           selector: 'orderFrontStandardAboutPanel:',
         },
-        { type: 'separator' },
+        { type: 'separator' } as MenuItemConstructorOptions,
         { label: 'Services', submenu: [] },
-        { type: 'separator' },
+        { type: 'separator' } as MenuItemConstructorOptions,
         {
           label: 'Hide ElectronReact',
           accelerator: 'Command+H',
@@ -74,7 +74,7 @@ export default class MenuBuilder {
           selector: 'hideOtherApplications:',
         },
         { label: 'Show All', selector: 'unhideAllApplications:' },
-        { type: 'separator' },
+        { type: 'separator' } as MenuItemConstructorOptions,
         {
           label: 'Quit',
           accelerator: 'Command+Q',
@@ -89,7 +89,7 @@ export default class MenuBuilder {
       submenu: [
         { label: 'Undo', accelerator: 'Command+Z', selector: 'undo:' },
         { label: 'Redo', accelerator: 'Shift+Command+Z', selector: 'redo:' },
-        { type: 'separator' },
+        { type: 'separator' } as MenuItemConstructorOptions,
         { label: 'Cut', accelerator: 'Command+X', selector: 'cut:' },
         { label: 'Copy', accelerator: 'Command+C', selector: 'copy:' },
         { label: 'Paste', accelerator: 'Command+V', selector: 'paste:' },
@@ -124,6 +124,30 @@ export default class MenuBuilder {
             this.mainWindow.webContents.toggleDevTools();
           },
         },
+        { type: 'separator' } as MenuItemConstructorOptions,
+        {
+          label: 'Zoom In',
+          accelerator: 'Command+Plus',
+          click: () => {
+            const currentZoom = this.mainWindow.webContents.getZoomFactor();
+            this.mainWindow.webContents.setZoomFactor(Math.min(currentZoom + 0.1, 3.0));
+          },
+        },
+        {
+          label: 'Zoom Out',
+          accelerator: 'Command+-',
+          click: () => {
+            const currentZoom = this.mainWindow.webContents.getZoomFactor();
+            this.mainWindow.webContents.setZoomFactor(Math.max(currentZoom - 0.1, 0.5));
+          },
+        },
+        {
+          label: 'Reset Zoom',
+          accelerator: 'Command+0',
+          click: () => {
+            this.mainWindow.webContents.setZoomFactor(1.0);
+          },
+        },
       ],
     };
     const subMenuViewProd: MenuItemConstructorOptions = {
@@ -134,6 +158,30 @@ export default class MenuBuilder {
           accelerator: 'Ctrl+Command+F',
           click: () => {
             this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
+          },
+        },
+        { type: 'separator' } as MenuItemConstructorOptions,
+        {
+          label: 'Zoom In',
+          accelerator: 'Command+Plus',
+          click: () => {
+            const currentZoom = this.mainWindow.webContents.getZoomFactor();
+            this.mainWindow.webContents.setZoomFactor(Math.min(currentZoom + 0.1, 3.0));
+          },
+        },
+        {
+          label: 'Zoom Out',
+          accelerator: 'Command+-',
+          click: () => {
+            const currentZoom = this.mainWindow.webContents.getZoomFactor();
+            this.mainWindow.webContents.setZoomFactor(Math.max(currentZoom - 0.1, 0.5));
+          },
+        },
+        {
+          label: 'Reset Zoom',
+          accelerator: 'Command+0',
+          click: () => {
+            this.mainWindow.webContents.setZoomFactor(1.0);
           },
         },
       ],
@@ -147,7 +195,7 @@ export default class MenuBuilder {
           selector: 'performMiniaturize:',
         },
         { label: 'Close', accelerator: 'Command+W', selector: 'performClose:' },
-        { type: 'separator' },
+        { type: 'separator' } as MenuItemConstructorOptions,
         { label: 'Bring All to Front', selector: 'arrangeInFront:' },
       ],
     };
@@ -239,6 +287,30 @@ export default class MenuBuilder {
                     this.mainWindow.webContents.toggleDevTools();
                   },
                 },
+                { type: 'separator' } as MenuItemConstructorOptions,
+                {
+                  label: 'Zoom &In',
+                  accelerator: 'Ctrl+Plus',
+                  click: () => {
+                    const currentZoom = this.mainWindow.webContents.getZoomFactor();
+                    this.mainWindow.webContents.setZoomFactor(Math.min(currentZoom + 0.1, 3.0));
+                  },
+                },
+                {
+                  label: 'Zoom &Out',
+                  accelerator: 'Ctrl+-',
+                  click: () => {
+                    const currentZoom = this.mainWindow.webContents.getZoomFactor();
+                    this.mainWindow.webContents.setZoomFactor(Math.max(currentZoom - 0.1, 0.5));
+                  },
+                },
+                {
+                  label: '&Reset Zoom',
+                  accelerator: 'Ctrl+0',
+                  click: () => {
+                    this.mainWindow.webContents.setZoomFactor(1.0);
+                  },
+                },
               ]
             : [
                 {
@@ -248,6 +320,30 @@ export default class MenuBuilder {
                     this.mainWindow.setFullScreen(
                       !this.mainWindow.isFullScreen(),
                     );
+                  },
+                },
+                { type: 'separator' } as MenuItemConstructorOptions,
+                {
+                  label: 'Zoom &In',
+                  accelerator: 'Ctrl+Plus',
+                  click: () => {
+                    const currentZoom = this.mainWindow.webContents.getZoomFactor();
+                    this.mainWindow.webContents.setZoomFactor(Math.min(currentZoom + 0.1, 3.0));
+                  },
+                },
+                {
+                  label: 'Zoom &Out',
+                  accelerator: 'Ctrl+-',
+                  click: () => {
+                    const currentZoom = this.mainWindow.webContents.getZoomFactor();
+                    this.mainWindow.webContents.setZoomFactor(Math.max(currentZoom - 0.1, 0.5));
+                  },
+                },
+                {
+                  label: '&Reset Zoom',
+                  accelerator: 'Ctrl+0',
+                  click: () => {
+                    this.mainWindow.webContents.setZoomFactor(1.0);
                   },
                 },
               ],

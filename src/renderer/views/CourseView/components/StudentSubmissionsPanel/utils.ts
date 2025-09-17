@@ -1,4 +1,4 @@
-import type { StudentSubmissionData } from '../../../../types/grading';
+import type { StudentSubmissionData } from '@/types/grading';
 import type { SubmissionStatus, GradeStatus, CategorizedStudents } from './types';
 
 export const getSubmissionStatus = (data: StudentSubmissionData): SubmissionStatus => {

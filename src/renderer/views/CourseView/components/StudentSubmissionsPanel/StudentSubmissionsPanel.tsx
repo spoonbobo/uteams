@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -11,12 +11,15 @@ import {
   TableContainer,
   TableRow,
   TableCell,
+  CircularProgress,
+  Tooltip,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
+  PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
 import { DocxDialog } from '../DocxDialog';
-import { SubmitGradeDialog } from '../SubmitGradeDialog';
+import { SubmitGradeDialog } from './SubmitGradeDialog';
 import { useIntl } from 'react-intl';
 
 // Import decomposed components
@@ -30,6 +33,7 @@ import {
   useDialogStates,
   useCollapsibleCategories,
   useGradingActions,
+  useStudentSelection,
 } from './hooks';
 import { categorizeStudents } from './utils';
 import type { StudentSubmissionsPanelProps } from './types';
@@ -59,7 +63,8 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
     isStudentBeingGraded,
     clearAllGradingProgress,
     setActiveGradingStudent,
-    handleStartGrading
+    handleStartGrading,
+    abortGrading
   } = useGradingActions(selectedAssignment);
   
   const { submissionFiles, docxContent, fileLoading, fileError } = useSubmissionFiles(selectedSubmission, selectedAssignment);
@@ -72,12 +77,23 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
     dialogFilename,
     setDialogFilename,
     submitGradeDialogOpen,
+    setSubmitGradeDialogOpen,
     submitGradeDialogData,
+    setSubmitGradeDialogData,
     handleDialogClose,
     handleSubmitGradeDialogOpen,
     handleSubmitGradeDialogClose
   } = useDialogStates();
   const { collapsedCategories, toggleCategoryCollapse } = useCollapsibleCategories();
+  const { 
+    selectedStudents,
+    toggleStudentSelection,
+    selectAllInCategory,
+    deselectAllInCategory,
+    clearSelection,
+    isStudentSelected,
+    getSelectedStudentIds,
+  } = useStudentSelection();
   const {
     docxContent: previewDocxContent,
     fileLoading: previewFileLoading,
@@ -98,6 +114,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
 
   // Get categorized students
   const categorizedStudents = categorizeStudents(studentData);
+  const [isBatchGrading, setIsBatchGrading] = useState(false);
   
   // Handle file preview with dialog management
   const handleFilePreviewWithDialog = async (studentId: string, file: any, studentName: string) => {
@@ -129,12 +146,78 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
 
 
 
+  // Batch action handlers
+  const handleBatchStartGrading = async (studentIds: string[]) => {
+    setIsBatchGrading(true);
+    
+    // Process students concurrently with a small delay between each to simulate rapid clicking
+    const promises = studentIds.map((studentId, index) => 
+      new Promise(async (resolve) => {
+        // Add a small delay between starting each grading (100ms * index)
+        // This simulates clicking on each student rapidly but not all at exact same time
+        await new Promise(delay => setTimeout(delay, index * 100));
+        
+        try {
+          await handleStartGrading(studentId, studentFiles, loadStudentFiles);
+          resolve({ success: true, studentId });
+        } catch (error: any) {
+          // Check if it's an abort error
+          if (error.message?.includes('abort') || error.message?.includes('Grading aborted')) {
+            console.log(`Grading aborted for student ${studentId}`);
+            resolve({ success: false, studentId, aborted: true });
+          } else {
+            console.error(`Failed to grade student ${studentId}:`, error);
+            resolve({ success: false, studentId, error });
+          }
+        }
+      })
+    );
+    
+    // Wait for all grading operations to complete
+    const results = await Promise.all(promises);
+    const abortedCount = results.filter((r: any) => r.aborted).length;
+    const successCount = results.filter((r: any) => r.success).length;
+    console.log(`Batch grading completed: ${successCount} successful, ${abortedCount} aborted`);
+    
+    setIsBatchGrading(false);
+    clearSelection();
+  };
+
+  const handleBatchClearGrading = (studentIds: string[]) => {
+    // Clear grading for each selected student
+    studentIds.forEach(studentId => {
+      clearGradingRecord(selectedAssignment, studentId);
+    });
+    clearSelection();
+  };
+
+  const handleBatchSubmitGrades = async (studentIds: string[]) => {
+    // Get data for all selected students
+    const selectedStudentsData = studentIds
+      .map(id => studentData.find(s => s.student.id === id))
+      .filter(Boolean) as StudentSubmissionData[];
+    
+    // Open batch submit dialog
+    setSubmitGradeDialogData({
+      assignment: selectedAssignment,
+      submission: '', // Not used in batch mode
+      submissions: studentIds, // Batch mode
+      assignmentData: selectedAssignmentData,
+      submissionData: undefined, // Not used in batch mode
+      submissionsData: selectedStudentsData, // Batch mode
+    });
+    setSubmitGradeDialogOpen(true);
+    
+    clearSelection();
+  };
+
   // Helper function to render a student row
   const renderStudentRow = (data: StudentSubmissionData) => {
     const files = studentFiles[data.student.id] || [];
     const gradingRecord = selectedAssignment ? getGradingRecord(selectedAssignment, data.student.id) : null;
     const hasAIResults = Boolean(gradingRecord && gradingRecord.isAIGraded && gradingRecord.aiGradeResult);
     const isCurrentlyGrading = isStudentBeingGraded(data.student.id);
+    const isSelected = isStudentSelected(data.student.id);
 
     return (
       <StudentRow
@@ -145,8 +228,11 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
         gradingRecord={gradingRecord}
         hasAIResults={hasAIResults}
         isCurrentlyGrading={isCurrentlyGrading}
+        isSelected={isSelected}
+        onToggleSelection={toggleStudentSelection}
         onStartGrading={handleIndividualGrading}
         onClearGrading={clearGradingRecord}
+        onAbortGrading={abortGrading}
         onFilePreview={handleFilePreviewWithDialog}
         onLoadStudentFiles={loadStudentFiles}
         onViewGradingDetail={onViewGradingDetail}
@@ -171,6 +257,27 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
         <Typography variant="h5" sx={{ fontWeight: 500 }}>
           {intl.formatMessage({ id: 'grading.steps.studentSubmissions' })}
         </Typography>
+        
+        {/* Batch Grade All Button - Only for ungraded students */}
+        {categorizedStudents.notGradedSubmitted.length > 0 && (
+          <Tooltip title={intl.formatMessage({ id: 'grading.submissions.batch.gradeAllTooltip' }, { count: categorizedStudents.notGradedSubmitted.length })}>
+            <span>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => handleBatchStartGrading(categorizedStudents.notGradedSubmitted.map(s => s.student.id))}
+                disabled={isBatchGrading}
+                startIcon={isBatchGrading ? <CircularProgress size={16} /> : <PlayArrowIcon />}
+                size="large"
+              >
+                {isBatchGrading 
+                  ? intl.formatMessage({ id: 'grading.submissions.batch.gradingInProgress' })
+                  : intl.formatMessage({ id: 'grading.submissions.batch.gradeAll' }, { count: categorizedStudents.notGradedSubmitted.length })
+                }
+              </Button>
+            </span>
+          </Tooltip>
+        )}
       </Box>
       
           {loading && <LinearProgress sx={{ mb: 2 }} />}
@@ -192,6 +299,18 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
               categoryKey="readyToGrade"
               isCollapsed={collapsedCategories.readyToGrade}
               onToggle={toggleCategoryCollapse}
+              students={categorizedStudents.notGradedSubmitted}
+              selectedStudentIds={selectedStudents}
+              onSelectAll={() => selectAllInCategory(categorizedStudents.notGradedSubmitted.map(s => s.student.id))}
+              onDeselectAll={() => deselectAllInCategory(categorizedStudents.notGradedSubmitted.map(s => s.student.id))}
+              onBatchStartGrading={() => {
+                const selectedInCategory = categorizedStudents.notGradedSubmitted
+                  .filter(s => isStudentSelected(s.student.id))
+                  .map(s => s.student.id);
+                handleBatchStartGrading(selectedInCategory);
+              }}
+              isBatchGrading={isBatchGrading}
+              showGradingActions={true}
             />
             {!collapsedCategories.readyToGrade && categorizedStudents.notGradedSubmitted.map(renderStudentRow)}
 
@@ -202,6 +321,31 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
               categoryKey="graded"
               isCollapsed={collapsedCategories.graded}
               onToggle={toggleCategoryCollapse}
+              students={categorizedStudents.graded}
+              selectedStudentIds={selectedStudents}
+              onSelectAll={() => selectAllInCategory(categorizedStudents.graded.map(s => s.student.id))}
+              onDeselectAll={() => deselectAllInCategory(categorizedStudents.graded.map(s => s.student.id))}
+              onBatchStartGrading={() => {
+                const selectedInCategory = categorizedStudents.graded
+                  .filter(s => isStudentSelected(s.student.id))
+                  .map(s => s.student.id);
+                handleBatchStartGrading(selectedInCategory);
+              }}
+              onBatchClearGrading={() => {
+                const selectedInCategory = categorizedStudents.graded
+                  .filter(s => isStudentSelected(s.student.id))
+                  .map(s => s.student.id);
+                handleBatchClearGrading(selectedInCategory);
+              }}
+              onBatchSubmitGrades={() => {
+                const selectedInCategory = categorizedStudents.graded
+                  .filter(s => isStudentSelected(s.student.id))
+                  .map(s => s.student.id);
+                handleBatchSubmitGrades(selectedInCategory);
+              }}
+              isBatchGrading={isBatchGrading}
+              showGradingActions={true}
+              showSubmitAction={true}
             />
             {!collapsedCategories.graded && categorizedStudents.graded.map(renderStudentRow)}
 
@@ -212,13 +356,17 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
               categoryKey="notSubmitted"
               isCollapsed={collapsedCategories.notSubmitted}
               onToggle={toggleCategoryCollapse}
+              students={categorizedStudents.notGradedNotSubmitted}
+              selectedStudentIds={selectedStudents}
+              onSelectAll={() => selectAllInCategory(categorizedStudents.notGradedNotSubmitted.map(s => s.student.id))}
+              onDeselectAll={() => deselectAllInCategory(categorizedStudents.notGradedNotSubmitted.map(s => s.student.id))}
             />
             {!collapsedCategories.notSubmitted && categorizedStudents.notGradedNotSubmitted.map(renderStudentRow)}
             
             {/* Ensure table maintains layout even when all categories are collapsed */}
             {Object.values(collapsedCategories).every(collapsed => collapsed) && (
               <TableRow sx={{ height: '100px' }}>
-                <TableCell colSpan={7} sx={{ textAlign: 'center', color: 'text.secondary' }}>
+                <TableCell colSpan={8} sx={{ textAlign: 'center', color: 'text.secondary' }}>
                   <Typography variant="body2">
                     {intl.formatMessage({ id: 'grading.submissions.categories.allCategoriesCollapsed' })}
                     </Typography>
@@ -258,8 +406,10 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
         onClose={handleSubmitGradeDialogClose}
         selectedAssignment={submitGradeDialogData.assignment}
         selectedSubmission={submitGradeDialogData.submission}
+        selectedSubmissions={submitGradeDialogData.submissions}
         selectedAssignmentData={submitGradeDialogData.assignmentData}
         selectedSubmissionData={submitGradeDialogData.submissionData}
+        selectedSubmissionsData={submitGradeDialogData.submissionsData}
       />
     </Paper>
   );

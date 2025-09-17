@@ -224,16 +224,6 @@ export const DocxPreview = React.forwardRef<DocxPreviewRef, DocxPreviewProps>(({
 
   const open = Boolean(anchorEl);
 
-  // Debug: Log the HTML content to see if data attributes are present
-  useEffect(() => {
-    if (content.html && content.html.length > 0) {
-      console.log('[DocxPreview] HTML Content Sample:', content.html.substring(0, 1000));
-      // Check if data attributes are present in the HTML
-      const hasDataAttributes = content.html.includes('data-element-type');
-    }
-  }, [content.html, content.elementCounts]);
-
-
   if (variant === 'compact') {
     return (
       <CompactVariant

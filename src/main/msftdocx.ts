@@ -105,7 +105,7 @@ function addElementIndexing(html: string): { indexedHtml: string; elementCounts:
   });
 
   // Debug: Log element counts only
-  console.log('[DOCX] Element counts:', elementCounts);
+  // console.log('[DOCX] Element counts:', elementCounts);
   
   return { indexedHtml, elementCounts };
 }

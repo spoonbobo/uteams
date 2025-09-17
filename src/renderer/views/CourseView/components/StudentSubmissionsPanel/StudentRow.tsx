@@ -9,10 +9,12 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  Checkbox,
 } from '@mui/material';
 import {
   Description as DescriptionIcon,
   Send as SendIcon,
+  Stop as StopIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 import type { StudentSubmissionData } from '../../../../types/grading';
@@ -26,8 +28,11 @@ interface StudentRowProps {
   gradingRecord: any;
   hasAIResults: boolean;
   isCurrentlyGrading: boolean;
+  isSelected: boolean;
+  onToggleSelection: (studentId: string) => void;
   onStartGrading: (studentId: string) => void;
   onClearGrading: (assignmentId: string, studentId: string) => void;
+  onAbortGrading: (studentId: string) => void;
   onFilePreview: (studentId: string, file: SubmissionFile, studentName: string) => Promise<void>;
   onLoadStudentFiles: (studentId: string) => Promise<SubmissionFile[]>;
   onViewGradingDetail?: (studentId: string) => void;
@@ -42,8 +47,11 @@ export const StudentRow: React.FC<StudentRowProps> = ({
   gradingRecord,
   hasAIResults,
   isCurrentlyGrading,
+  isSelected,
+  onToggleSelection,
   onStartGrading,
   onClearGrading,
+  onAbortGrading,
   onFilePreview,
   onLoadStudentFiles,
   onViewGradingDetail,
@@ -69,11 +77,21 @@ export const StudentRow: React.FC<StudentRowProps> = ({
       key={data.student.id}
       sx={{
         opacity: hasSubmission ? 1 : 0.6,
+        backgroundColor: isSelected ? 'action.selected' : 'inherit',
         '&:hover': {
           backgroundColor: 'action.hover',
         },
       }}
     >
+      {/* Checkbox Column */}
+      <TableCell padding="checkbox">
+        <Checkbox
+          checked={isSelected}
+          onChange={() => onToggleSelection(data.student.id)}
+          size="small"
+        />
+      </TableCell>
+
       {/* Student Column */}
       <TableCell>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -172,15 +190,15 @@ export const StudentRow: React.FC<StudentRowProps> = ({
             <Typography 
               variant="caption" 
               sx={{ 
-                color: hasAIResults ? 'text.disabled' : 'primary.main', 
-                cursor: hasAIResults ? 'not-allowed' : 'pointer',
-                textDecoration: hasAIResults ? 'none' : 'underline',
+                color: (hasAIResults || isCurrentlyGrading) ? 'text.disabled' : 'primary.main', 
+                cursor: (hasAIResults || isCurrentlyGrading) ? 'not-allowed' : 'pointer',
+                textDecoration: (hasAIResults || isCurrentlyGrading) ? 'none' : 'underline',
                 fontWeight: 500,
-                '&:hover': hasAIResults ? {} : {
+                '&:hover': (hasAIResults || isCurrentlyGrading) ? {} : {
                   color: 'primary.dark'
                 }
               }}
-              onClick={hasAIResults ? undefined : () => onStartGrading(data.student.id)}
+              onClick={(hasAIResults || isCurrentlyGrading) ? undefined : () => onStartGrading(data.student.id)}
             >
               {intl.formatMessage({ id: 'grading.submissions.actions.startGrading' })}
             </Typography>
@@ -223,13 +241,23 @@ export const StudentRow: React.FC<StudentRowProps> = ({
         borderRightColor: 'primary.main'
       }}>
         {isCurrentlyGrading ? (
-          /* Show spinner during grading with view detail link */
+          /* Show spinner during grading with view detail link and stop button */
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, flexDirection: 'column' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <CircularProgress size={20} />
               <Typography variant="caption" color="text.secondary">
                 {intl.formatMessage({ id: 'grading.submissions.grading' })}
               </Typography>
+              <Tooltip title={intl.formatMessage({ id: 'grading.submissions.actions.stopGrading' })}>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => onAbortGrading(data.student.id)}
+                  sx={{ padding: 0.5 }}
+                >
+                  <StopIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             </Box>
             <Typography 
               variant="caption" 

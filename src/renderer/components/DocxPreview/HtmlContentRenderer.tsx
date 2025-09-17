@@ -40,7 +40,10 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
     
     if (newHighlightsToApply.length === 0) return;
     
-    console.log(`🎨 [HtmlContentRenderer] Applying ${newHighlightsToApply.length} new highlights via DOM:`, newHighlightsToApply);
+    // Only log in development mode
+    if (process.env.NODE_ENV === 'development' && newHighlightsToApply.length > 0) {
+      console.debug(`[HtmlContentRenderer] Applying ${newHighlightsToApply.length} new highlights`);
+    }
     
     // Apply each new highlight directly to the DOM
     newHighlightsToApply.forEach((highlight, index) => {
@@ -98,15 +101,26 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
         // Mark this highlight as applied
         appliedHighlightsRef.current.add(`${elementType}-${elementIndex}`);
         
-        console.log(`✅ Applied highlight to ${elementType} #${elementIndex}`);
+        // Only log success in development mode
+        if (process.env.NODE_ENV === 'development') {
+          console.debug(`[HtmlContentRenderer] Applied highlight to ${elementType} #${elementIndex}`);
+        }
       } else {
-        // Log a more detailed error message with available elements for debugging
-        const availableElements = container.querySelectorAll(`[data-element-type="${elementType}"]`);
-        const availableIndices = Array.from(availableElements).map(el => el.getAttribute('data-element-index')).join(', ');
-        console.warn(`⚠️ Could not find element for ${elementType} #${elementIndex}. Available ${elementType} indices: [${availableIndices}]`);
+        // Gracefully handle missing elements - only log once per element
+        const missingKey = `${elementType}-${elementIndex}`;
+        if (!appliedHighlightsRef.current.has(`missing-${missingKey}`)) {
+          appliedHighlightsRef.current.add(`missing-${missingKey}`);
+          
+          // Only log in development mode or if debug is enabled
+          if (process.env.NODE_ENV === 'development') {
+            const availableElements = container.querySelectorAll(`[data-element-type="${elementType}"]`);
+            const availableIndices = Array.from(availableElements).map(el => el.getAttribute('data-element-index')).filter(Boolean);
+            console.debug(`[HtmlContentRenderer] Element not found: ${elementType} #${elementIndex}. Available: [${availableIndices.join(', ')}]`);
+          }
+        }
         
-        // Don't mark as applied since the element wasn't found
-        // This will prevent infinite retries but also won't block future attempts
+        // Mark as "attempted" to prevent infinite retries
+        appliedHighlightsRef.current.add(missingKey);
       }
     });
     
@@ -138,7 +152,10 @@ export const HtmlContentRenderer: React.FC<HtmlContentRendererProps> = ({
     const removedKeys = Array.from(appliedKeys).filter(key => !currentKeys.has(key));
     
     if (removedKeys.length > 0) {
-      console.log(`🧹 [HtmlContentRenderer] Removing ${removedKeys.length} highlights:`, removedKeys);
+      // Only log in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.debug(`[HtmlContentRenderer] Removing ${removedKeys.length} highlights`);
+      }
       
       removedKeys.forEach(key => {
         const [elementType, elementIndex] = key.split('-');

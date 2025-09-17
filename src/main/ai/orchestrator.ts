@@ -23,6 +23,7 @@ import {
 } from './graph';
 import { AgentRegistry } from './agents';
 import { memoryManager, MemoryManager, UserProfile, SessionMemory } from './memory';
+import { abortManager } from './abort';
 
 /**
  * Orchestrator request interface
@@ -182,6 +183,10 @@ export class Orchestrator extends EventEmitter {
     const threadId = request.threadId || `thread_${Date.now()}`;
     const userId = request.userId || 'default_user';
     
+    // Create abort controller for this session
+    const abortController = abortManager.createController(request.sessionId);
+    const abortSignal = abortController.signal;
+    
     // Don't emit initializing as a chunk - UI will show thinking spinner instead
     console.log('🚀 Starting orchestrator run for session:', request.sessionId);
 
@@ -278,6 +283,12 @@ export class Orchestrator extends EventEmitter {
         const expectedSteps = 3; // planner -> agent -> synthesis is the typical flow
         
         for await (const chunk of stream) {
+          // Check if aborted
+          if (abortSignal.aborted) {
+            console.log(`🛑 Session ${request.sessionId} aborted during streaming`);
+            throw new Error('Operation aborted');
+          }
+          
           stepCount++;
           console.log(`🔄 Step ${stepCount}:`, Object.keys(chunk));
           
@@ -479,6 +490,12 @@ export class Orchestrator extends EventEmitter {
                       if (synthesisMessage) {
                         const words = synthesisMessage.split(' ');
                         for (let i = 0; i < words.length; i++) {
+                          // Check if aborted during token streaming
+                          if (abortSignal.aborted) {
+                            console.log(`🛑 Session ${request.sessionId} aborted during token streaming`);
+                            throw new Error('Operation aborted');
+                          }
+                          
                           const word = words[i];
                           const token = i === 0 ? word : ' ' + word;
                           
@@ -675,13 +692,63 @@ export class Orchestrator extends EventEmitter {
   }
   
   /**
+   * Abort a running session
+   */
+  abort(sessionId: string, reason?: string): boolean {
+    const aborted = abortManager.abort(sessionId, reason);
+    if (aborted) {
+      // Emit abort event
+      this.emit('progress', {
+        sessionId,
+        type: 'aborted',
+        reason: reason || 'User requested abort',
+      });
+    }
+    return aborted;
+  }
+
+  /**
+   * Abort all running sessions
+   */
+  abortAll(reason?: string): number {
+    const sessions = abortManager.getActiveSessions();
+    sessions.forEach(sessionId => {
+      this.emit('progress', {
+        sessionId,
+        type: 'aborted',
+        reason: reason || 'All sessions aborted',
+      });
+    });
+    return abortManager.abortAll(reason);
+  }
+
+  /**
+   * Check if a session is aborted
+   */
+  isAborted(sessionId: string): boolean {
+    return abortManager.isAborted(sessionId);
+  }
+
+  /**
+   * Get list of active sessions
+   */
+  getActiveSessions(): string[] {
+    return abortManager.getActiveSessions();
+  }
+
+  /**
    * Clean up resources
    */
   async cleanup(): Promise<void> {
     try {
+      // Abort all running sessions
+      this.abortAll('System cleanup');
+      
       await this.agentRegistry.cleanup();
       await this.mcpClient.cleanup();
       await this.memoryManager.cleanup();
+      abortManager.cleanupAll();
+      
       console.log('🛑 Orchestrator cleaned up');
     } catch (error) {
       console.error('Error cleaning up orchestrator:', error);

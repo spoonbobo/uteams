@@ -1,5 +1,5 @@
-import type { MoodleAssignment } from '../../../../types/moodle';
-import type { StudentSubmissionData, GradingStats } from '../../../../types/grading';
+import type { MoodleAssignment } from '@/types/moodle';
+import type { StudentSubmissionData, GradingStats } from '@/types/grading';
 
 export interface StudentSubmissionsPanelProps {
   selectedAssignment: string;
@@ -38,9 +38,11 @@ export interface GradeStatus {
 
 export interface SubmitGradeDialogData {
   assignment: string;
-  submission: string;
+  submission?: string;
+  submissions?: string[]; // For batch submit
   assignmentData?: MoodleAssignment;
   submissionData?: StudentSubmissionData;
+  submissionsData?: StudentSubmissionData[]; // For batch submit
 }
 
 export interface CollapsedCategories {

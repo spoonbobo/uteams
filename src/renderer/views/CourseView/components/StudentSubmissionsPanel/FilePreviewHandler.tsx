@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { SubmissionFile } from './types';
-import type { DocxContent } from '../../../../components/DocxPreview/types';
+import type { DocxContent } from '@/components/DocxPreview/types';
 
 export const useFilePreviewHandler = () => {
   const [docxContent, setDocxContent] = useState<DocxContent | null>(null);
