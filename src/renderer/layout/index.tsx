@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { SidebarCollapse, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from './SidebarCollapse';
-import { TopBar } from './TopBar';
+import TopBar from './TopBar';
 import MainView from './MainView';
 import { useLayoutStore } from '@/stores/useLayoutStore';
 import TitleBar from '@/components/TitleBar';
@@ -57,7 +57,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
         <MainView sidebarWidth={currentSidebarWidth}>
           <Box className="app-topbar">
-            <TopBar sidebarWidth={currentSidebarWidth} />
+            <TopBar />
           </Box>
 
           {/* Content Area */}
@@ -84,5 +84,5 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 // Export individual components for direct use if needed
 export { Sidebar } from './Sidebar';
 export { SidebarCollapse } from './SidebarCollapse';
-export { TopBar } from './TopBar';
+export { default as TopBar } from './TopBar';
 export { default as MainView } from './MainView';

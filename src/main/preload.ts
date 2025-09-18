@@ -120,8 +120,8 @@ const electronHandler = {
     serverStatus: () => ipcRenderer.invoke('mcp:server-status'),
   },
   companion: {
-    open: (sessionId: string, sessionName: string) =>
-      ipcRenderer.invoke('companion:open', { sessionId, sessionName }),
+    open: (sessionId: string, sessionName: string, bounds?: { x: number; y: number; width: number; height: number }) =>
+      ipcRenderer.invoke('companion:open', { sessionId, sessionName, bounds }),
     close: () => ipcRenderer.invoke('companion:close'),
     isOpen: () => ipcRenderer.invoke('companion:is-open'),
     focus: () => ipcRenderer.invoke('companion:focus'),

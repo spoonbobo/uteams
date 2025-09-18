@@ -13,7 +13,6 @@ import {
 import {
   ArrowBack as ArrowBackIcon,
   ArrowForward as ArrowForwardIcon,
-  Home as HomeIcon,
   Settings as SettingsIcon,
   AccountCircle as AccountCircleIcon,
   Security as SecurityIcon,
@@ -22,30 +21,22 @@ import {
   Analytics as AnalyticsIcon,
   TrendingUp as TrendingUpIcon,
   Timeline as TimelineIcon,
-  Chat as ChatIcon,
-  ChatBubble as ChatBubbleIcon,
   ForumRounded as ForumRoundedIcon,
   Dashboard as DashboardIcon,
   ChildCare as ChildCareIcon,
   GradingOutlined as GradingIcon,
-  Apps as AppsIcon,
-  School as SchoolIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 import { useContextStore } from '@/stores/useContextStore';
-
-interface TopBarProps {
-  sidebarWidth: number;
-}
-
+import { useCompanionStore } from '@/stores/useCompanionStore';
 // Icon mapping function
 const getTabIcon = (iconName: string) => {
   const iconMap: Record<string, React.ReactNode> = {
-    dashboard: <DashboardIcon />,  // Dashboard icon for My Dashboard
-    ask: <ForumRoundedIcon />,  // Rounded forum/chat icon for Ask<CourseCode>
-    grading: <GradingIcon />,  // Grading icon for grading assignments
-    overview: <AnalyticsIcon />,  // Analytics icon for course overview (changed from DashboardIcon)
-    companion: <ChildCareIcon />,  // Changed to baby angel icon
+    dashboard: <DashboardIcon />, // Dashboard icon for My Dashboard
+    ask: <ForumRoundedIcon />, // Rounded forum/chat icon for Ask<CourseCode>
+    grading: <GradingIcon />, // Grading icon for grading assignments
+    overview: <AnalyticsIcon />, // Analytics icon for course overview (changed from DashboardIcon)
+    companion: <ChildCareIcon />, // Changed to baby angel icon
     general: <SettingsIcon />,
     account: <AccountCircleIcon />,
     security: <SecurityIcon />,
@@ -57,9 +48,10 @@ const getTabIcon = (iconName: string) => {
   return iconMap[iconName] || null;
 };
 
-export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
+function TopBar() {
   const intl = useIntl();
   const theme = useTheme();
+  const { position, size } = useCompanionStore();
 
   const {
     currentContext,
@@ -93,6 +85,8 @@ export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
       case 'settings':
         breadcrumb.push(intl.formatMessage({ id: 'navigation.settings' }));
         break;
+      default:
+        break;
     }
 
     return {
@@ -113,8 +107,13 @@ export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
 
   // Map string tab values to numeric indices for MUI Tabs to avoid value mismatches
   const tabValues = React.useMemo(() => tabs.map((t) => t.value), [tabs]);
-  const currentIndex = currentTabValue ? tabValues.indexOf(currentTabValue) : -1;
-  const safeCurrentIndex = currentIndex >= 0 ? currentIndex : tabValues.length > 0 ? 0 : -1;
+  const currentIndex = currentTabValue
+    ? tabValues.indexOf(currentTabValue)
+    : -1;
+  let safeCurrentIndex = currentIndex;
+  if (currentIndex < 0) {
+    safeCurrentIndex = tabValues.length > 0 ? 0 : -1;
+  }
 
   const showTabs = tabs.length > 1;
   const activeSessionId = courseSessionContext?.sessionId;
@@ -180,7 +179,7 @@ export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
       >
         {computedValues.breadcrumb.map((crumb, index) => (
           <Typography
-            key={index}
+            key={`breadcrumb-${crumb}`}
             color={
               index === computedValues.breadcrumb.length - 1
                 ? 'text.primary'
@@ -203,17 +202,26 @@ export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
         <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
           <Tabs
             value={safeCurrentIndex}
-            onChange={(_, newIndex) => {
+            onChange={(event, newIndex) => {
               const newValue = tabValues[newIndex] ?? tabValues[0];
               if (newValue === 'companion') {
                 // Summon overlay without switching the active tab
                 if (activeSessionId && activeSessionName) {
                   try {
+                    const bounds = {
+                      x: position.x,
+                      y: position.y,
+                      width: size.width,
+                      height: size.height,
+                    };
                     (window as any)?.electron?.companion?.open(
                       activeSessionId,
                       activeSessionName,
+                      bounds,
                     );
-                  } catch {}
+                  } catch {
+                    // Ignore companion open errors
+                  }
                 }
                 return; // Do not propagate tab change
               }
@@ -222,7 +230,9 @@ export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
               if (getCurrentTabValue() === 'companion') {
                 try {
                   (window as any)?.electron?.companion?.close?.();
-                } catch {}
+                } catch {
+                  // Ignore companion close errors
+                }
               }
               if (newValue) handleTabChange(newValue);
             }}
@@ -278,7 +288,12 @@ export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
               );
 
               return (
-                <Tooltip key={tab.id} title={labelText} arrow placement="bottom">
+                <Tooltip
+                  key={tab.id}
+                  title={labelText}
+                  arrow
+                  placement="bottom"
+                >
                   <Tab
                     value={index}
                     data-tab-value={tab.value}
@@ -300,4 +315,6 @@ export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
       )}
     </Box>
   );
-};
+}
+
+export default TopBar;
