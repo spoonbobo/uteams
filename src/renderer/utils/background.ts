@@ -78,7 +78,7 @@ function createScrollingCarousel(background: BackgroundConfig) {
     transition: none;
   `;
 
-  // Create image elements - triple the sequence for seamless scrolling in both directions
+  // Create image elements - create enough copies for seamless infinite scroll
   const createImageSet = () => {
     background.images!.forEach((imagePath) => {
       const imgElement = document.createElement('div');
@@ -97,10 +97,11 @@ function createScrollingCarousel(background: BackgroundConfig) {
     });
   };
 
-  // Create three sets of images for seamless loop in both directions
-  createImageSet();
-  createImageSet();
-  createImageSet();
+  // Create multiple sets of images for seamless infinite loop
+  // We need at least 3 sets to ensure smooth transitions
+  createImageSet(); // Set 1: images 1,2,3
+  createImageSet(); // Set 2: images 1,2,3 (for seamless loop)
+  createImageSet(); // Set 3: images 1,2,3 (buffer for smooth reset)
 
   containerElement.appendChild(scrollContainer);
   document.body.appendChild(containerElement);
@@ -223,17 +224,14 @@ export function useScrollingAnimation(background: BackgroundConfig) {
       const direction = background.scrollDirection === 'right' ? 1 : -1;
       let animationId: number;
       let lastTime = performance.now();
-      let scrollPosition = 0;
 
       // Calculate the width of one complete image set
       const viewportWidth = window.innerWidth;
       const totalImages = background.images!.length;
       const imageSetWidth = viewportWidth * totalImages;
 
-      // Start position for right scrolling should be negative
-      if (direction === 1) {
-        scrollPosition = -imageSetWidth;
-      }
+      // Start from the middle set (set 2) to allow smooth transitions in both directions
+      let scrollPosition = -imageSetWidth; // Start at beginning of second set
 
       const animate = (currentTime: number) => {
         const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
@@ -242,16 +240,16 @@ export function useScrollingAnimation(background: BackgroundConfig) {
         // Update scroll position
         scrollPosition += direction * scrollSpeed * deltaTime;
 
-        // Handle looping based on direction
+        // Handle seamless looping - reset when we reach the boundaries
         if (direction === -1) {
-          // Scrolling left: when we've scrolled past all images, reset
-          if (scrollPosition <= -imageSetWidth) {
-            scrollPosition += imageSetWidth;
+          // Scrolling left: when we've scrolled past the second set, reset to start of second set
+          if (scrollPosition <= -2 * imageSetWidth) {
+            scrollPosition = -imageSetWidth; // Reset to start of second set
           }
         } else {
-          // Scrolling right: when we reach 0, reset to negative position
+          // Scrolling right: when we reach the start of second set, reset to start of first set
           if (scrollPosition >= 0) {
-            scrollPosition -= imageSetWidth;
+            scrollPosition = -imageSetWidth; // Reset to start of second set
           }
         }
 

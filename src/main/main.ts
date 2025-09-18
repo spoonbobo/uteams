@@ -30,6 +30,7 @@ import { setupMoodleHandlers } from './moodle';
 import { setupFileIOHandlers, registerLocalFileProtocol } from './fileio';
 import { setupDocxHandlers } from './msftdocx';
 import { setupAlertHandlers } from './alert';
+import { setupOcrHandlers } from './ocr';
 
 // Debug: Log environment variable loading
 console.log('🔧 Environment variables loaded:');
@@ -151,6 +152,13 @@ const createWindow = async () => {
     console.log('✅ Alert handlers registered early');
   } catch (e) {
     console.error('Failed to register Alert handlers early', e);
+  }
+
+  try {
+    setupOcrHandlers();
+    console.log('✅ OCR handlers registered early');
+  } catch (e) {
+    console.error('Failed to register OCR handlers early', e);
   }
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));

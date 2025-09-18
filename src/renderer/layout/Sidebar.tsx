@@ -143,7 +143,8 @@ export const Sidebar: React.FC = () => {
         className="app-layout-scrollbar"
         sx={{
           flex: 1,
-          overflow: 'auto',
+          overflowY: 'auto', // Only allow vertical scrolling
+          overflowX: 'hidden', // Disable horizontal scrolling completely
           px: 1.5,
           py: 1,
           minHeight: 0,

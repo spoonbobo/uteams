@@ -131,12 +131,12 @@ export const SettingsView: React.FC = () => {
   };
 
   const handleBackgroundTypeChange = (event: any) => {
-    const newType = event.target.value as 'none' | 'color' | 'image';
+    const newType = event.target.value as 'color' | 'image';
     let newValue = '';
 
     if (newType === 'color') {
-      // Set default color to transparent/none
-      newValue = 'transparent';
+      // Set default color to first dark color (black)
+      newValue = '#000000';
     } else if (newType === 'image') {
       // Keep the existing value if it's an image path, otherwise clear it
       newValue = background.value && !background.value.startsWith('#') ? background.value : '';
@@ -149,7 +149,7 @@ export const SettingsView: React.FC = () => {
   };
 
   const handleStaticColorSelect = (color: string) => {
-    setBackground({ type: color === 'transparent' ? 'none' : 'color', value: color });
+    setBackground({ type: 'color', value: color });
     toast.success(
       intl.formatMessage({ id: 'settings.backgroundColorChanged' })
     );
@@ -267,8 +267,8 @@ export const SettingsView: React.FC = () => {
   };
 
   const handleRemoveBackground = () => {
-    setBackground({ type: 'none', value: '' });
-    toast.success('Background removed');
+    setBackground({ type: 'color', value: '#000000' });
+    toast.success('Background reset to default color');
   };
 
 
@@ -402,7 +402,7 @@ export const SettingsView: React.FC = () => {
             <FormControl fullWidth size="small" sx={{ mb: 2 }}>
               <InputLabel>{intl.formatMessage({ id: 'settings.backgroundType' })}</InputLabel>
               <Select
-                value={background.type === 'none' || background.type === 'color' ? 'color' : 'image'}
+                value={background.type === 'color' ? 'color' : 'image'}
                 onChange={handleBackgroundTypeChange}
                 label={intl.formatMessage({ id: 'settings.backgroundType' })}
               >
@@ -412,38 +412,12 @@ export const SettingsView: React.FC = () => {
             </FormControl>
 
             {/* Static Color Selection */}
-            {(background.type === 'none' || background.type === 'color') && (
+            {background.type === 'color' && (
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2" gutterBottom>
                   {intl.formatMessage({ id: 'settings.selectColor' })}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  {/* Transparent/None option */}
-                  <Box
-                    onClick={() => handleStaticColorSelect('transparent')}
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 1,
-                      border: 2,
-                      borderColor: background.value === 'transparent' || background.type === 'none' ? 'primary.main' : 'divider',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: 'background.paper',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      '&:hover': {
-                        borderColor: 'primary.main',
-                        opacity: 0.8,
-                      },
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary' }}>
-                      None
-                    </Typography>
-                  </Box>
 
                   {/* Color options */}
                   {[
@@ -472,7 +446,7 @@ export const SettingsView: React.FC = () => {
                         backgroundColor: color,
                         borderRadius: 1,
                         border: 2,
-                        borderColor: background.value === color ? 'primary.main' : 'transparent',
+                        borderColor: background.value === color && background.type === 'color' ? 'primary.main' : 'transparent',
                         cursor: 'pointer',
                         '&:hover': {
                           borderColor: 'primary.main',
@@ -580,70 +554,134 @@ export const SettingsView: React.FC = () => {
 
                 {/* Scrolling Carousel Settings */}
                 {selectedImages.length > 1 && (
-                  <Box
+                  <Card
+                    variant="outlined"
                     sx={{
                       mb: 2,
-                      p: 2,
-                      border: 1,
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                      backgroundColor: 'background.default',
+                      backgroundColor: muiTheme.palette.background.paper,
+                      borderColor: muiTheme.palette.divider,
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <CarouselIcon sx={{ mr: 1 }} />
-                      <Typography variant="subtitle2" sx={{ flex: 1 }}>
-                        Scrolling Carousel
-                      </Typography>
-                      <Switch
-                        checked={background.scrollEnabled || false}
-                        onChange={handleScrollToggle}
-                        color="primary"
-                      />
-                    </Box>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <CarouselIcon
+                          sx={{
+                            mr: 1,
+                            color: muiTheme.palette.primary.main
+                          }}
+                        />
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            flex: 1,
+                            color: muiTheme.palette.text.primary,
+                            fontWeight: muiTheme.typography.fontWeightMedium
+                          }}
+                        >
+                          {intl.formatMessage({ id: 'settings.scrollingCarousel' }, { defaultMessage: 'Scrolling Carousel' })}
+                        </Typography>
+                        <Switch
+                          checked={background.scrollEnabled || false}
+                          onChange={handleScrollToggle}
+                          color="primary"
+                          sx={{
+                            '& .MuiSwitch-switchBase.Mui-checked': {
+                              color: muiTheme.palette.primary.main,
+                            },
+                            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                              backgroundColor: muiTheme.palette.primary.main,
+                            },
+                          }}
+                        />
+                      </Box>
 
-                    {background.scrollEnabled && (
-                      <>
-                        <Box sx={{ mb: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                            <SpeedIcon sx={{ mr: 1, fontSize: 20 }} />
-                            <Typography variant="body2">
-                              Scroll Speed: {background.scrollSpeed || 30} px/s
-                            </Typography>
+                      {background.scrollEnabled && (
+                        <>
+                          <Box sx={{ mb: 3 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                              <SpeedIcon
+                                sx={{
+                                  mr: 1,
+                                  fontSize: 20,
+                                  color: muiTheme.palette.text.secondary
+                                }}
+                              />
+                              <Typography
+                                variant="body2"
+                                sx={{ color: muiTheme.palette.text.primary }}
+                              >
+                                {intl.formatMessage({ id: 'settings.scrollSpeed' }, { defaultMessage: 'Scroll Speed' })}: {background.scrollSpeed || 30} px/s
+                              </Typography>
+                            </Box>
+                            <Slider
+                              value={background.scrollSpeed || 30}
+                              onChange={handleScrollSpeedChange}
+                              min={10}
+                              max={100}
+                              step={5}
+                              marks={[
+                                { value: 10, label: intl.formatMessage({ id: 'settings.slow' }, { defaultMessage: 'Slow' }) },
+                                { value: 30, label: intl.formatMessage({ id: 'settings.normal' }, { defaultMessage: 'Normal' }) },
+                                { value: 60, label: intl.formatMessage({ id: 'settings.fast' }, { defaultMessage: 'Fast' }) },
+                                { value: 100, label: intl.formatMessage({ id: 'settings.veryFast' }, { defaultMessage: 'Very Fast' }) }
+                              ]}
+                              valueLabelDisplay="auto"
+                              valueLabelFormat={(value) => `${value} px/s`}
+                              sx={{
+                                color: muiTheme.palette.primary.main,
+                                '& .MuiSlider-thumb': {
+                                  backgroundColor: muiTheme.palette.primary.main,
+                                },
+                                '& .MuiSlider-track': {
+                                  backgroundColor: muiTheme.palette.primary.main,
+                                },
+                                '& .MuiSlider-rail': {
+                                  backgroundColor: muiTheme.palette.action.disabled,
+                                },
+                                '& .MuiSlider-mark': {
+                                  backgroundColor: muiTheme.palette.action.disabled,
+                                },
+                                '& .MuiSlider-markLabel': {
+                                  color: muiTheme.palette.text.secondary,
+                                },
+                              }}
+                            />
                           </Box>
-                          <Slider
-                            value={background.scrollSpeed || 30}
-                            onChange={handleScrollSpeedChange}
-                            min={10}
-                            max={100}
-                            step={5}
-                            marks={[
-                              { value: 10, label: 'Slow' },
-                              { value: 30, label: 'Normal' },
-                              { value: 60, label: 'Fast' },
-                              { value: 100, label: 'Very Fast' }
-                            ]}
-                            valueLabelDisplay="auto"
-                            valueLabelFormat={(value) => `${value} px/s`}
-                          />
-                        </Box>
 
-                        <Box sx={{ mb: 1 }}>
-                          <FormControl size="small" fullWidth>
-                            <InputLabel>Scroll Direction</InputLabel>
-                            <Select
-                              value={background.scrollDirection || 'left'}
-                              onChange={handleScrollDirectionChange}
-                              label="Scroll Direction"
-                            >
-                              <MenuItem value="left">← Left</MenuItem>
-                              <MenuItem value="right">→ Right</MenuItem>
-                            </Select>
-                          </FormControl>
-                        </Box>
-                      </>
-                    )}
-                  </Box>
+                          <Box sx={{ mb: 1 }}>
+                            <FormControl size="small" fullWidth>
+                              <InputLabel sx={{ color: muiTheme.palette.text.secondary }}>
+                                {intl.formatMessage({ id: 'settings.scrollDirection' }, { defaultMessage: 'Scroll Direction' })}
+                              </InputLabel>
+                              <Select
+                                value={background.scrollDirection || 'left'}
+                                onChange={handleScrollDirectionChange}
+                                label={intl.formatMessage({ id: 'settings.scrollDirection' }, { defaultMessage: 'Scroll Direction' })}
+                                sx={{
+                                  '& .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: muiTheme.palette.divider,
+                                  },
+                                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: muiTheme.palette.primary.main,
+                                  },
+                                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: muiTheme.palette.primary.main,
+                                  },
+                                }}
+                              >
+                                <MenuItem value="left">
+                                  ← {intl.formatMessage({ id: 'settings.left' }, { defaultMessage: 'Left' })}
+                                </MenuItem>
+                                <MenuItem value="right">
+                                  → {intl.formatMessage({ id: 'settings.right' }, { defaultMessage: 'Right' })}
+                                </MenuItem>
+                              </Select>
+                            </FormControl>
+                          </Box>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
                 )}
               </Box>
             )}

@@ -24,7 +24,9 @@ export type Channels =
   | 'moodle:get-config'
   | 'moodle:clear-config'
   | 'moodle:get-preset-url'
-  | 'alert:toast';
+  | 'alert:toast'
+  | 'fullscreen-changed'
+  | 'fullscreen-changing';
 
 const electronHandler = {
   ipcRenderer: {
@@ -199,6 +201,31 @@ const electronHandler = {
       ipcRenderer.on('alert:toast', subscription);
       return () => ipcRenderer.removeListener('alert:toast', subscription);
     },
+  },
+  ocr: {
+    // Perform OCR on an image file
+    perform: (imagePath: string, options?: {
+      language?: string;
+      timeout?: number;
+    }) => ipcRenderer.invoke('ocr:perform', imagePath, options),
+
+    // Get available OCR languages
+    getLanguages: () => ipcRenderer.invoke('ocr:getLanguages'),
+
+    // Perform OCR on a screenshot of the entire screen
+    screenshot: (options?: {
+      language?: string;
+      timeout?: number;
+    }) => ipcRenderer.invoke('ocr:screenshot', options),
+
+    // Run OCR diagnostics
+    diagnostics: () => ipcRenderer.invoke('ocr:diagnostics'),
+
+    // Test minimal OCR functionality
+    testMinimal: () => ipcRenderer.invoke('ocr:testMinimal'),
+
+    // Clean up temporary screenshot files
+    cleanup: (filePath: string) => ipcRenderer.invoke('ocr:cleanup', filePath),
   },
 };
 

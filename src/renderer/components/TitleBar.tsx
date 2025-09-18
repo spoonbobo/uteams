@@ -18,7 +18,7 @@ import {
 import './TitleBar.css';
 
 interface TitleBarProps {
-  title?: string;
+  title: string;
 }
 
 export default function TitleBar({ title = 'THEiTeams' }: TitleBarProps) {
@@ -298,7 +298,3 @@ export default function TitleBar({ title = 'THEiTeams' }: TitleBarProps) {
     </Box>
   );
 }
-
-TitleBar.defaultProps = {
-  title: 'THEiTeams',
-};

@@ -58,6 +58,7 @@ export const SidebarCollapse: React.FC<SidebarCollapseProps> = () => {
   const { courses, isLoadingCourses, fetchCourses, isConfigured, isConnected } = useMoodleStore();
   const { isAuthenticated } = useAuthenticationState();
   const [isHoveringEdge, setIsHoveringEdge] = useState(false);
+  // Removed transition state handling
 
   // Disclaimer is handled in Settings
 
@@ -87,7 +88,6 @@ export const SidebarCollapse: React.FC<SidebarCollapseProps> = () => {
         width: currentWidth,
         flexShrink: 0,
         height: '100%',
-        transition: 'width 0.3s ease',
         '& .MuiDrawer-paper': {
           width: currentWidth,
           boxSizing: 'border-box',
@@ -97,7 +97,6 @@ export const SidebarCollapse: React.FC<SidebarCollapseProps> = () => {
             theme.palette.mode === 'dark'
               ? 'none'
               : '0 0 10px rgba(0,0,0,0.02)',
-          transition: 'width 0.3s ease',
           overflow: 'visible',
           position: 'static', // Changed from relative to static
           height: '100%',
@@ -219,7 +218,8 @@ export const SidebarCollapse: React.FC<SidebarCollapseProps> = () => {
         className="app-layout-scrollbar"
         sx={{
           flex: 1,
-          overflow: 'auto',
+          overflowY: 'auto', // Only allow vertical scrolling
+          overflowX: 'hidden', // Disable horizontal scrolling completely
           px: !sidebarCollapsed ? 1.5 : 0.5,
           py: 1,
           minHeight: 0,

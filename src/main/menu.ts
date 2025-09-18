@@ -98,7 +98,20 @@ export default class MenuBuilder {
           label: 'Toggle Full Screen',
           accelerator: 'Ctrl+Command+F',
           click: () => {
-            this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
+            const wasFullScreen = this.mainWindow.isFullScreen();
+
+            // Notify renderer BEFORE changing fullscreen state
+            this.mainWindow.webContents.send('fullscreen-changing', !wasFullScreen);
+
+            // Small delay to let renderer prepare for transition
+            setTimeout(() => {
+              this.mainWindow.setFullScreen(!wasFullScreen);
+
+              // Confirm the change after window state changes
+              setTimeout(() => {
+                this.mainWindow.webContents.send('fullscreen-changed', !wasFullScreen);
+              }, 50); // Slightly longer delay for state confirmation
+            }, 16);
           },
         },
         {
@@ -141,7 +154,20 @@ export default class MenuBuilder {
           label: 'Toggle Full Screen',
           accelerator: 'Ctrl+Command+F',
           click: () => {
-            this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
+            const wasFullScreen = this.mainWindow.isFullScreen();
+
+            // Notify renderer BEFORE changing fullscreen state
+            this.mainWindow.webContents.send('fullscreen-changing', !wasFullScreen);
+
+            // Small delay to let renderer prepare for transition
+            setTimeout(() => {
+              this.mainWindow.setFullScreen(!wasFullScreen);
+
+              // Confirm the change after window state changes
+              setTimeout(() => {
+                this.mainWindow.webContents.send('fullscreen-changed', !wasFullScreen);
+              }, 50); // Slightly longer delay for state confirmation
+            }, 16);
           },
         },
         { type: 'separator' } as MenuItemConstructorOptions,
@@ -227,11 +253,22 @@ export default class MenuBuilder {
                 {
                   label: 'Toggle &Full Screen',
                   accelerator: 'F11',
-                  click: () => {
-                    this.mainWindow.setFullScreen(
-                      !this.mainWindow.isFullScreen(),
-                    );
-                  },
+          click: () => {
+            const wasFullScreen = this.mainWindow.isFullScreen();
+
+            // Notify renderer BEFORE changing fullscreen state
+            this.mainWindow.webContents.send('fullscreen-changing', !wasFullScreen);
+
+            // Small delay to let renderer prepare for transition
+            setTimeout(() => {
+              this.mainWindow.setFullScreen(!wasFullScreen);
+
+              // Confirm the change after window state changes
+              setTimeout(() => {
+                this.mainWindow.webContents.send('fullscreen-changed', !wasFullScreen);
+              }, 50); // Slightly longer delay for state confirmation
+            }, 16);
+          },
                 },
                 {
                   label: 'Toggle &Developer Tools',
@@ -269,11 +306,22 @@ export default class MenuBuilder {
                 {
                   label: 'Toggle &Full Screen',
                   accelerator: 'F11',
-                  click: () => {
-                    this.mainWindow.setFullScreen(
-                      !this.mainWindow.isFullScreen(),
-                    );
-                  },
+          click: () => {
+            const wasFullScreen = this.mainWindow.isFullScreen();
+
+            // Notify renderer BEFORE changing fullscreen state
+            this.mainWindow.webContents.send('fullscreen-changing', !wasFullScreen);
+
+            // Small delay to let renderer prepare for transition
+            setTimeout(() => {
+              this.mainWindow.setFullScreen(!wasFullScreen);
+
+              // Confirm the change after window state changes
+              setTimeout(() => {
+                this.mainWindow.webContents.send('fullscreen-changed', !wasFullScreen);
+              }, 50); // Slightly longer delay for state confirmation
+            }, 16);
+          },
                 },
                 { type: 'separator' } as MenuItemConstructorOptions,
                 {

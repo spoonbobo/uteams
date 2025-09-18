@@ -12,7 +12,72 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { sidebarCollapsed } = useLayoutStore();
+  const [isFullScreenTransitioning, setIsFullScreenTransitioning] = React.useState(false);
   const currentSidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
+
+  // Removed sidebar transition state handling
+
+  // Handle fullscreen transition state with smooth animation
+  React.useEffect(() => {
+    const handleFullScreenChange = () => {
+      // Enable transition mode immediately when fullscreen starts changing
+      setIsFullScreenTransitioning(true);
+
+      // Use requestAnimationFrame to ensure smooth animation
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsFullScreenTransitioning(false);
+        });
+      });
+    };
+
+    const handleFullScreenChanging = () => {
+      // Start transition immediately when we know fullscreen is about to change
+      setIsFullScreenTransitioning(true);
+    };
+
+    const handleFullScreenChanged = () => {
+      // End transition after fullscreen change is complete
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsFullScreenTransitioning(false);
+        });
+      });
+    };
+
+    // Listen for HTML5 fullscreen API changes
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullScreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullScreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullScreenChange);
+
+    // Add Electron IPC listeners if available
+    if (window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer.on('fullscreen-changing', handleFullScreenChanging);
+      window.electron.ipcRenderer.on('fullscreen-changed', handleFullScreenChanged);
+    }
+
+    // Fallback: Listen for window resize events that might indicate fullscreen changes
+    const handleResize = () => {
+      // Small delay to let the window finish resizing
+      setTimeout(handleFullScreenChange, 16); // ~1 frame delay
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullScreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullScreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullScreenChange);
+      window.removeEventListener('resize', handleResize);
+
+      if (window.electron?.ipcRenderer) {
+        window.electron.ipcRenderer.removeAllListeners('fullscreen-changing');
+        window.electron.ipcRenderer.removeAllListeners('fullscreen-changed');
+      }
+    };
+  }, []);
 
   return (
     <Box
@@ -25,8 +90,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         position: 'fixed',
         top: 0,
         left: 0,
-        right: 0,
-        bottom: 0,
+        // Remove transition from here - let child components handle their own
       }}
     >
       {/* Custom Title Bar */}
@@ -41,6 +105,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           minHeight: 0, // Important for proper flex child sizing
           height: 'calc(100vh - 32px)', // Subtract title bar height
           overflow: 'hidden',
+          // Remove transition - let it respond naturally to window changes
         }}
       >
         <Box
@@ -65,7 +130,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             className="app-content app-layout-scrollbar"
             sx={{
               flex: '1 1 auto',
-              overflow: 'auto', // Handle scrolling at the layout level
+              overflow: 'auto',
               minHeight: 0, // Important: allows flex child to shrink
               width: '100%',
               maxWidth: '100%',
