@@ -7,6 +7,7 @@ import chalk from 'chalk';
 import { merge } from 'webpack-merge';
 import { execSync, spawn } from 'child_process';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
+import CopyWebpackPlugin from 'copy-webpack-plugin';
 import baseConfig from './webpack.config.base';
 import webpackPaths from './webpack.paths';
 import checkNodeEnv from '../scripts/check-node-env';
@@ -162,6 +163,16 @@ const configuration: webpack.Configuration = {
       isDevelopment: process.env.NODE_ENV !== 'production',
       nodeModules: webpackPaths.appNodeModulesPath,
     }),
+
+    // Copy Tesseract.js files from public folder
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: path.join(webpackPaths.rootPath, 'public'),
+          to: '.',
+        },
+      ],
+    }),
   ],
 
   node: {
@@ -174,9 +185,11 @@ const configuration: webpack.Configuration = {
     compress: true,
     hot: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
-    static: {
+    static: [{
+      directory: path.join(webpackPaths.rootPath, 'public'),
       publicPath: '/',
-    },
+      watch: true,
+    }],
     historyApiFallback: {
       verbose: true,
     },

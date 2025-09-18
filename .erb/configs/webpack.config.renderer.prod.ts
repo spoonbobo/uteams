@@ -10,6 +10,7 @@ import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import { merge } from 'webpack-merge';
 import TerserPlugin from 'terser-webpack-plugin';
+import CopyWebpackPlugin from 'copy-webpack-plugin';
 import baseConfig from './webpack.config.base';
 import webpackPaths from './webpack.paths';
 import checkNodeEnv from '../scripts/check-node-env';
@@ -149,6 +150,16 @@ const configuration: webpack.Configuration = {
       },
       isBrowser: false,
       isDevelopment: false,
+    }),
+
+    // Copy Tesseract.js files from public folder
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: path.join(webpackPaths.rootPath, 'public'),
+          to: '.',
+        },
+      ],
     }),
 
     new webpack.DefinePlugin({

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import Tesseract from 'tesseract.js';
+import { createTesseractWorker } from '@/utils/tesseractSetup';
 
 export interface OcrResult {
   success: boolean;
@@ -180,26 +181,49 @@ export const useOcrStore = create<OcrState>((set, get) => ({
       oem = 1  // OEM.LSTM_ONLY
     } = options || {};
 
-    try {
-      console.log(`🔍 Starting Tesseract.js OCR in renderer process - Language: ${language}`);
+      try {
+        console.log(`🔍 Starting Tesseract.js OCR in renderer process - Language: ${language}`);
 
-      // Create Tesseract.js worker
-      const worker = await Tesseract.createWorker(language, 1, {
-        logger: (m) => {
-          if (m.status === 'recognizing text') {
-            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+        // Convert file path to data URL if it's a string (file path)
+        let processedImageData: string | File = imageData;
+        if (typeof imageData === 'string' && (imageData.startsWith('file://') || (!imageData.startsWith('data:') && !imageData.startsWith('blob:')))) {
+          console.log('🔄 Converting file path to data URL for OCR processing');
+          try {
+            // Clean up file path (remove file:// prefix if present)
+            const cleanPath = imageData.replace('file:///', '').replace('file://', '');
+
+            // Use IPC to read the file as data URL from main process
+            const result = await (window as any)?.electron?.ipcRenderer?.invoke?.('fileio:read-as-data-url', { filepath: cleanPath });
+            if (result?.success && result.dataUrl) {
+              processedImageData = result.dataUrl;
+              console.log('✅ File converted to data URL');
+            } else {
+              throw new Error(result?.error || 'Failed to read file as data URL');
+            }
+          } catch (error) {
+            console.error('❌ Failed to convert file path to data URL:', error);
+            throw new Error(`Failed to load image file: ${error}`);
           }
         }
-      });
+
+        // Create Tesseract.js worker with proper configuration
+        const worker = await createTesseractWorker(
+        language,
+        oem,
+        undefined,
+        (progress, status) => {
+          console.log(`OCR Status: ${status} (${Math.round(progress * 100)}%)`);
+        }
+      );
 
       // Set parameters - use any to bypass strict typing for these parameters
+      // Note: OEM is set during worker creation, only PSM can be set afterward
       await (worker as any).setParameters({
         tessedit_pageseg_mode: psm.toString(),
-        tessedit_ocr_engine_mode: oem.toString(),
       });
 
-      // Perform OCR
-      const { data } = await worker.recognize(imageData);
+        // Perform OCR with processed image data
+        const { data } = await worker.recognize(processedImageData);
 
       // Clean up worker
       await worker.terminate();

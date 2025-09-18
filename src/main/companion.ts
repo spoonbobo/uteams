@@ -65,22 +65,24 @@ function createCompanionWindow(sessionId: string, sessionName: string, bounds?: 
     },
   });
 
-  // Prevent DevTools from popping up automatically for the companion overlay
-  try {
-    companionWindow.webContents.on('devtools-opened', () => {
-      try {
-        companionWindow?.webContents.closeDevTools();
-      } catch {}
-    });
-    // Also close if already opened by any debug tooling
-    setImmediate(() => {
-      try {
-        if (companionWindow && companionWindow.webContents.isDevToolsOpened()) {
-          companionWindow.webContents.closeDevTools();
-        }
-      } catch {}
-    });
-  } catch {}
+  // Prevent DevTools from popping up automatically for the companion overlay (only in production)
+  if (app.isPackaged) {
+    try {
+      companionWindow.webContents.on('devtools-opened', () => {
+        try {
+          companionWindow?.webContents.closeDevTools();
+        } catch {}
+      });
+      // Also close if already opened by any debug tooling
+      setImmediate(() => {
+        try {
+          if (companionWindow && companionWindow.webContents.isDevToolsOpened()) {
+            companionWindow.webContents.closeDevTools();
+          }
+        } catch {}
+      });
+    } catch {}
+  }
 
   const url = new URL(resolveHtmlPath('index.html'));
   url.searchParams.set('overlay', 'companion');
@@ -92,12 +94,14 @@ function createCompanionWindow(sessionId: string, sessionName: string, bounds?: 
   companionWindow.on('ready-to-show', () => {
     try {
       companionWindow?.show();
-      // Ensure DevTools remain closed after showing
-      try {
-        if (companionWindow?.webContents.isDevToolsOpened()) {
-          companionWindow.webContents.closeDevTools();
-        }
-      } catch {}
+      // Ensure DevTools remain closed after showing (only in production)
+      if (app.isPackaged) {
+        try {
+          if (companionWindow?.webContents.isDevToolsOpened()) {
+            companionWindow.webContents.closeDevTools();
+          }
+        } catch {}
+      }
       // Minimize main window to switch focus to companion overlay
       const main = findMainWindow();
       if (main && !main.isMinimized()) {
