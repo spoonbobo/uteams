@@ -24,7 +24,6 @@ interface AppState {
   preferences: {
     notificationsEnabled: boolean;
     developerMode: boolean;
-    transparentMode: boolean;
   };
 
   // Loading states (not persisted)
@@ -70,8 +69,8 @@ export const useAppStore = create<AppState>()(
         locale: getSystemLocale(),
         colorPalette: 'blue',
         background: {
-          type: 'none',
-          value: '',
+          type: 'color',
+          value: '#1a1a1a',
           images: [],
           scrollEnabled: false,
           scrollSpeed: 30, // default 30 pixels per second
@@ -82,7 +81,6 @@ export const useAppStore = create<AppState>()(
         preferences: {
           notificationsEnabled: true,
           developerMode: false,
-          transparentMode: false,
         },
         isLoading: false,
 

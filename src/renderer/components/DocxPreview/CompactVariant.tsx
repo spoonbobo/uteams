@@ -11,7 +11,7 @@ import {
   Description as DescriptionIcon,
 } from '@mui/icons-material';
 import { DocxContent } from './types';
-import { HtmlContentRenderer } from './HtmlContentRenderer';
+import HtmlContentRenderer from './HtmlContentRenderer';
 import { renderFormattedContent } from './utils';
 
 interface CompactVariantProps {
@@ -40,7 +40,7 @@ export const CompactVariant: React.FC<CompactVariantProps> = ({
       <Box
         onMouseEnter={onPopoverOpen}
         onMouseLeave={onPopoverClose}
-        sx={{ 
+        sx={{
           cursor: showHoverPreview ? 'pointer' : 'default',
           display: 'flex',
           alignItems: 'center',
@@ -52,10 +52,10 @@ export const CompactVariant: React.FC<CompactVariantProps> = ({
           {content.filename || 'Document Content'}
         </Typography>
         {showStats && (
-          <Chip 
-            label={`${content.wordCount} words`} 
-            size="small" 
-            variant="outlined" 
+          <Chip
+            label={`${content.wordCount} words`}
+            size="small"
+            variant="outlined"
           />
         )}
       </Box>
@@ -85,11 +85,11 @@ export const CompactVariant: React.FC<CompactVariantProps> = ({
             </Typography>
             <Divider sx={{ mb: 1 }} />
             <Box sx={{ fontSize: '0.8rem' }}>
-              {content.html && content.html.trim() ? 
-                <HtmlContentRenderer 
-                  html={content.html} 
-                  highlights={[]} 
-                  isPreview={true} 
+              {content.html && content.html.trim() ?
+                <HtmlContentRenderer
+                  html={content.html}
+                  highlights={[]}
+                  isPreview={true}
                 /> :
                 <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                   {renderFormattedContent(content.text, true)}

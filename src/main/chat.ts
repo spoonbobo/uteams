@@ -9,7 +9,7 @@ export const registerChatIpc = () => {
     try {
       console.log(`[Chat] Aborting session ${sessionId}: ${reason || 'User requested'}`);
       const aborted = orchestrator.abort(sessionId, reason);
-      
+
       if (aborted) {
         // Send abort event to renderer
         _event.sender.send('chat:agent:aborted', {
@@ -17,7 +17,7 @@ export const registerChatIpc = () => {
           reason: reason || 'User requested abort',
         });
       }
-      
+
       return { success: aborted };
     } catch (error) {
       console.error(`[Chat] Error aborting session ${sessionId}:`, error);
@@ -88,15 +88,15 @@ export const registerChatIpc = () => {
   // Chat agent streaming: run minimal general agent and forward streaming chunks to renderer
   ipcMain.handle(
     'chat:agent:run',
-    async (event, { 
-      sessionId, 
+    async (event, {
+      sessionId,
       prompt,
       userId,
       threadId,
       useMemory = true,
       courseId
-    }: { 
-      sessionId: string; 
+    }: {
+      sessionId: string;
       prompt?: string;
       userId?: string;
       threadId?: string;
@@ -109,13 +109,13 @@ export const registerChatIpc = () => {
           try {
             if (payload.sessionId === sessionId) {
               const chunk: string | undefined = payload?.update;
-              
+
               // Debug: Check if event sender is valid
               if (!event?.sender) {
                 console.warn(`⚠️ No event sender for session ${sessionId}!`);
                 return;
               }
-              
+
               // Log progress updates
               // if (payload.node || payload.type === 'message' || payload.type === 'complete' || payload.progress === 0) {
               //   console.log('📢 Agent progress:', {
@@ -128,7 +128,7 @@ export const registerChatIpc = () => {
               //     chunkPreview: chunk ? String(chunk).slice(0, 60) : undefined
               //   });
               // }
-              
+
                // Handle different message types
                if (payload.type === 'plan') {
                  // Send plan information to renderer
@@ -137,7 +137,7 @@ export const registerChatIpc = () => {
                    console.error(`❌ Cannot send plan - event.sender.send not available!`);
                    return;
                  }
-                 
+
                  try {
                    event.sender.send('chat:agent:plan', {
                      sessionId,
@@ -162,13 +162,13 @@ export const registerChatIpc = () => {
                    totalSteps: payload.totalSteps,
                  };
                  console.log(`📋 Sending todo event:`, todoEvent);
-                 
+
                  // Check if sender is valid
                  if (!event?.sender?.send) {
                    console.error(`❌ Cannot send todos - event.sender.send not available!`);
                    return;
                  }
-                 
+
                  try {
                    event.sender.send('chat:agent:todos', todoEvent);
                    console.log(`✅ Todos event sent successfully`);
@@ -178,12 +178,12 @@ export const registerChatIpc = () => {
               } else if (payload.type === 'todo-update') {
                 // Send todo update to renderer
                 console.log(`✅ Updating todo ${payload.todoIndex} for session ${sessionId}`);
-                
+
                 if (!event?.sender?.send) {
                   console.error(`❌ Cannot send todo-update - event.sender.send not available!`);
                   return;
                 }
-                
+
                 try {
                   event.sender.send('chat:agent:todo-update', {
                     sessionId,
@@ -217,7 +217,7 @@ export const registerChatIpc = () => {
                  // Don't send the chunk to avoid showing technical messages
                } else if (payload.type === 'complete') {
                 // Send completion signal without chunk
-                event?.sender?.send?.('chat:agent:progress', { 
+                event?.sender?.send?.('chat:agent:progress', {
                   sessionId,
                   progress: 100,
                   type: 'complete'
@@ -256,9 +256,9 @@ export const registerChatIpc = () => {
           } else {
             console.log(`[Chat] No courseId provided, agent will run without course context`);
           }
-          
-          const res = await orchestrator.run({ 
-            sessionId, 
+
+          const res = await orchestrator.run({
+            sessionId,
             prompt,
             userId,
             threadId,
@@ -271,9 +271,9 @@ export const registerChatIpc = () => {
           });
           // Don't send final text since we're streaming tokens
           console.log('✅ chat:agent:done', { sessionId, resultSummary: res?.resultSummary });
-          event?.sender?.send?.('chat:agent:done', { 
-            sessionId, 
-            resultSummary: res?.resultSummary 
+          event?.sender?.send?.('chat:agent:done', {
+            sessionId,
+            resultSummary: res?.resultSummary
           });
           return { success: true, resultSummary: res?.resultSummary };
         } finally {
@@ -290,7 +290,7 @@ export const registerChatIpc = () => {
       }
     },
   );
-  
+
   // Memory management IPC handlers
   ipcMain.handle('chat:memory:getUserProfile', async (_event, { userId }: { userId: string }) => {
     try {
@@ -302,7 +302,7 @@ export const registerChatIpc = () => {
       return { success: false, error: (e as Error).message };
     }
   });
-  
+
   ipcMain.handle('chat:memory:saveUserProfile', async (_event, { profile }: { profile: UserProfile }) => {
     try {
       await orchestrator.updateUserProfile(profile);
@@ -312,7 +312,7 @@ export const registerChatIpc = () => {
       return { success: false, error: (e as Error).message };
     }
   });
-  
+
   ipcMain.handle('chat:memory:getRecentSessions', async (_event, { userId, limit = 5 }: { userId: string; limit?: number }) => {
     try {
       const sessions = await orchestrator.getUserSessions(userId, limit);
@@ -322,7 +322,7 @@ export const registerChatIpc = () => {
       return { success: false, error: (e as Error).message };
     }
   });
-  
+
   ipcMain.handle('chat:memory:searchMemories', async (_event, { query, userId }: { query: string; userId?: string }) => {
     try {
       const results = await orchestrator.searchMemories(query, userId);
@@ -332,7 +332,7 @@ export const registerChatIpc = () => {
       return { success: false, error: (e as Error).message };
     }
   });
-  
+
   ipcMain.handle('chat:memory:clearOldSessions', async (_event, { daysToKeep = 30 }: { daysToKeep?: number }) => {
     try {
       const memoryManager = orchestrator.getMemoryManager();
@@ -343,7 +343,7 @@ export const registerChatIpc = () => {
       return { success: false, error: (e as Error).message };
     }
   });
-  
+
   ipcMain.handle('chat:memory:getStats', async () => {
     try {
       const memoryManager = orchestrator.getMemoryManager();
@@ -354,7 +354,7 @@ export const registerChatIpc = () => {
       return { success: false, error: (e as Error).message };
     }
   });
-  
+
   ipcMain.handle('chat:memory:setEnabled', async (_event, { enabled }: { enabled: boolean }) => {
     try {
       orchestrator.setMemoryEnabled(enabled);

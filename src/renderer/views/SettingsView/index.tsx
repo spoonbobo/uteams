@@ -8,7 +8,6 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  ListItemSecondaryAction,
   Switch,
   Divider,
   Button,
@@ -39,7 +38,6 @@ import {
   Add as AddIcon,
   Speed as SpeedIcon,
   DeveloperMode as DeveloperModeIcon,
-  Opacity as OpacityIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 
@@ -67,6 +65,7 @@ export const SettingsView: React.FC = () => {
     hideDisclaimer,
   } = useDisclaimer();
 
+
   // Moodle store
   const {
     config,
@@ -93,17 +92,6 @@ export const SettingsView: React.FC = () => {
     setSelectedImages(background.images || []);
   }, [background.images]);
 
-  // Predefined color templates
-  const colorTemplates = [
-    { name: 'Dark Gray', value: '#1a1a1a' },
-    { name: 'Deep Blue', value: '#1e3a8a' },
-    { name: 'Forest Green', value: '#166534' },
-    { name: 'Deep Purple', value: '#6b21a8' },
-    { name: 'Warm Orange', value: '#c2410c' },
-    { name: 'Crimson Red', value: '#dc2626' },
-    { name: 'Teal', value: '#0f766e' },
-    { name: 'Rose Pink', value: '#be185d' },
-  ];
 
   // Initialize API key from store
   React.useEffect(() => {
@@ -147,9 +135,8 @@ export const SettingsView: React.FC = () => {
     let newValue = '';
 
     if (newType === 'color') {
-      // When switching to color mode, use the first template color as default
-      const isValidHex = /^#[0-9A-F]{6}$/i.test(background.value);
-      newValue = isValidHex ? background.value : colorTemplates[0].value;
+      // Set default color to transparent/none
+      newValue = 'transparent';
     } else if (newType === 'image') {
       // Keep the existing value if it's an image path, otherwise clear it
       newValue = background.value && !background.value.startsWith('#') ? background.value : '';
@@ -161,10 +148,13 @@ export const SettingsView: React.FC = () => {
     );
   };
 
-  const handleColorTemplateSelect = (color: string) => {
-    setBackground({ value: color });
-    toast.success('Background color updated');
+  const handleStaticColorSelect = (color: string) => {
+    setBackground({ type: color === 'transparent' ? 'none' : 'color', value: color });
+    toast.success(
+      intl.formatMessage({ id: 'settings.backgroundColorChanged' })
+    );
   };
+
 
   const handleBackgroundOpacityChange = (_event: any, newValue: number | number[]) => {
     setBackground({ opacity: Array.isArray(newValue) ? newValue[0] : newValue });
@@ -260,7 +250,9 @@ export const SettingsView: React.FC = () => {
   const handleScrollToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     const enabled = event.target.checked;
     setBackground({
-      scrollEnabled: enabled
+      scrollEnabled: enabled,
+      // Ensure value is set to first image when disabling scroll
+      value: enabled ? (background.value || selectedImages[0] || '') : (selectedImages[0] || background.value || '')
     });
     toast.success(enabled ? 'Scrolling enabled' : 'Scrolling disabled');
   };
@@ -284,12 +276,7 @@ export const SettingsView: React.FC = () => {
     <Paper
       sx={{
         mb: 3,
-        backgroundColor: preferences.transparentMode
-          ? 'transparent'
-          : 'background.paper',
-        backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
-        border: preferences.transparentMode ? 1 : 0,
-        borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+        backgroundColor: 'background.paper',
       }}
     >
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
@@ -298,7 +285,15 @@ export const SettingsView: React.FC = () => {
         </Typography>
       </Box>
       <List>
-        <ListItem>
+        <ListItem
+          secondaryAction={
+            <Switch
+              checked={theme === 'dark'}
+              onChange={handleThemeChange}
+              color="primary"
+            />
+          }
+        >
           <ListItemIcon>
             <PaletteIcon />
           </ListItemIcon>
@@ -306,16 +301,18 @@ export const SettingsView: React.FC = () => {
             primary={intl.formatMessage({ id: 'settings.darkMode' })}
             secondary={intl.formatMessage({ id: 'settings.darkModeDesc' })}
           />
-          <ListItemSecondaryAction>
-            <Switch
-              checked={theme === 'dark'}
-              onChange={handleThemeChange}
-              color="primary"
-            />
-          </ListItemSecondaryAction>
         </ListItem>
         <Divider />
-        <ListItem>
+        <ListItem
+          secondaryAction={
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <Select value={locale} onChange={handleLocaleChange} displayEmpty>
+                <MenuItem value="en">{languageNames.en}</MenuItem>
+                <MenuItem value="zh-TW">{languageNames['zh-TW']}</MenuItem>
+              </Select>
+            </FormControl>
+          }
+        >
           <ListItemIcon>
             <LanguageIcon />
           </ListItemIcon>
@@ -323,25 +320,10 @@ export const SettingsView: React.FC = () => {
             primary={intl.formatMessage({ id: 'settings.language' })}
             secondary={intl.formatMessage({ id: 'settings.languageDesc' })}
           />
-          <ListItemSecondaryAction>
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <Select value={locale} onChange={handleLocaleChange} displayEmpty>
-                <MenuItem value="en">{languageNames.en}</MenuItem>
-                <MenuItem value="zh-TW">{languageNames['zh-TW']}</MenuItem>
-              </Select>
-            </FormControl>
-          </ListItemSecondaryAction>
         </ListItem>
         <Divider />
-        <ListItem>
-          <ListItemIcon>
-            <PaletteIcon />
-          </ListItemIcon>
-          <ListItemText
-            primary={intl.formatMessage({ id: 'settings.colorPalette' })}
-            secondary={intl.formatMessage({ id: 'settings.colorPaletteDesc' })}
-          />
-          <ListItemSecondaryAction>
+        <ListItem
+          secondaryAction={
             <FormControl size="small" sx={{ minWidth: 140 }}>
               <Select value={colorPalette} onChange={handleColorPaletteChange} displayEmpty>
                 <MenuItem value="blue">
@@ -394,7 +376,15 @@ export const SettingsView: React.FC = () => {
                 </MenuItem>
               </Select>
             </FormControl>
-          </ListItemSecondaryAction>
+          }
+        >
+          <ListItemIcon>
+            <PaletteIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary={intl.formatMessage({ id: 'settings.colorPalette' })}
+            secondary={intl.formatMessage({ id: 'settings.colorPaletteDesc' })}
+          />
         </ListItem>
         <Divider />
         <ListItem sx={{ flexDirection: 'column', alignItems: 'stretch', py: 2 }}>
@@ -411,51 +401,90 @@ export const SettingsView: React.FC = () => {
             {/* Background Type Selection */}
             <FormControl fullWidth size="small" sx={{ mb: 2 }}>
               <InputLabel>{intl.formatMessage({ id: 'settings.backgroundType' })}</InputLabel>
-              <Select value={background.type} onChange={handleBackgroundTypeChange} label={intl.formatMessage({ id: 'settings.backgroundType' })}>
-                <MenuItem value="none">{intl.formatMessage({ id: 'settings.backgroundNone' })}</MenuItem>
-                <MenuItem value="color">{intl.formatMessage({ id: 'settings.backgroundColor' })}</MenuItem>
+              <Select
+                value={background.type === 'none' || background.type === 'color' ? 'color' : 'image'}
+                onChange={handleBackgroundTypeChange}
+                label={intl.formatMessage({ id: 'settings.backgroundType' })}
+              >
+                <MenuItem value="color">{intl.formatMessage({ id: 'settings.backgroundStaticColor' })}</MenuItem>
                 <MenuItem value="image">{intl.formatMessage({ id: 'settings.backgroundImage' })}</MenuItem>
               </Select>
             </FormControl>
 
-            {/* Color Templates for Solid Color */}
-            {background.type === 'color' && (
+            {/* Static Color Selection */}
+            {(background.type === 'none' || background.type === 'color') && (
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2" gutterBottom>
-                  {intl.formatMessage({ id: 'settings.backgroundColor' })}
+                  {intl.formatMessage({ id: 'settings.selectColor' })}
                 </Typography>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
-                    gap: 1,
-                    maxWidth: 200
-                  }}
-                >
-                  {colorTemplates.map((template) => (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {/* Transparent/None option */}
+                  <Box
+                    onClick={() => handleStaticColorSelect('transparent')}
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 1,
+                      border: 2,
+                      borderColor: background.value === 'transparent' || background.type === 'none' ? 'primary.main' : 'divider',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: 'background.paper',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        opacity: 0.8,
+                      },
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary' }}>
+                      None
+                    </Typography>
+                  </Box>
+
+                  {/* Color options */}
+                  {[
+                    '#000000', // Black
+                    '#1a1a1a', // Dark gray
+                    '#2d2d2d', // Medium dark gray
+                    '#404040', // Gray
+                    '#0d47a1', // Dark blue
+                    '#1a237e', // Indigo
+                    '#4a148c', // Deep purple
+                    '#880e4f', // Dark pink
+                    '#b71c1c', // Dark red
+                    '#e65100', // Dark orange
+                    '#f57f17', // Dark yellow
+                    '#33691e', // Dark green
+                    '#004d40', // Teal
+                    '#263238', // Blue gray
+                    '#3e2723', // Brown
+                  ].map((color) => (
                     <Box
-                      key={template.value}
-                      onClick={() => handleColorTemplateSelect(template.value)}
+                      key={color}
+                      onClick={() => handleStaticColorSelect(color)}
                       sx={{
                         width: 40,
                         height: 40,
-                        backgroundColor: template.value,
+                        backgroundColor: color,
                         borderRadius: 1,
+                        border: 2,
+                        borderColor: background.value === color ? 'primary.main' : 'transparent',
                         cursor: 'pointer',
-                        border: background.value === template.value ? 3 : 1,
-                        borderColor: background.value === template.value ? 'primary.main' : 'divider',
-                        transition: 'all 0.2s ease',
                         '&:hover': {
-                          transform: 'scale(1.1)',
-                          boxShadow: 2,
+                          borderColor: 'primary.main',
+                          opacity: 0.8,
                         },
                       }}
-                      title={template.name}
                     />
                   ))}
                 </Box>
               </Box>
             )}
+
 
             {/* Image Selection */}
             {background.type === 'image' && (
@@ -558,10 +587,7 @@ export const SettingsView: React.FC = () => {
                       border: 1,
                       borderColor: 'divider',
                       borderRadius: 1,
-                      backgroundColor: preferences.transparentMode
-                        ? 'rgba(255, 255, 255, 0.05)'
-                        : 'background.default',
-                      backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+                      backgroundColor: 'background.default',
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -622,8 +648,8 @@ export const SettingsView: React.FC = () => {
               </Box>
             )}
 
-            {/* Opacity Slider */}
-            {background.type !== 'none' && (
+            {/* Opacity Slider - Only for image backgrounds */}
+            {background.type === 'image' && (
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2" gutterBottom>
                   {intl.formatMessage({ id: 'settings.backgroundOpacity' })}: {background.opacity}%
@@ -660,97 +686,7 @@ export const SettingsView: React.FC = () => {
               </Box>
             )}
 
-            {/* Background Preview */}
-            {background.type !== 'none' && (
-              <Card
-                sx={{
-                  mb: 2,
-                  backgroundColor: preferences.transparentMode
-                    ? 'transparent'
-                    : 'background.paper',
-                  backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
-                  border: preferences.transparentMode ? 1 : 0,
-                  borderColor: preferences.transparentMode ? 'divider' : 'transparent',
-                }}
-              >
-                <CardContent>
-                  <Typography variant="subtitle2" gutterBottom>
-                    {intl.formatMessage({ id: 'settings.backgroundPreview' })}
-                  </Typography>
-                  <Box
-                    sx={{
-                      width: '100%',
-                      height: 80,
-                      borderRadius: 1,
-                      border: 1,
-                      borderColor: 'divider',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      backgroundColor: background.type === 'color' ? background.value : 'transparent',
-                      opacity: background.type === 'color' ? background.opacity / 100 : 1,
-                    }}
-                  >
-                    {/* Separate background layer for images to apply blur correctly */}
-                    {background.type === 'image' && background.value && (
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          backgroundImage: `url("${getImageUrl(background.value)}")`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                          backgroundRepeat: 'no-repeat',
-                          filter: `blur(${background.blur}px)`,
-                          opacity: background.opacity / 100,
-                        }}
-                      />
-                    )}
-                    {background.type === 'image' && !background.value && (
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          height: '100%',
-                          color: 'text.secondary',
-                        }}
-                      >
-                        <Typography variant="caption">No image selected</Typography>
-                      </Box>
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
-            )}
           </Box>
-        </ListItem>
-        <Divider />
-        <ListItem>
-          <ListItemIcon>
-            <OpacityIcon />
-          </ListItemIcon>
-          <ListItemText
-            primary={intl.formatMessage({ id: 'settings.transparentMode' })}
-            secondary={intl.formatMessage({ id: 'settings.transparentModeDesc' })}
-          />
-          <ListItemSecondaryAction>
-            <Switch
-              checked={preferences.transparentMode}
-              onChange={(e) => {
-                const enabled = e.target.checked;
-                updatePreferences({ transparentMode: enabled });
-                toast.success(
-                  intl.formatMessage(
-                    { id: enabled ? 'settings.transparentModeEnabled' : 'settings.transparentModeDisabled' }
-                  )
-                );
-              }}
-              color="primary"
-            />
-          </ListItemSecondaryAction>
         </ListItem>
       </List>
 
@@ -762,17 +698,8 @@ export const SettingsView: React.FC = () => {
         </Typography>
       </Box>
       <List>
-        <ListItem>
-          <ListItemIcon>
-            <NotificationsIcon />
-          </ListItemIcon>
-          <ListItemText
-            primary={intl.formatMessage({ id: 'settings.systemNotifications' })}
-            secondary={intl.formatMessage({
-              id: 'settings.systemNotificationsDesc',
-            })}
-          />
-          <ListItemSecondaryAction>
+        <ListItem
+          secondaryAction={
             <Switch
               checked={preferences.notificationsEnabled}
               onChange={(e) => {
@@ -786,23 +713,24 @@ export const SettingsView: React.FC = () => {
               }}
               color="primary"
             />
-          </ListItemSecondaryAction>
+          }
+        >
+          <ListItemIcon>
+            <NotificationsIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary={intl.formatMessage({ id: 'settings.systemNotifications' })}
+            secondary={intl.formatMessage({
+              id: 'settings.systemNotificationsDesc',
+            })}
+          />
         </ListItem>
         {/* Developer Mode - Only show in development */}
         {process.env.NODE_ENV === 'development' && (
           <>
             <Divider />
-            <ListItem>
-              <ListItemIcon>
-                <DeveloperModeIcon />
-              </ListItemIcon>
-              <ListItemText
-                primary={intl.formatMessage({ id: 'settings.developerMode' })}
-                secondary={intl.formatMessage({
-                  id: 'settings.developerModeDesc',
-                })}
-              />
-              <ListItemSecondaryAction>
+            <ListItem
+              secondaryAction={
                 <Switch
                   checked={preferences.developerMode}
                   onChange={(e) => {
@@ -816,7 +744,17 @@ export const SettingsView: React.FC = () => {
                   }}
                   color="primary"
                 />
-              </ListItemSecondaryAction>
+              }
+            >
+              <ListItemIcon>
+                <DeveloperModeIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary={intl.formatMessage({ id: 'settings.developerMode' })}
+                secondary={intl.formatMessage({
+                  id: 'settings.developerModeDesc',
+                })}
+              />
             </ListItem>
           </>
         )}
@@ -889,12 +827,7 @@ export const SettingsView: React.FC = () => {
     <Paper
       sx={{
         mb: 3,
-        backgroundColor: preferences.transparentMode
-          ? 'transparent'
-          : 'background.paper',
-        backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
-        border: preferences.transparentMode ? 1 : 0,
-        borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+        backgroundColor: 'background.paper',
       }}
     >
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
@@ -1009,9 +942,7 @@ export const SettingsView: React.FC = () => {
         maxWidth: 'md',
         mx: 'auto',
         boxSizing: 'border-box',
-        backgroundColor: preferences.transparentMode
-          ? 'transparent'
-          : 'inherit',
+        backgroundColor: 'inherit',
       }}
     >
       {renderContent()}

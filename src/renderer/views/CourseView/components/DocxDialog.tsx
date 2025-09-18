@@ -14,7 +14,7 @@ import {
 import {
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { DocxPreview } from '@/components/DocxPreview/DocxPreview';
+import DocxPreview from '@/components/DocxPreview/DocxPreview';
 import type { DocxContent } from '@/components/DocxPreview/types';
 import { useIntl } from 'react-intl';
 
@@ -52,11 +52,11 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
         }
       }}
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
+      <DialogTitle sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        pb: 1 
+        pb: 1
       }}>
         <Box>
           <Typography variant="h6" component="div">
@@ -79,9 +79,9 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ 
-        flex: 1, 
-        display: 'flex', 
+      <DialogContent sx={{
+        flex: 1,
+        display: 'flex',
         flexDirection: 'column',
         p: 0,
         '&.MuiDialogContent-root': {
@@ -89,10 +89,10 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
         }
       }}>
         {loading && (
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             flex: 1,
             flexDirection: 'column',
             gap: 2
@@ -115,8 +115,8 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
         )}
 
         {!loading && !error && docxContent && (
-          <Box sx={{ 
-            flex: 1, 
+          <Box sx={{
+            flex: 1,
             p: 2,
             overflow: 'hidden',
             display: 'flex',
@@ -136,7 +136,7 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
               showHoverPreview={false}
               showDebugInfo={false}
               maxPreviewLength={1000}
-              sx={{ 
+              sx={{
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
@@ -150,10 +150,10 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
         )}
 
         {!loading && !error && !docxContent && (
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             flex: 1,
             flexDirection: 'column',
             gap: 2

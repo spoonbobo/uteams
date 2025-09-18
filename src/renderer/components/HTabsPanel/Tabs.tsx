@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, ReactNode } from 'react';
 import { Typography, Box, Paper, Tabs, Tab, Skeleton } from '@mui/material';
-import { useAppStore } from '@/stores/useAppStore';
 
 export interface TabSection {
   id: string;
@@ -23,9 +22,8 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
   isLoading = false,
   selectedTab: externalSelectedTab,
   onTabChange,
-  children
+  children,
 }) => {
-  const { preferences } = useAppStore();
   const [internalSelectedTab, setInternalSelectedTab] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -114,12 +112,7 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
         sx={{
           mb: 2,
           borderRadius: 2,
-          backgroundColor: preferences.transparentMode
-            ? 'transparent'
-            : 'background.paper',
-          backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
-          border: preferences.transparentMode ? 1 : 0,
-          borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+          backgroundColor: 'background.paper',
         }}
       >
         <Tabs

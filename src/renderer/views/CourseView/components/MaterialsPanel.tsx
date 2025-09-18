@@ -18,7 +18,6 @@ import {
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 import type { MoodleActivity } from '@/types/moodle';
-import { useAppStore } from '@/stores/useAppStore';
 
 interface MaterialsPanelProps {
   activities: MoodleActivity[];
@@ -41,7 +40,6 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
 }) => {
   const intl = useIntl();
   const theme = useTheme();
-  const { preferences } = useAppStore();
 
   const getActivityTypeLabel = (modname: string) => {
     const labelMap: Record<string, string> = {
@@ -167,16 +165,11 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 1,
-              backgroundColor: preferences.transparentMode
-                ? 'rgba(255, 255, 255, 0.02)'
-                : 'background.paper',
-              backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+              backgroundColor: 'background.paper',
               cursor: activity.url ? 'pointer' : 'default',
               '&:hover': {
                 borderColor: activity.url ? 'primary.light' : 'divider',
-                backgroundColor: activity.url
-                  ? (preferences.transparentMode ? 'rgba(255, 255, 255, 0.05)' : 'action.hover')
-                  : (preferences.transparentMode ? 'rgba(255, 255, 255, 0.02)' : 'background.paper'),
+                backgroundColor: activity.url ? 'action.hover' : 'background.paper',
               },
             }}
           >

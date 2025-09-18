@@ -7,13 +7,11 @@ import {
 import { useIntl } from 'react-intl';
 import { useContextStore } from '@/stores/useContextStore';
 import { useAuthenticationState } from '@/stores/useUserStore';
-import { useAppStore } from '@/stores/useAppStore';
 import { DashboardView } from './DashboardView';
 
 export const HomeView: React.FC = () => {
   const intl = useIntl();
   const theme = useTheme();
-  const { preferences } = useAppStore();
 
   // Use the context store to get the current view
   const { homeContext } = useContextStore();
@@ -35,9 +33,7 @@ export const HomeView: React.FC = () => {
         maxWidth: 'xl',
         mx: 'auto',
         boxSizing: 'border-box',
-        backgroundColor: preferences.transparentMode
-          ? 'transparent'
-          : 'inherit',
+        backgroundColor: 'inherit',
       }}
     >
       {/* no login banner */}

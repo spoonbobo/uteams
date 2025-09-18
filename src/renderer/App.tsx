@@ -25,6 +25,7 @@ import './App.css';
 
 function Dashboard() {
   const { currentContext, courseSessionContext } = useContextStore();
+  const { preferences } = useAppStore();
   // Detect companion overlay mode from query string
   const search = typeof window !== 'undefined' ? window.location.search : '';
   const params = new URLSearchParams(search);
@@ -43,6 +44,7 @@ function Dashboard() {
       if (overlay === 'companion') {
         document.body.style.background = 'transparent';
       }
+      // Don't set any background here for normal mode - let the background system handle it
 
       // Ensure body maintains proper layout
       document.body.style.height = '100vh';
@@ -84,7 +86,7 @@ function Dashboard() {
 }
 
 export default function App() {
-  const { background } = useAppStore();
+  const { background, preferences } = useAppStore();
 
   // Use the background effect hook from the utility
   useBackgroundEffect(background);

@@ -26,7 +26,6 @@ import {
 import { useIntl } from 'react-intl';
 import type { MoodleAssignment } from '@/types/moodle';
 import { useMoodleStore } from '@/stores/useMoodleStore';
-import { useAppStore } from '@/stores/useAppStore';
 
 export type SortOrder = 'newest' | 'oldest';
 
@@ -51,7 +50,6 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
 }) => {
   const intl = useIntl();
   const theme = useTheme();
-  const { preferences } = useAppStore();
   const { getMoodleAssignmentUrl } = useMoodleStore();
 
   const filteredAssignments = React.useMemo(() => {
@@ -333,16 +331,11 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 1,
-              backgroundColor: preferences.transparentMode
-                ? 'rgba(255, 255, 255, 0.02)'
-                : 'background.paper',
-              backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+              backgroundColor: 'background.paper',
               cursor: 'pointer',
               '&:hover': {
                 borderColor: 'primary.light',
-                backgroundColor: preferences.transparentMode
-                  ? 'rgba(255, 255, 255, 0.05)'
-                  : 'action.hover',
+                backgroundColor: 'action.hover',
               },
             }}
           >

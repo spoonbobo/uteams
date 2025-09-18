@@ -23,7 +23,6 @@ import {
 import { useIntl } from 'react-intl';
 import type { MoodleUser } from '@/types/moodle';
 import { useMoodleStore } from '@/stores/useMoodleStore';
-import { useAppStore } from '@/stores/useAppStore';
 
 interface StudentsPanelProps {
   students: MoodleUser[];
@@ -42,7 +41,6 @@ export const StudentsPanel: React.FC<StudentsPanelProps> = ({
 }) => {
   const intl = useIntl();
   const theme = useTheme();
-  const { preferences } = useAppStore();
   const { getMoodleUserUrl } = useMoodleStore();
 
   const filteredStudents = React.useMemo(() => {
@@ -124,15 +122,10 @@ export const StudentsPanel: React.FC<StudentsPanelProps> = ({
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 1,
-              backgroundColor: preferences.transparentMode
-                ? 'rgba(255, 255, 255, 0.02)'
-                : 'background.paper',
-              backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+              backgroundColor: 'background.paper',
               cursor: 'pointer',
               '&:hover': {
-                backgroundColor: preferences.transparentMode
-                  ? 'rgba(255, 255, 255, 0.05)'
-                  : 'action.hover',
+                backgroundColor: 'action.hover',
                 borderColor: 'primary.light',
               },
             }}

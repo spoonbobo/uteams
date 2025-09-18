@@ -23,14 +23,12 @@ import {
 import { useIntl } from 'react-intl';
 import { useMoodleStore } from '@/stores/useMoodleStore';
 import { useUserStore, useAuthenticationState } from '@/stores/useUserStore';
-import { useAppStore } from '@/stores/useAppStore';
 import { Authenticate } from '@/components/Authenticate';
 import { toast } from '@/utils/toast';
 
 export const DashboardView: React.FC = () => {
   const intl = useIntl();
   const theme = useTheme();
-  const { preferences } = useAppStore();
 
   // User authentication state - now uses fixed hook
   const { isAuthenticated, isInitialized, user } = useAuthenticationState();
@@ -321,9 +319,7 @@ export const DashboardView: React.FC = () => {
             cursor: 'pointer',
             backgroundColor: isToday
               ? alpha(theme.palette.primary.main, 0.08)
-              : preferences.transparentMode
-                ? 'rgba(255, 255, 255, 0.02)'
-                : theme.palette.background.paper,
+              : theme.palette.background.paper,
             '&:hover': {
               backgroundColor: isToday
                 ? alpha(theme.palette.primary.main, 0.12)
@@ -455,10 +451,7 @@ export const DashboardView: React.FC = () => {
             borderRadius: 0,
             overflow: 'hidden',
             boxShadow: theme.shadows[1],
-            backgroundColor: preferences.transparentMode
-              ? 'transparent'
-              : theme.palette.background.paper,
-            backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+            backgroundColor: theme.palette.background.paper,
           }}
         >
           {/* Day names header */}
@@ -563,14 +556,9 @@ export const DashboardView: React.FC = () => {
                   mb: 1,
                   borderBottom: '1px solid',
                   borderColor: theme.palette.divider,
-                  backgroundColor: preferences.transparentMode
-                    ? 'rgba(255, 255, 255, 0.02)'
-                    : theme.palette.background.paper,
-                  backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+                  backgroundColor: theme.palette.background.paper,
                   '&:hover': {
-                    backgroundColor: preferences.transparentMode
-                      ? 'rgba(255, 255, 255, 0.05)'
-                      : theme.palette.action.hover,
+                    backgroundColor: theme.palette.action.hover,
                   },
                   cursor: 'pointer',
                   '&:last-child': {
@@ -723,12 +711,7 @@ export const DashboardView: React.FC = () => {
                   sx={{
                     p: 3,
                     mb: 3,
-                    backgroundColor: preferences.transparentMode
-                      ? 'transparent'
-                      : 'background.paper',
-                    backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
-                    border: preferences.transparentMode ? 1 : 0,
-                    borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+                    backgroundColor: 'background.paper',
                   }}
                 >
                   <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
@@ -743,12 +726,7 @@ export const DashboardView: React.FC = () => {
                 <Card
                   sx={{
                     p: 3,
-                    backgroundColor: preferences.transparentMode
-                      ? 'transparent'
-                      : 'background.paper',
-                    backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
-                    border: preferences.transparentMode ? 1 : 0,
-                    borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+                    backgroundColor: 'background.paper',
                   }}
                 >
                   <Box sx={{ mb: 3 }}>

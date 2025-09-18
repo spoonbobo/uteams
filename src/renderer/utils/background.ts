@@ -41,15 +41,11 @@ export function getImageUrl(imagePath: string): string {
  */
 function applyColorBackground(root: HTMLElement, background: BackgroundConfig) {
   const color = background.value;
-  const opacity = background.opacity / 100;
 
-  // Validate hex color format before converting
-  if (/^#[0-9A-F]{6}$/i.test(color)) {
-    // Convert hex to rgba for transparency
-    const r = parseInt(color.slice(1, 3), 16);
-    const g = parseInt(color.slice(3, 5), 16);
-    const b = parseInt(color.slice(5, 7), 16);
-    root.style.background = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  // Apply color background (supports hex colors)
+  if (color) {
+    root.style.background = color;
+    document.body.style.background = color;
   }
 }
 
@@ -151,6 +147,8 @@ function resetRootStyles(root: HTMLElement) {
   root.style.backgroundSize = '';
   root.style.backgroundPosition = '';
   root.style.filter = '';
+  // Also reset body background to ensure clean slate
+  document.body.style.background = '';
 }
 
 /**
@@ -175,16 +173,21 @@ export function applyBackground(background: BackgroundConfig) {
       break;
 
     case 'image':
-      if (background.scrollEnabled && background.images && background.images.length > 0) {
+      if (background.scrollEnabled && background.images && background.images.length > 1) {
         createScrollingCarousel(background);
-      } else if (background.value) {
-        createStaticImage(background);
+      } else if (background.value || (background.images && background.images.length > 0)) {
+        // Use the first image from the array if no specific value is set
+        const imageToUse = background.value || background.images![0];
+        createStaticImage({ ...background, value: imageToUse });
       }
       break;
 
     case 'none':
     default:
-      // No background
+      // Set a subtle dark gradient as default
+      const darkGradient = 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)';
+      document.body.style.background = darkGradient;
+      root.style.background = darkGradient;
       break;
   }
 }

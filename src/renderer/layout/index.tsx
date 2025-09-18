@@ -4,7 +4,6 @@ import { SidebarCollapse, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from './Sideb
 import { TopBar } from './TopBar';
 import MainView from './MainView';
 import { useLayoutStore } from '@/stores/useLayoutStore';
-import { useAppStore } from '@/stores/useAppStore';
 import TitleBar from '@/components/TitleBar';
 
 interface AppLayoutProps {
@@ -13,7 +12,6 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { sidebarCollapsed } = useLayoutStore();
-  const { preferences } = useAppStore();
   const currentSidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
 
   return (

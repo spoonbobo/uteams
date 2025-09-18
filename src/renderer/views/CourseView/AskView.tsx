@@ -3,7 +3,6 @@ import { Typography, Box, Fade } from '@mui/material';
 import { ChatWidget } from '@/components/ChatWidget';
 import { PlanWidget } from '@/components/PlanWidget';
 import { useChatStore } from '@/stores/useChatStore';
-import { useAppStore } from '@/stores/useAppStore';
 import { useIntl } from 'react-intl';
 import type { CourseSessionContext } from '@/stores/useContextStore';
 
@@ -15,7 +14,6 @@ export const AskView: React.FC<AskViewProps> = ({
   sessionContext,
 }) => {
   const intl = useIntl();
-  const { preferences } = useAppStore();
   const { todosBySession, planBySession } = useChatStore();
   const [showPlan, setShowPlan] = useState(false);
   const hideTimeoutRef = useRef<NodeJS.Timeout>();
@@ -98,9 +96,7 @@ export const AskView: React.FC<AskViewProps> = ({
     <Box
       sx={{
         p: 4,
-        backgroundColor: preferences.transparentMode
-          ? 'transparent'
-          : 'inherit',
+        backgroundColor: 'inherit',
       }}
     >
       <Typography variant="h4" gutterBottom>

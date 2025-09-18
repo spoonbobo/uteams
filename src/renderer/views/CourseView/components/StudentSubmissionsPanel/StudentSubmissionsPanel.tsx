@@ -38,7 +38,6 @@ import {
 import { categorizeStudents } from './utils';
 import type { StudentSubmissionsPanelProps } from './types';
 import type { StudentSubmissionData } from '../../../../types/grading';
-import { useAppStore } from '@/stores/useAppStore';
 
 
 
@@ -56,7 +55,6 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
   onViewGradingDetail,
 }) => {
   const intl = useIntl();
-  const { preferences } = useAppStore();
 
   // Use decomposed hooks
   const {
@@ -257,12 +255,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
     <Paper
       sx={{
         p: 3,
-        backgroundColor: preferences.transparentMode
-          ? 'transparent'
-          : 'background.paper',
-        backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
-        border: preferences.transparentMode ? 1 : 0,
-        borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+        backgroundColor: 'background.paper',
       }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -305,10 +298,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
         sx={{
           mb: 2,
           height: 'calc(100vh - 300px)',
-          backgroundColor: preferences.transparentMode
-            ? 'rgba(255, 255, 255, 0.02)'
-            : 'background.paper',
-          backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+          backgroundColor: 'background.paper',
         }}
       >
         <Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}>

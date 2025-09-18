@@ -1,6 +1,5 @@
 import React from 'react';
-import { Box, useTheme } from '@mui/material';
-import { useAppStore } from '@/stores/useAppStore';
+import { Box } from '@mui/material';
 
 interface MainViewProps {
   children: React.ReactNode;
@@ -11,9 +10,6 @@ export default function MainView({
   children,
   sidebarWidth,
 }: MainViewProps) {
-  const theme = useTheme();
-  const { preferences } = useAppStore();
-
   return (
     <Box
       component="main"
@@ -28,9 +24,7 @@ export default function MainView({
         overflow: 'hidden',
         position: 'relative', // Establish containing block
         boxSizing: 'border-box',
-        backgroundColor: preferences.transparentMode
-          ? 'transparent'
-          : theme.palette.background.default,
+        backgroundColor: 'transparent', // Always transparent - background is handled by the background system
       }}
     >
       {children}

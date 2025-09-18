@@ -27,7 +27,6 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useIntl } from 'react-intl';
 import { useChatStore } from '../stores/useChatStore';
-import { useAppStore } from '../stores/useAppStore';
 
 interface ChatWidgetProps {
   sessionId: string;
@@ -42,7 +41,6 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 }) => {
   const theme = useTheme();
   const intl = useIntl();
-  const { preferences } = useAppStore();
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const {
@@ -114,12 +112,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         display: 'flex',
         flexDirection: 'column',
         zIndex: 1,
-        backgroundColor: preferences.transparentMode
-          ? 'transparent'
-          : theme.palette.background.paper,
-        backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
+        backgroundColor: theme.palette.background.paper,
         border: `1px solid ${theme.palette.divider}`,
-        boxShadow: preferences.transparentMode ? 'none' : theme.shadows[8],
+        boxShadow: theme.shadows[8],
         minHeight: 0,
         borderRadius: 1,
         overflow: 'hidden',
@@ -130,10 +125,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         elevation={0}
         color="default"
         sx={{
-          backgroundColor: preferences.transparentMode
-            ? 'rgba(255, 255, 255, 0.05)'
-            : theme.palette.background.default,
-          backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+          backgroundColor: theme.palette.background.default,
         }}
       >
         <Toolbar variant="dense" sx={{ minHeight: '40px !important' }}>
@@ -208,12 +200,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                   borderRadius: 1.5,
                   backgroundColor: isUser
                     ? theme.palette.primary.main
-                    : preferences.transparentMode
-                      ? 'rgba(255, 255, 255, 0.1)'
-                      : theme.palette.mode === 'dark'
-                        ? 'rgba(55, 65, 81, 0.8)'
-                        : 'rgba(243, 244, 246, 0.8)',
-                  backdropFilter: preferences.transparentMode && !isUser ? 'blur(5px)' : 'none',
+                    : theme.palette.mode === 'dark'
+                      ? 'rgba(55, 65, 81, 0.8)'
+                      : 'rgba(243, 244, 246, 0.8)',
                   color: isUser
                     ? theme.palette.primary.contrastText
                     : theme.palette.text.primary,

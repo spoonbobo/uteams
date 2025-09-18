@@ -53,7 +53,7 @@ const formatCourseDate = (timestamp?: number) => {
 export const SidebarCollapse: React.FC<SidebarCollapseProps> = () => {
   const intl = useIntl();
   const theme = useTheme();
-  const { theme: appTheme, setTheme, preferences } = useAppStore();
+  const { theme: appTheme, setTheme } = useAppStore();
   const { sidebarCollapsed, setSidebarCollapsed } = useLayoutStore();
   const { courses, isLoadingCourses, fetchCourses, isConfigured, isConnected } = useMoodleStore();
   const { isAuthenticated } = useAuthenticationState();
@@ -91,10 +91,10 @@ export const SidebarCollapse: React.FC<SidebarCollapseProps> = () => {
         '& .MuiDrawer-paper': {
           width: currentWidth,
           boxSizing: 'border-box',
-          backgroundColor: preferences.transparentMode ? 'transparent' : theme.palette.background.paper,
-          borderRight: `1px solid ${alpha(theme.palette.divider, preferences.transparentMode ? 0.2 : 0.08)}`,
+          backgroundColor: theme.palette.background.paper,
+          borderRight: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
           boxShadow:
-            theme.palette.mode === 'dark' || preferences.transparentMode
+            theme.palette.mode === 'dark'
               ? 'none'
               : '0 0 10px rgba(0,0,0,0.02)',
           transition: 'width 0.3s ease',
@@ -115,8 +115,8 @@ export const SidebarCollapse: React.FC<SidebarCollapseProps> = () => {
           transform: 'translateY(-50%)',
           width: 24,
           height: 48,
-          backgroundColor: preferences.transparentMode ? 'rgba(255, 255, 255, 0.1)' : theme.palette.background.paper,
-          border: `1px solid ${alpha(theme.palette.divider, preferences.transparentMode ? 0.2 : 0.08)}`,
+          backgroundColor: theme.palette.background.paper,
+          border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
           borderLeft: 'none',
           borderRadius: '0 8px 8px 0',
           cursor: 'pointer',

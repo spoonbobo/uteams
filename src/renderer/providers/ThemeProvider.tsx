@@ -85,8 +85,9 @@ const baseThemeConfig = {
     },
   },
 };
-const buildLightTheme = (isZh: boolean, colorPalette: ColorPalette) =>
-  createTheme({
+const buildLightTheme = (isZh: boolean, colorPalette: ColorPalette) => {
+  const paletteColor = colorPalettes[colorPalette];
+  return createTheme({
     ...baseThemeConfig,
     typography: {
       ...baseThemeConfig.typography,
@@ -96,7 +97,7 @@ const buildLightTheme = (isZh: boolean, colorPalette: ColorPalette) =>
     },
     palette: {
       mode: 'light',
-      primary: colorPalettes[colorPalette],
+      primary: paletteColor,
       secondary: {
         main: '#7c3aed',
         light: '#a78bfa',
@@ -119,7 +120,7 @@ const buildLightTheme = (isZh: boolean, colorPalette: ColorPalette) =>
       },
       background: {
         default: '#f8fafc',
-        paper: '#ffffff',
+        paper: `${paletteColor.main}08`, // Very light tint of the palette color
       },
       text: {
         primary: '#0f172a',
@@ -153,9 +154,11 @@ const buildLightTheme = (isZh: boolean, colorPalette: ColorPalette) =>
       },
     },
   });
+};
 
-const buildDarkTheme = (isZh: boolean, colorPalette: ColorPalette) =>
-  createTheme({
+const buildDarkTheme = (isZh: boolean, colorPalette: ColorPalette) => {
+  const paletteColor = colorPalettes[colorPalette];
+  return createTheme({
     ...baseThemeConfig,
     typography: {
       ...baseThemeConfig.typography,
@@ -165,7 +168,7 @@ const buildDarkTheme = (isZh: boolean, colorPalette: ColorPalette) =>
     },
     palette: {
       mode: 'dark',
-      primary: colorPalettes[colorPalette],
+      primary: paletteColor,
       secondary: {
         main: '#8b5cf6',
         light: '#a78bfa',
@@ -188,7 +191,7 @@ const buildDarkTheme = (isZh: boolean, colorPalette: ColorPalette) =>
       },
       background: {
         default: '#0f172a',
-        paper: '#1e293b',
+        paper: `${paletteColor.dark}15`, // Dark tint of the palette color
       },
       text: {
         primary: '#f8fafc',
@@ -238,6 +241,7 @@ const buildDarkTheme = (isZh: boolean, colorPalette: ColorPalette) =>
       },
     },
   });
+};
 
 interface ThemeProviderProps {
   children: React.ReactNode;

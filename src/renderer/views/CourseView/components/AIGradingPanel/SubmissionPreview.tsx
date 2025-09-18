@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import type { MoodleAssignment } from '@/types/moodle';
 import type { StudentSubmissionData } from '@/types/grading';
-import { DocxPreview } from '@/components/DocxPreview/DocxPreview';
+import DocxPreview from '@/components/DocxPreview/DocxPreview';
 import type { DocxContent, ElementHighlight } from '@/components/DocxPreview/types';
 
 interface SubmissionFile {
@@ -79,12 +79,12 @@ export const SubmissionPreview: React.FC<SubmissionPreviewProps> = ({
 
         // Download and parse DOCX files
         for (const file of filesResult.data) {
-          if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+          if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
               file.filename.toLowerCase().endsWith('.docx')) {
-            
+
             // Create unique filename to avoid conflicts
             const uniqueFilename = `${selectedSubmission}_${selectedAssignment}_${file.filename}`;
-            
+
             // Download the file - Moodle files usually need token in URL, not headers
             let downloadUrl = file.fileurl;
             if (downloadUrl && !downloadUrl.includes('token=')) {
@@ -92,15 +92,15 @@ export const SubmissionPreview: React.FC<SubmissionPreviewProps> = ({
               const separator = downloadUrl.includes('?') ? '&' : '?';
               downloadUrl = `${downloadUrl}${separator}token=${config.apiKey}`;
             }
-            
-            
+
+
             // Retry logic for file download and parsing
             let success = false;
             let lastError = '';
             const maxRetries = 3;
-            
+
             for (let attempt = 1; attempt <= maxRetries && !success; attempt++) {
-              
+
               try {
                 const downloadResult = await window.electron.ipcRenderer.invoke('fileio:download-file', {
                   url: downloadUrl,
@@ -113,10 +113,10 @@ export const SubmissionPreview: React.FC<SubmissionPreviewProps> = ({
                 });
 
                 if (downloadResult.success) {
-                  
+
                   // Add a small delay before parsing to ensure file is fully written
                   await new Promise(resolve => setTimeout(resolve, 100));
-                  
+
                   // Parse the DOCX file
                   const parseResult = await window.electron.ipcRenderer.invoke('docx:parse-file', {
                     filePath: downloadResult.filePath
@@ -129,7 +129,7 @@ export const SubmissionPreview: React.FC<SubmissionPreviewProps> = ({
                   } else {
                     lastError = parseResult.error;
                     console.error(`[SubmissionPreview] Failed to parse DOCX on attempt ${attempt}:`, parseResult.error);
-                    
+
                     // If it's a corruption error, try downloading again
                     if (parseResult.error.includes('Corrupted zip') || parseResult.error.includes('End of data reached')) {
                       continue;
@@ -146,17 +146,17 @@ export const SubmissionPreview: React.FC<SubmissionPreviewProps> = ({
                 lastError = error.message;
                 console.error(`[SubmissionPreview] Exception on attempt ${attempt}:`, error);
               }
-              
+
               // Wait before retry (except on last attempt)
               if (attempt < maxRetries && !success) {
                 await new Promise(resolve => setTimeout(resolve, 500 * attempt)); // Exponential backoff
               }
             }
-            
+
             if (!success) {
               setFileError(`Failed to download and parse ${file.filename} after ${maxRetries} attempts: ${lastError}`);
             }
-            
+
             // Only process the first DOCX file for now
             break;
           }
@@ -177,10 +177,10 @@ export const SubmissionPreview: React.FC<SubmissionPreviewProps> = ({
       <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
         Grading {selectedSubmissionData?.student.fullname} for {selectedAssignmentData?.name}
       </Typography>
-      
-      <Card sx={{ 
-        height: '100%', 
-        display: 'flex', 
+
+      <Card sx={{
+        height: '100%',
+        display: 'flex',
         flexDirection: 'column',
         bgcolor: 'background.paper',
         border: '1px solid',
@@ -213,8 +213,8 @@ export const SubmissionPreview: React.FC<SubmissionPreviewProps> = ({
                   html: docxContent.html, // No longer pre-apply highlights - handled by DOM manipulation
                   wordCount: docxContent.wordCount,
                   characterCount: docxContent.characterCount,
-                  filename: submissionFiles.find(f => 
-                    f.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+                  filename: submissionFiles.find(f =>
+                    f.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
                     f.filename.toLowerCase().endsWith('.docx')
                   )?.filename || 'Student Submission',
                   elementCounts: (docxContent as any).elementCounts

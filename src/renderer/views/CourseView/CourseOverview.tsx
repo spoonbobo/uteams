@@ -4,7 +4,6 @@ import { useIntl } from 'react-intl';
 import { AssignmentsPanel, StudentsPanel, MaterialsPanel } from './components';
 import type { SortOrder } from './components/AssignmentsPanel';
 import { useMoodleStore } from '@/stores/useMoodleStore';
-import { useAppStore } from '@/stores/useAppStore';
 import type { CourseSessionContext } from '@/stores/useContextStore';
 import { HTabsPanel, HTabPanel, type TabSection, type PanelControlConfig } from '@/components/HTabsPanel';
 
@@ -16,7 +15,6 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
   sessionContext,
 }) => {
   const intl = useIntl();
-  const { preferences } = useAppStore();
   const { fetchCourseContent, getCourseContent } = useMoodleStore();
   const [selectedTab, setSelectedTab] = useState(0);
 
@@ -217,9 +215,7 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: preferences.transparentMode
-          ? 'transparent'
-          : 'inherit',
+        backgroundColor: 'inherit',
       }}
     >
       {/* Header */}

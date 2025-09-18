@@ -17,7 +17,6 @@ import {
   Divider,
   Grid,
 } from '@mui/material';
-import { useAppStore } from '@/stores/useAppStore';
 import {
   Assignment as AssignmentIcon,
   ArrowForward as ArrowForwardIcon,
@@ -28,7 +27,7 @@ import {
 } from '@mui/icons-material';
 import type { MoodleAssignment } from '@/types/moodle';
 import type { GradingStats, RubricContent } from '@/types/grading';
-import { DocxPreview } from '@/components/DocxPreview/DocxPreview';
+import DocxPreview from '@/components/DocxPreview/DocxPreview';
 import { useIntl } from 'react-intl';
 
 interface AssignmentSelectionPanelProps {
@@ -65,7 +64,6 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
   onNext,
 }) => {
   const intl = useIntl();
-  const { preferences } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,12 +102,7 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
     <Paper
       sx={{
         p: 3,
-        backgroundColor: preferences.transparentMode
-          ? 'transparent'
-          : 'background.paper',
-        backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
-        border: preferences.transparentMode ? 1 : 0,
-        borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+        backgroundColor: 'background.paper',
       }}
     >
       <Typography variant="h5" gutterBottom sx={{ fontWeight: 500, mb: 3 }}>
@@ -175,10 +168,7 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
           {selectedAssignmentData && (
             <Card
               sx={{
-                backgroundColor: preferences.transparentMode
-                  ? 'rgba(255, 255, 255, 0.05)'
-                  : 'action.hover',
-                backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+                backgroundColor: 'action.hover',
               }}
             >
               <CardContent>
@@ -244,10 +234,7 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
               sx={{
                 border: '2px dashed',
                 borderColor: 'divider',
-                backgroundColor: preferences.transparentMode
-                  ? 'rgba(255, 255, 255, 0.02)'
-                  : 'background.default',
-                backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+                backgroundColor: 'background.default',
               }}
             >
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
