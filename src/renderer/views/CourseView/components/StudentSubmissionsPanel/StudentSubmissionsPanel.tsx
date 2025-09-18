@@ -38,6 +38,7 @@ import {
 import { categorizeStudents } from './utils';
 import type { StudentSubmissionsPanelProps } from './types';
 import type { StudentSubmissionData } from '../../../../types/grading';
+import { useAppStore } from '@/stores/useAppStore';
 
 
 
@@ -55,18 +56,19 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
   onViewGradingDetail,
 }) => {
   const intl = useIntl();
-  
+  const { preferences } = useAppStore();
+
   // Use decomposed hooks
-  const { 
-    getGradingRecord, 
-    clearGradingRecord, 
+  const {
+    getGradingRecord,
+    clearGradingRecord,
     isStudentBeingGraded,
     clearAllGradingProgress,
     setActiveGradingStudent,
     handleStartGrading,
     abortGrading
   } = useGradingActions(selectedAssignment);
-  
+
   const { submissionFiles, docxContent, fileLoading, fileError } = useSubmissionFiles(selectedSubmission, selectedAssignment);
   const { studentFiles, loadStudentFiles } = useStudentFiles(selectedAssignment);
   const {
@@ -85,7 +87,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
     handleSubmitGradeDialogClose
   } = useDialogStates();
   const { collapsedCategories, toggleCategoryCollapse } = useCollapsibleCategories();
-  const { 
+  const {
     selectedStudents,
     toggleStudentSelection,
     selectAllInCategory,
@@ -115,7 +117,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
   // Get categorized students
   const categorizedStudents = categorizeStudents(studentData);
   const [isBatchGrading, setIsBatchGrading] = useState(false);
-  
+
   // Handle file preview with dialog management
   const handleFilePreviewWithDialog = async (studentId: string, file: any, studentName: string) => {
     setDialogStudentName(studentName);
@@ -126,20 +128,20 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
       setDialogFilename(filename);
     });
   };
-  
+
   // Enhanced dialog close that also clears preview
   const handleEnhancedDialogClose = () => {
     handleDialogClose();
     clearFilePreview();
   };
-  
+
   // Handler for starting individual grading with submission selection
   const handleIndividualGrading = async (studentId: string) => {
     // When manually starting grading, also update the selected submission to view the grading
     if (onSubmissionSelect) {
       onSubmissionSelect(studentId);
     }
-    
+
     return handleStartGrading(studentId, studentFiles, loadStudentFiles);
   };
 
@@ -149,14 +151,14 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
   // Batch action handlers
   const handleBatchStartGrading = async (studentIds: string[]) => {
     setIsBatchGrading(true);
-    
+
     // Process students concurrently with a small delay between each to simulate rapid clicking
-    const promises = studentIds.map((studentId, index) => 
+    const promises = studentIds.map((studentId, index) =>
       new Promise(async (resolve) => {
         // Add a small delay between starting each grading (100ms * index)
         // This simulates clicking on each student rapidly but not all at exact same time
         await new Promise(delay => setTimeout(delay, index * 100));
-        
+
         try {
           await handleStartGrading(studentId, studentFiles, loadStudentFiles);
           resolve({ success: true, studentId });
@@ -172,13 +174,13 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
         }
       })
     );
-    
+
     // Wait for all grading operations to complete
     const results = await Promise.all(promises);
     const abortedCount = results.filter((r: any) => r.aborted).length;
     const successCount = results.filter((r: any) => r.success).length;
     console.log(`Batch grading completed: ${successCount} successful, ${abortedCount} aborted`);
-    
+
     setIsBatchGrading(false);
     clearSelection();
   };
@@ -196,7 +198,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
     const selectedStudentsData = studentIds
       .map(id => studentData.find(s => s.student.id === id))
       .filter(Boolean) as StudentSubmissionData[];
-    
+
     // Open batch submit dialog
     setSubmitGradeDialogData({
       assignment: selectedAssignment,
@@ -207,7 +209,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
       submissionsData: selectedStudentsData, // Batch mode
     });
     setSubmitGradeDialogOpen(true);
-    
+
     clearSelection();
   };
 
@@ -252,12 +254,22 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
   }
 
   return (
-    <Paper sx={{ p: 3 }}>
+    <Paper
+      sx={{
+        p: 3,
+        backgroundColor: preferences.transparentMode
+          ? 'transparent'
+          : 'background.paper',
+        backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
+        border: preferences.transparentMode ? 1 : 0,
+        borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+      }}
+    >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 500 }}>
           {intl.formatMessage({ id: 'grading.steps.studentSubmissions' })}
         </Typography>
-        
+
         {/* Batch Grade All Button - Only for ungraded students */}
         {categorizedStudents.notGradedSubmitted.length > 0 && (
           <Tooltip title={intl.formatMessage({ id: 'grading.submissions.batch.gradeAllTooltip' }, { count: categorizedStudents.notGradedSubmitted.length })}>
@@ -270,7 +282,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
                 startIcon={isBatchGrading ? <CircularProgress size={16} /> : <PlayArrowIcon />}
                 size="large"
               >
-                {isBatchGrading 
+                {isBatchGrading
                   ? intl.formatMessage({ id: 'grading.submissions.batch.gradingInProgress' })
                   : intl.formatMessage({ id: 'grading.submissions.batch.gradeAll' }, { count: categorizedStudents.notGradedSubmitted.length })
                 }
@@ -279,16 +291,26 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
           </Tooltip>
         )}
       </Box>
-      
+
           {loading && <LinearProgress sx={{ mb: 2 }} />}
-          
+
           {!loading && stats.submitted === 0 && stats.totalStudents > 0 && (
             <Alert severity="info" sx={{ mb: 2 }}>
               {intl.formatMessage({ id: 'grading.submissions.noSubmissions' })}
             </Alert>
           )}
-          
-      <TableContainer component={Paper} sx={{ mb: 2, height: 'calc(100vh - 300px)' }}>
+
+      <TableContainer
+        component={Paper}
+        sx={{
+          mb: 2,
+          height: 'calc(100vh - 300px)',
+          backgroundColor: preferences.transparentMode
+            ? 'rgba(255, 255, 255, 0.02)'
+            : 'background.paper',
+          backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+        }}
+      >
         <Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}>
           <SubmissionsTableHeader />
           <TableBody>
@@ -362,7 +384,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
               onDeselectAll={() => deselectAllInCategory(categorizedStudents.notGradedNotSubmitted.map(s => s.student.id))}
             />
             {!collapsedCategories.notSubmitted && categorizedStudents.notGradedNotSubmitted.map(renderStudentRow)}
-            
+
             {/* Ensure table maintains layout even when all categories are collapsed */}
             {Object.values(collapsedCategories).every(collapsed => collapsed) && (
               <TableRow sx={{ height: '100px' }}>

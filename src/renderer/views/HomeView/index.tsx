@@ -1,22 +1,24 @@
 import React from 'react';
-import { 
-  Box, 
+import {
+  Box,
   useTheme
 } from '@mui/material';
 
 import { useIntl } from 'react-intl';
 import { useContextStore } from '@/stores/useContextStore';
 import { useAuthenticationState } from '@/stores/useUserStore';
+import { useAppStore } from '@/stores/useAppStore';
 import { DashboardView } from './DashboardView';
 
 export const HomeView: React.FC = () => {
   const intl = useIntl();
   const theme = useTheme();
-  
+  const { preferences } = useAppStore();
+
   // Use the context store to get the current view
   const { homeContext } = useContextStore();
   const { view: currentView } = homeContext;
-  
+
   // Use centralized authentication state
   const { isInitialized } = useAuthenticationState();
 
@@ -27,12 +29,15 @@ export const HomeView: React.FC = () => {
   };
 
   return (
-    <Box 
-      sx={{ 
+    <Box
+      sx={{
         p: 4,
         maxWidth: 'xl',
         mx: 'auto',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        backgroundColor: preferences.transparentMode
+          ? 'transparent'
+          : 'inherit',
       }}
     >
       {/* no login banner */}

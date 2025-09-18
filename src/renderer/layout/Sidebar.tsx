@@ -30,9 +30,7 @@ import { useAuthenticationState } from '@/stores/useUserStore';
 
 const SIDEBAR_WIDTH = 240;
 
-interface SidebarProps {
-  transparentMode?: boolean;
-}
+interface SidebarProps {}
 
 // Helper function to get the first letter of course name
 const getCourseInitial = (name: string) => {
@@ -48,10 +46,10 @@ const formatCourseDate = (timestamp?: number) => {
   return `${year % 100}/${nextYear % 100}`;
 };
 
-export const Sidebar: React.FC<SidebarProps> = ({ transparentMode = false }) => {
+export const Sidebar: React.FC<SidebarProps> = () => {
   const intl = useIntl();
   const theme = useTheme();
-  const { theme: appTheme, setTheme } = useAppStore();
+  const { theme: appTheme, setTheme, preferences } = useAppStore();
   const { courses, isLoadingCourses, fetchCourses, isConfigured, isConnected } = useMoodleStore();
   const { isAuthenticated } = useAuthenticationState();
   // Disclaimer controls are now managed in SettingsView
@@ -81,10 +79,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ transparentMode = false }) => 
         '& .MuiDrawer-paper': {
           width: SIDEBAR_WIDTH,
           boxSizing: 'border-box',
-          backgroundColor: transparentMode ? 'transparent' : theme.palette.background.paper,
-          borderRight: `1px solid ${alpha(theme.palette.divider, transparentMode ? 0.2 : 0.08)}`,
+          backgroundColor: preferences.transparentMode ? 'transparent' : theme.palette.background.paper,
+          borderRight: `1px solid ${alpha(theme.palette.divider, preferences.transparentMode ? 0.2 : 0.08)}`,
           boxShadow:
-            theme.palette.mode === 'dark' || transparentMode
+            theme.palette.mode === 'dark' || preferences.transparentMode
               ? 'none'
               : '0 0 10px rgba(0,0,0,0.02)',
           height: '100%',

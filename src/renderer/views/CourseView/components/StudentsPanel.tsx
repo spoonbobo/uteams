@@ -23,6 +23,7 @@ import {
 import { useIntl } from 'react-intl';
 import type { MoodleUser } from '@/types/moodle';
 import { useMoodleStore } from '@/stores/useMoodleStore';
+import { useAppStore } from '@/stores/useAppStore';
 
 interface StudentsPanelProps {
   students: MoodleUser[];
@@ -41,11 +42,12 @@ export const StudentsPanel: React.FC<StudentsPanelProps> = ({
 }) => {
   const intl = useIntl();
   const theme = useTheme();
+  const { preferences } = useAppStore();
   const { getMoodleUserUrl } = useMoodleStore();
 
   const filteredStudents = React.useMemo(() => {
     if (!searchTerm) return students;
-    
+
     const term = searchTerm.toLowerCase();
     return students.filter(
       (student) =>
@@ -71,7 +73,7 @@ export const StudentsPanel: React.FC<StudentsPanelProps> = ({
       '#009688', '#4caf50', '#8bc34a', '#cddc39',
       '#ffeb3b', '#ffc107', '#ff9800', '#ff5722',
     ];
-    
+
     const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[index % colors.length];
   };
@@ -122,10 +124,15 @@ export const StudentsPanel: React.FC<StudentsPanelProps> = ({
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 1,
-              backgroundColor: 'background.paper',
+              backgroundColor: preferences.transparentMode
+                ? 'rgba(255, 255, 255, 0.02)'
+                : 'background.paper',
+              backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
               cursor: 'pointer',
               '&:hover': {
-                backgroundColor: 'action.hover',
+                backgroundColor: preferences.transparentMode
+                  ? 'rgba(255, 255, 255, 0.05)'
+                  : 'action.hover',
                 borderColor: 'primary.light',
               },
             }}
@@ -143,11 +150,11 @@ export const StudentsPanel: React.FC<StudentsPanelProps> = ({
               >
                 {getInitials(student.fullname)}
               </Avatar>
-              
+
               {/* Student name */}
-              <Typography 
-                variant="subtitle2" 
-                sx={{ 
+              <Typography
+                variant="subtitle2"
+                sx={{
                   fontWeight: 600,
                   flex: 1,
                   minWidth: 0,
@@ -158,14 +165,14 @@ export const StudentsPanel: React.FC<StudentsPanelProps> = ({
               >
                 {student.fullname}
               </Typography>
-              
+
               {/* Username badge */}
               <Box
                 sx={{
-                  backgroundColor: theme.palette.mode === 'dark' 
-                    ? theme.palette.secondary.dark 
+                  backgroundColor: theme.palette.mode === 'dark'
+                    ? theme.palette.secondary.dark
                     : theme.palette.secondary.light,
-                  color: theme.palette.mode === 'dark' 
+                  color: theme.palette.mode === 'dark'
                     ? theme.palette.secondary.contrastText || theme.palette.text.primary
                     : theme.palette.secondary.dark,
                   px: 1,
@@ -179,15 +186,15 @@ export const StudentsPanel: React.FC<StudentsPanelProps> = ({
               >
                 @{student.username}
               </Box>
-              
+
               {/* Email badge */}
               {student.email && (
                 <Box
                   sx={{
-                    backgroundColor: theme.palette.mode === 'dark' 
-                      ? theme.palette.info.dark 
+                    backgroundColor: theme.palette.mode === 'dark'
+                      ? theme.palette.info.dark
                       : theme.palette.info.light,
-                    color: theme.palette.mode === 'dark' 
+                    color: theme.palette.mode === 'dark'
                       ? theme.palette.info.contrastText || theme.palette.text.primary
                       : theme.palette.info.dark,
                     px: 1,
@@ -206,15 +213,15 @@ export const StudentsPanel: React.FC<StudentsPanelProps> = ({
                   {student.email}
                 </Box>
               )}
-              
+
               {/* Department/Institution badge */}
               {(student.department || student.institution) && (
                 <Box
                   sx={{
-                    backgroundColor: theme.palette.mode === 'dark' 
-                      ? theme.palette.primary.dark 
+                    backgroundColor: theme.palette.mode === 'dark'
+                      ? theme.palette.primary.dark
                       : theme.palette.primary.light,
-                    color: theme.palette.mode === 'dark' 
+                    color: theme.palette.mode === 'dark'
                       ? theme.palette.primary.contrastText || theme.palette.text.primary
                       : theme.palette.primary.dark,
                     px: 1,

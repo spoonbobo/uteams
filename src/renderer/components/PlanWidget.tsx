@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useChatStore } from '../stores/useChatStore';
+import { useAppStore } from '../stores/useAppStore';
 import { useIntl } from 'react-intl';
 
 interface PlanWidgetProps {
@@ -23,6 +24,7 @@ interface PlanWidgetProps {
 
 export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) => {
   const intl = useIntl();
+  const { preferences } = useAppStore();
   const { todosBySession, planBySession, abortSession } = useChatStore();
   const todos = todosBySession[sessionId] || [];
   const plan = planBySession?.[sessionId];
@@ -72,7 +74,10 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          bgcolor: 'background.paper',
+          bgcolor: preferences.transparentMode
+            ? 'transparent'
+            : 'background.paper',
+          backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
           borderLeft: 1,
           borderColor: 'divider',
           position: 'relative',
@@ -309,14 +314,17 @@ export const PlanWidget: React.FC<PlanWidgetProps> = ({ sessionId, onClose }) =>
         {/* Minimal Completion Message with Synthesizing Spinner */}
         {progress === 100 && (
           <Fade in={true} timeout={800}>
-            <Box
-              sx={{
-                p: 2,
-                borderTop: 1,
-                borderColor: 'divider',
-                bgcolor: (theme) => alpha(theme.palette.success.main, 0.04),
-              }}
-            >
+              <Box
+                sx={{
+                  p: 2,
+                  borderTop: 1,
+                  borderColor: 'divider',
+                  bgcolor: preferences.transparentMode
+                    ? 'rgba(76, 175, 80, 0.08)'
+                    : (theme) => alpha(theme.palette.success.main, 0.04),
+                  backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+                }}
+              >
               <Box
                 sx={{
                   display: 'flex',

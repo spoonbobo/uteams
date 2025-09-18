@@ -18,6 +18,7 @@ import {
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 import type { MoodleActivity } from '@/types/moodle';
+import { useAppStore } from '@/stores/useAppStore';
 
 interface MaterialsPanelProps {
   activities: MoodleActivity[];
@@ -40,6 +41,7 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
 }) => {
   const intl = useIntl();
   const theme = useTheme();
+  const { preferences } = useAppStore();
 
   const getActivityTypeLabel = (modname: string) => {
     const labelMap: Record<string, string> = {
@@ -59,12 +61,12 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
 
   const filteredActivities = React.useMemo(() => {
     let filtered = activities;
-    
+
     // Filter by type first (multi-select)
     if (typeFilter && typeFilter.length > 0) {
       filtered = filtered.filter(activity => typeFilter.includes(activity.modname));
     }
-    
+
     // Then filter by search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -74,7 +76,7 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
         getActivityTypeLabel(activity.modname).toLowerCase().includes(term)
       );
     }
-    
+
     return filtered;
   }, [activities, searchTerm, typeFilter]);
 
@@ -165,20 +167,25 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 1,
-              backgroundColor: 'background.paper',
+              backgroundColor: preferences.transparentMode
+                ? 'rgba(255, 255, 255, 0.02)'
+                : 'background.paper',
+              backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
               cursor: activity.url ? 'pointer' : 'default',
               '&:hover': {
                 borderColor: activity.url ? 'primary.light' : 'divider',
-                backgroundColor: activity.url ? 'action.hover' : 'background.paper',
+                backgroundColor: activity.url
+                  ? (preferences.transparentMode ? 'rgba(255, 255, 255, 0.05)' : 'action.hover')
+                  : (preferences.transparentMode ? 'rgba(255, 255, 255, 0.02)' : 'background.paper'),
               },
             }}
           >
             {/* Single row with all information */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               {/* Activity name */}
-              <Typography 
-                variant="subtitle2" 
-                sx={{ 
+              <Typography
+                variant="subtitle2"
+                sx={{
                   fontWeight: 600,
                   flex: 1,
                   color: activity.url ? 'primary.main' : 'text.primary',
@@ -190,14 +197,14 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
               >
                 {activity.name}
               </Typography>
-              
+
               {/* Section badge */}
               <Box
                 sx={{
-                  backgroundColor: theme.palette.mode === 'dark' 
-                    ? theme.palette.info.dark 
+                  backgroundColor: theme.palette.mode === 'dark'
+                    ? theme.palette.info.dark
                     : theme.palette.info.light,
-                  color: theme.palette.mode === 'dark' 
+                  color: theme.palette.mode === 'dark'
                     ? theme.palette.info.contrastText || theme.palette.text.primary
                     : theme.palette.info.dark,
                   px: 1,
@@ -211,7 +218,7 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
               >
                 {activity.sectionName}
               </Box>
-              
+
               {/* Type badge */}
               <Box
                 sx={{
@@ -223,7 +230,7 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
                   color: (() => {
                     const colorType = getActivityTypeColor(activity.modname);
                     const paletteColor = theme.palette[colorType] || theme.palette.secondary;
-                    return theme.palette.mode === 'dark' 
+                    return theme.palette.mode === 'dark'
                       ? paletteColor.contrastText || theme.palette.text.primary
                       : paletteColor.dark;
                   })(),
@@ -246,10 +253,10 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
               {!activity.visible && (
                 <Box
                   sx={{
-                    backgroundColor: theme.palette.mode === 'dark' 
-                      ? theme.palette.warning.dark 
+                    backgroundColor: theme.palette.mode === 'dark'
+                      ? theme.palette.warning.dark
                       : theme.palette.warning.light,
-                    color: theme.palette.mode === 'dark' 
+                    color: theme.palette.mode === 'dark'
                       ? theme.palette.warning.contrastText || theme.palette.text.primary
                       : theme.palette.warning.dark,
                     px: 1,

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Typography, 
-  Box, 
-  Card, 
+import {
+  Typography,
+  Box,
+  Card,
   Grid,
   Container,
   Button,
@@ -23,16 +23,18 @@ import {
 import { useIntl } from 'react-intl';
 import { useMoodleStore } from '@/stores/useMoodleStore';
 import { useUserStore, useAuthenticationState } from '@/stores/useUserStore';
+import { useAppStore } from '@/stores/useAppStore';
 import { Authenticate } from '@/components/Authenticate';
 import { toast } from '@/utils/toast';
 
 export const DashboardView: React.FC = () => {
   const intl = useIntl();
   const theme = useTheme();
-  
+  const { preferences } = useAppStore();
+
   // User authentication state - now uses fixed hook
   const { isAuthenticated, isInitialized, user } = useAuthenticationState();
-  
+
   // Moodle store - use minimal specific selectors to prevent unnecessary re-renders
   const isConnected = useMoodleStore((state) => state.isConnected);
   const connectionInfo = useMoodleStore((state) => state.connectionInfo);
@@ -41,28 +43,28 @@ export const DashboardView: React.FC = () => {
   const coursesError = useMoodleStore((state) => state.coursesError);
   // Subscribe to courseContent changes to trigger re-renders when content is loaded
   const courseContent = useMoodleStore((state) => state.courseContent);
-  
+
   // Show auth form only if initialized and not authenticated
   const showAuth = isInitialized && !isAuthenticated;
-  
+
   // Check if all essential Moodle data is loaded
   const hasCoursesWithContent = React.useMemo(() => {
     if (courses.length === 0) return false;
-    
+
     // Check if at least some courses have content loaded or attempted to load
     const contentProcessedCount = courses.filter(course => {
       const content = courseContent[course.id];
       // Consider content processed if it exists, is not loading, and has lastUpdated (even with errors)
       // This prevents getting stuck on courses that might have API errors
-      return content && 
-             !content.isLoading && 
+      return content &&
+             !content.isLoading &&
              content.lastUpdated !== null;
     }).length;
-    
+
     // Consider data ready if we have courses and at least 70% have been processed (success or failure)
     const threshold = Math.max(1, Math.ceil(courses.length * 0.7)); // At least 1 course must be processed
     const isReady = contentProcessedCount >= threshold;
-    
+
     // Debug logging
     console.log('[Dashboard] Content check:', {
       totalCourses: courses.length,
@@ -78,18 +80,18 @@ export const DashboardView: React.FC = () => {
         hasAssignments: !!courseContent[courseId]?.assignments?.length
       }))
     });
-    
+
     return isReady;
   }, [courses, courseContent]);
-  
+
   const isMoodleDataReady = isAuthenticated && isConnected && !isLoadingCourses && courses.length > 0 && hasCoursesWithContent;
   const showLoadingState = isAuthenticated && (!isConnected || isLoadingCourses || (!coursesError && (courses.length === 0 || !hasCoursesWithContent)));
-  
+
   // Debug logging (can be removed in production)
-  console.log('[Dashboard] State:', { 
-    isAuthenticated, 
-    isInitialized, 
-    isConnected, 
+  console.log('[Dashboard] State:', {
+    isAuthenticated,
+    isInitialized,
+    isConnected,
     hasUser: !!user,
     showAuth,
     showLoadingState,
@@ -98,7 +100,7 @@ export const DashboardView: React.FC = () => {
     isMoodleDataReady,
     hasCoursesWithContent
   });
-  
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [timelineFilter, setTimelineFilter] = useState('7');
   const [sortBy, setSortBy] = useState('dates');
@@ -143,29 +145,29 @@ export const DashboardView: React.FC = () => {
     if (isAuthenticated && isConnected && courses.length === 0 && !isLoadingCourses && !hasInitializedData) {
       console.log('[Dashboard] Starting initial data fetch...');
       setHasInitializedData(true);
-      
+
       // Use timeout to avoid immediate state updates
       setTimeout(async () => {
         try {
           const store = useMoodleStore.getState();
-          
+
           // First, ensure courses are loaded with timeout
           console.log('[Dashboard] Fetching courses...');
           const fetchCoursesPromise = store.fetchCourses();
-          const timeoutPromise = new Promise<never>((_, reject) => 
+          const timeoutPromise = new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('Courses fetch timeout')), 15000)
           );
-          
+
           const fetchedCourses = await Promise.race([fetchCoursesPromise, timeoutPromise]);
-          
+
           // Then fetch content for all courses with timeout
           if (fetchedCourses && fetchedCourses.length > 0) {
             console.log('[Dashboard] Fetching content for all courses...');
             const fetchContentPromise = store.fetchAllCourseContent();
-            const contentTimeoutPromise = new Promise<never>((_, reject) => 
+            const contentTimeoutPromise = new Promise<never>((_, reject) =>
               setTimeout(() => reject(new Error('Course content fetch timeout')), 30000)
             );
-            
+
             await Promise.race([fetchContentPromise, contentTimeoutPromise]);
             console.log('[Dashboard] ✅ All data loaded successfully');
           } else {
@@ -175,7 +177,7 @@ export const DashboardView: React.FC = () => {
           console.error('[Dashboard] ❌ Error loading data:', error);
           // Reset initialization flag on error so it can be retried
           setHasInitializedData(false);
-          
+
           if (error instanceof Error && error.message.includes('timeout')) {
             toast.error('Data loading is taking longer than expected. Please check your connection and try refreshing.');
           }
@@ -207,17 +209,17 @@ export const DashboardView: React.FC = () => {
     // Get the function fresh from store to avoid dependency issues
     const store = useMoodleStore.getState();
     const assignments = store.getUpcomingAssignments(parseInt(timelineFilter));
-    
+
     // Filter by search query if present
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       return assignments.filter(assignment => {
         const courseCode = (assignment as any).courseShortname || '';
-        return assignment.name.toLowerCase().includes(query) || 
+        return assignment.name.toLowerCase().includes(query) ||
                courseCode.toLowerCase().includes(query);
       });
     }
-    
+
     return assignments;
   }, [timelineFilter, searchQuery, courseContent]); // Add courseContent dependency to update when content changes
 
@@ -244,9 +246,9 @@ export const DashboardView: React.FC = () => {
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString(intl.locale, { 
-      year: 'numeric', 
-      month: 'long' 
+    return date.toLocaleDateString(intl.locale, {
+      year: 'numeric',
+      month: 'long'
     });
   };
 
@@ -266,7 +268,7 @@ export const DashboardView: React.FC = () => {
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
     const today = new Date().getDate();
-    const isCurrentMonth = currentDate.getMonth() === new Date().getMonth() && 
+    const isCurrentMonth = currentDate.getMonth() === new Date().getMonth() &&
                           currentDate.getFullYear() === new Date().getFullYear();
 
     const days = [];
@@ -281,20 +283,20 @@ export const DashboardView: React.FC = () => {
     const monthAssignments = upcomingAssignments.filter(assignment => {
       if (!assignment.duedate) return false;
       const assignmentDate = new Date(assignment.duedate * 1000);
-      return assignmentDate.getMonth() === currentDate.getMonth() && 
+      return assignmentDate.getMonth() === currentDate.getMonth() &&
              assignmentDate.getFullYear() === currentDate.getFullYear();
     });
 
     // Empty cells for days before first day of month
     for (let i = 0; i < (firstDay === 0 ? 6 : firstDay - 1); i++) {
       days.push(
-        <Box 
-          key={`empty-${i}`} 
-          sx={{ 
-            p: 1.5, 
+        <Box
+          key={`empty-${i}`}
+          sx={{
+            p: 1.5,
             minHeight: 120,
             backgroundColor: theme.palette.action.hover
-          }} 
+          }}
         />
       );
     }
@@ -302,7 +304,7 @@ export const DashboardView: React.FC = () => {
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const isToday = isCurrentMonth && day === today;
-      
+
       // Check if this day has assignments
       const dayAssignments = monthAssignments.filter(assignment => {
         const assignmentDate = new Date(assignment.duedate * 1000);
@@ -317,20 +319,22 @@ export const DashboardView: React.FC = () => {
             minHeight: 120,
             border: 'none', // Remove individual borders for cleaner look
             cursor: 'pointer',
-            backgroundColor: isToday 
-              ? alpha(theme.palette.primary.main, 0.08) 
-              : theme.palette.background.paper,
+            backgroundColor: isToday
+              ? alpha(theme.palette.primary.main, 0.08)
+              : preferences.transparentMode
+                ? 'rgba(255, 255, 255, 0.02)'
+                : theme.palette.background.paper,
             '&:hover': {
-              backgroundColor: isToday 
-                ? alpha(theme.palette.primary.main, 0.12) 
+              backgroundColor: isToday
+                ? alpha(theme.palette.primary.main, 0.12)
                 : theme.palette.action.hover,
             },
             transition: 'background-color 0.2s ease',
           }}
         >
-          <Typography 
-            variant="body2" 
-            sx={{ 
+          <Typography
+            variant="body2"
+            sx={{
               fontWeight: isToday ? 600 : 500,
               color: isToday ? theme.palette.primary.main : theme.palette.text.primary,
               mb: 1,
@@ -339,13 +343,13 @@ export const DashboardView: React.FC = () => {
           >
             {day}
           </Typography>
-          
+
           {/* Show assignment indicators */}
           {dayAssignments.slice(0, 3).map((assignment, index) => {
             // Use the courseShortname from the enhanced assignment data
             const courseCode = (assignment as any).courseShortname || assignment.courseid;
             const displayText = `${courseCode}: ${assignment.name}`;
-            
+
             return (
               <Box
                 key={assignment.id}
@@ -372,7 +376,7 @@ export const DashboardView: React.FC = () => {
               </Box>
             );
           })}
-          
+
           {/* Show "+X more" if there are more assignments */}
           {dayAssignments.length > 3 && (
             <Typography
@@ -400,8 +404,8 @@ export const DashboardView: React.FC = () => {
             variant="text"
             size="small"
             onClick={() => navigateMonth('prev')}
-            sx={{ 
-              minWidth: 'auto', 
+            sx={{
+              minWidth: 'auto',
               width: 36,
               height: 36,
               borderRadius: 0,
@@ -413,9 +417,9 @@ export const DashboardView: React.FC = () => {
           >
             <ChevronLeftIcon fontSize="small" />
           </Button>
-          <Typography 
-            variant="h5" 
-            sx={{ 
+          <Typography
+            variant="h5"
+            sx={{
               fontWeight: 500,
               color: theme.palette.text.primary,
               textAlign: 'center',
@@ -428,8 +432,8 @@ export const DashboardView: React.FC = () => {
             variant="text"
             size="small"
             onClick={() => navigateMonth('next')}
-            sx={{ 
-              minWidth: 'auto', 
+            sx={{
+              minWidth: 'auto',
               width: 36,
               height: 36,
               borderRadius: 0,
@@ -444,34 +448,37 @@ export const DashboardView: React.FC = () => {
         </Box>
 
         {/* Calendar Grid Container */}
-        <Box 
-          sx={{ 
-            border: '1px solid', 
+        <Box
+          sx={{
+            border: '1px solid',
             borderColor: theme.palette.divider,
             borderRadius: 0,
             overflow: 'hidden',
             boxShadow: theme.shadows[1],
-            backgroundColor: theme.palette.background.paper,
+            backgroundColor: preferences.transparentMode
+              ? 'transparent'
+              : theme.palette.background.paper,
+            backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
           }}
         >
           {/* Day names header */}
           <Box sx={{ display: 'flex' }}>
             {dayNames.map((dayName, index) => (
-              <Box 
-                key={dayName} 
-                sx={{ 
+              <Box
+                key={dayName}
+                sx={{
                   flex: 1,
-                  py: 2, 
+                  py: 2,
                   px: 1.5,
-                  textAlign: 'center', 
+                  textAlign: 'center',
                   borderRight: index !== dayNames.length - 1 ? `1px solid ${theme.palette.divider}` : 'none',
                   borderBottom: `2px solid ${theme.palette.primary.main}`,
                 }}
               >
-                <Typography 
-                  variant="overline" 
-                  sx={{ 
-                    fontWeight: 700, 
+                <Typography
+                  variant="overline"
+                  sx={{
+                    fontWeight: 700,
                     color: theme.palette.primary.main,
                     fontSize: '0.75rem',
                     letterSpacing: '0.5px',
@@ -487,9 +494,9 @@ export const DashboardView: React.FC = () => {
           {/* Calendar days grid */}
           <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
             {days.map((day, index) => (
-              <Box 
-                key={index} 
-                sx={{ 
+              <Box
+                key={index}
+                sx={{
                   width: `${100/7}%`,
                   borderRight: index % 7 !== 6 ? `1px solid ${theme.palette.divider}` : 'none',
                   borderTop: index >= 7 ? `1px solid ${theme.palette.divider}` : 'none',
@@ -547,7 +554,7 @@ export const DashboardView: React.FC = () => {
         <Box>
           {upcomingAssignments.map((assignment) => {
             const courseCode = (assignment as any).courseShortname || assignment.courseid;
-            
+
             return (
               <Box
                 key={assignment.id}
@@ -556,9 +563,14 @@ export const DashboardView: React.FC = () => {
                   mb: 1,
                   borderBottom: '1px solid',
                   borderColor: theme.palette.divider,
-                  backgroundColor: theme.palette.background.paper,
+                  backgroundColor: preferences.transparentMode
+                    ? 'rgba(255, 255, 255, 0.02)'
+                    : theme.palette.background.paper,
+                  backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
                   '&:hover': {
-                    backgroundColor: theme.palette.action.hover,
+                    backgroundColor: preferences.transparentMode
+                      ? 'rgba(255, 255, 255, 0.05)'
+                      : theme.palette.action.hover,
                   },
                   cursor: 'pointer',
                   '&:last-child': {
@@ -567,9 +579,9 @@ export const DashboardView: React.FC = () => {
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
+                  <Typography
+                    variant="caption"
+                    sx={{
                       backgroundColor: alpha(theme.palette.primary.main, 0.1),
                       color: theme.palette.primary.main,
                       px: 0.75,
@@ -585,7 +597,7 @@ export const DashboardView: React.FC = () => {
                     {assignment.name}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                    {assignment.duedate 
+                    {assignment.duedate
                       ? new Date(assignment.duedate * 1000).toLocaleDateString(intl.locale)
                       : intl.formatMessage({ id: 'dashboard.timeline.noDueDate' })
                     }
@@ -633,29 +645,29 @@ export const DashboardView: React.FC = () => {
           // Show loading state while Moodle data is being fetched
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <Typography variant="h5" sx={{ mb: 3, fontWeight: 400 }}>
-              👋 {intl.formatMessage({ id: 'dashboard.greeting' }, { 
-                userName: user?.firstname || user?.username || 'User' 
+              👋 {intl.formatMessage({ id: 'dashboard.greeting' }, {
+                userName: user?.firstname || user?.username || 'User'
               })}
             </Typography>
             <Box sx={{ mb: 3 }}>
               <CircularProgress size={40} />
             </Box>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
-              {!isConnected 
+              {!isConnected
                 ? intl.formatMessage({ id: 'dashboard.connecting.title' })
                 : intl.formatMessage({ id: 'dashboard.loading.title' })
               }
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {!isConnected 
+              {!isConnected
                 ? intl.formatMessage({ id: 'dashboard.connecting.subtitle' })
                 : intl.formatMessage({ id: 'dashboard.loading.subtitle' })
               }
             </Typography>
-            
+
             {/* Add retry button if loading takes too long */}
-            <Button 
-              variant="outlined" 
+            <Button
+              variant="outlined"
               size="small"
               onClick={() => {
                 console.log('[Dashboard] Manual retry requested');
@@ -674,8 +686,8 @@ export const DashboardView: React.FC = () => {
           // Show error state if there's an error loading courses
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <Typography variant="h5" sx={{ mb: 3, fontWeight: 400 }}>
-              👋 {intl.formatMessage({ id: 'dashboard.greeting' }, { 
-                userName: user?.firstname || user?.username || 'User' 
+              👋 {intl.formatMessage({ id: 'dashboard.greeting' }, {
+                userName: user?.firstname || user?.username || 'User'
               })}
             </Typography>
             <Typography variant="body1" color="error" sx={{ mb: 2 }}>
@@ -684,8 +696,8 @@ export const DashboardView: React.FC = () => {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               {coursesError}
             </Typography>
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               onClick={() => {
                 const store = useMoodleStore.getState();
                 store.fetchCourses();
@@ -699,15 +711,26 @@ export const DashboardView: React.FC = () => {
           <>
             {/* Personal Greeting */}
             <Typography variant="h4" sx={{ mb: 4, fontWeight: 400 }}>
-              👋 {intl.formatMessage({ id: 'dashboard.greeting' }, { 
-                userName: user?.firstname || user?.username || 'User' 
+              👋 {intl.formatMessage({ id: 'dashboard.greeting' }, {
+                userName: user?.firstname || user?.username || 'User'
               })}
             </Typography>
 
             <Grid container spacing={3}>
               {/* Timeline Section */}
               <Grid item xs={12}>
-                <Card sx={{ p: 3, mb: 3 }}>
+                <Card
+                  sx={{
+                    p: 3,
+                    mb: 3,
+                    backgroundColor: preferences.transparentMode
+                      ? 'transparent'
+                      : 'background.paper',
+                    backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
+                    border: preferences.transparentMode ? 1 : 0,
+                    borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+                  }}
+                >
                   <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
                     {intl.formatMessage({ id: 'dashboard.timeline.title' })}
                   </Typography>
@@ -717,7 +740,17 @@ export const DashboardView: React.FC = () => {
 
               {/* Calendar Section */}
               <Grid item xs={12}>
-                <Card sx={{ p: 3 }}>
+                <Card
+                  sx={{
+                    p: 3,
+                    backgroundColor: preferences.transparentMode
+                      ? 'transparent'
+                      : 'background.paper',
+                    backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
+                    border: preferences.transparentMode ? 1 : 0,
+                    borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+                  }}
+                >
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="h6" sx={{ fontWeight: 500 }}>
                       {intl.formatMessage({ id: 'dashboard.calendar.title' })}

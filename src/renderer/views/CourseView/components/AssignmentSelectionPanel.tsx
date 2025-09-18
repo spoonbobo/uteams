@@ -17,6 +17,7 @@ import {
   Divider,
   Grid,
 } from '@mui/material';
+import { useAppStore } from '@/stores/useAppStore';
 import {
   Assignment as AssignmentIcon,
   ArrowForward as ArrowForwardIcon,
@@ -64,6 +65,7 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
   onNext,
 }) => {
   const intl = useIntl();
+  const { preferences } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,7 +76,7 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
         alert(intl.formatMessage({ id: 'grading.assignment.uploadRubric' }));
         return;
       }
-      
+
       onRubricFileChange(file);
       onLoadRubricContent(file);
     }
@@ -99,25 +101,35 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
   return (
-    <Paper sx={{ p: 3 }}>
+    <Paper
+      sx={{
+        p: 3,
+        backgroundColor: preferences.transparentMode
+          ? 'transparent'
+          : 'background.paper',
+        backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
+        border: preferences.transparentMode ? 1 : 0,
+        borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+      }}
+    >
       <Typography variant="h5" gutterBottom sx={{ fontWeight: 500, mb: 3 }}>
         {intl.formatMessage({ id: 'grading.steps.selectAssignment' })}: {intl.formatMessage({ id: 'grading.assignment.title' })}
       </Typography>
-      
+
       <Grid container spacing={3}>
         {/* Assignment Selection Section */}
         <Grid item xs={12} md={6}>
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
             {intl.formatMessage({ id: 'grading.assignment.selectAssignment' })}
           </Typography>
-          
+
           <FormControl fullWidth sx={{ mb: 3 }}>
             <InputLabel id="assignment-select-label">{intl.formatMessage({ id: 'grading.assignment.selectAssignment' })}</InputLabel>
             <Select
               labelId="assignment-select-label"
               value={
-                selectedAssignment && assignments.some(a => a.id === selectedAssignment) 
-                  ? selectedAssignment 
+                selectedAssignment && assignments.some(a => a.id === selectedAssignment)
+                  ? selectedAssignment
                   : ''
               }
               onChange={onAssignmentChange}
@@ -147,9 +159,9 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
                       )}
                     </Box>
                     {assignment.grade && (
-                      <Chip 
-                        label={`${intl.formatMessage({ id: 'common.max' })}: ${assignment.grade}`} 
-                        size="small" 
+                      <Chip
+                        label={`${intl.formatMessage({ id: 'common.max' })}: ${assignment.grade}`}
+                        size="small"
                         variant="outlined"
                         sx={{ ml: 'auto', flexShrink: 0 }}
                       />
@@ -161,7 +173,14 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
           </FormControl>
 
           {selectedAssignmentData && (
-            <Card sx={{ backgroundColor: 'action.hover' }}>
+            <Card
+              sx={{
+                backgroundColor: preferences.transparentMode
+                  ? 'rgba(255, 255, 255, 0.05)'
+                  : 'action.hover',
+                backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+              }}
+            >
               <CardContent>
                 <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
                   {selectedAssignmentData.name}
@@ -179,9 +198,9 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
                           <Typography variant="caption" color="text.secondary">
                             {intl.formatMessage({ id: 'grading.assignment.submissions' })}: {stats.submitted}/{stats.totalStudents}
                           </Typography>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={stats.totalStudents > 0 ? (stats.submitted / stats.totalStudents) * 100 : 0} 
+                          <LinearProgress
+                            variant="determinate"
+                            value={stats.totalStudents > 0 ? (stats.submitted / stats.totalStudents) * 100 : 0}
                             sx={{ height: 6, borderRadius: 3, mt: 0.5 }}
                           />
                         </Box>
@@ -189,9 +208,9 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
                           <Typography variant="caption" color="text.secondary">
                             {intl.formatMessage({ id: 'grading.assignment.graded' })}: {stats.published}/{stats.totalStudents}
                           </Typography>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={stats.totalStudents > 0 ? (stats.published / stats.totalStudents) * 100 : 0} 
+                          <LinearProgress
+                            variant="determinate"
+                            value={stats.totalStudents > 0 ? (stats.published / stats.totalStudents) * 100 : 0}
                             sx={{ height: 6, borderRadius: 3, mt: 0.5 }}
                             color="success"
                           />
@@ -219,9 +238,18 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
             {intl.formatMessage({ id: 'grading.assignment.markingRubricOptional' })}
           </Typography>
-          
+
           {!rubricFile && !rubricContent ? (
-            <Card sx={{ border: '2px dashed', borderColor: 'divider', backgroundColor: 'background.default' }}>
+            <Card
+              sx={{
+                border: '2px dashed',
+                borderColor: 'divider',
+                backgroundColor: preferences.transparentMode
+                  ? 'rgba(255, 255, 255, 0.02)'
+                  : 'background.default',
+                backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+              }}
+            >
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <input
                   type="file"
@@ -230,23 +258,23 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
                   accept=".docx"
                   style={{ display: 'none' }}
                 />
-                
-                <CloudUploadIcon 
-                  sx={{ 
-                    fontSize: 40, 
-                    color: 'text.secondary', 
-                    mb: 1 
-                  }} 
+
+                <CloudUploadIcon
+                  sx={{
+                    fontSize: 40,
+                    color: 'text.secondary',
+                    mb: 1
+                  }}
                 />
-                
+
                 <Typography variant="subtitle2" gutterBottom>
                   {intl.formatMessage({ id: 'grading.assignment.uploadMarkingRubric' })}
                 </Typography>
-                
+
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   {intl.formatMessage({ id: 'grading.assignment.addDocxFile' })}
                 </Typography>
-                
+
                 <Button
                   variant="outlined"
                   startIcon={<CloudUploadIcon />}
@@ -256,7 +284,7 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
                 >
                   {intl.formatMessage({ id: 'grading.assignment.chooseDocxFile' })}
                 </Button>
-                
+
                 <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
                   {intl.formatMessage({ id: 'grading.assignment.optionalHelps' })}
                 </Typography>
@@ -312,13 +340,13 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
                   //   htmlLength: rubricContent.html?.length || 0,
                   //   elementCounts: rubricContent.elementCounts || 'No element counts'
                   // });
-                  
+
                   return (
                     <>
                       <Alert severity="success" sx={{ mb: 2 }}>
                         {intl.formatMessage({ id: 'grading.assignment.rubricLoadedSuccessfully' })} {rubricContent.wordCount} {intl.formatMessage({ id: 'grading.assignment.wordsParsed' })}.
                       </Alert>
-                    
+
                     <DocxPreview
                       content={{
                         text: rubricContent.text,

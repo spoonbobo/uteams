@@ -33,10 +33,10 @@ import {
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 import { useContextStore } from '@/stores/useContextStore';
+import { useAppStore } from '@/stores/useAppStore';
 
 interface TopBarProps {
   sidebarWidth: number;
-  transparentMode: boolean;
 }
 
 // Icon mapping function
@@ -58,9 +58,10 @@ const getTabIcon = (iconName: string) => {
   return iconMap[iconName] || null;
 };
 
-export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth, transparentMode }) => {
+export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth }) => {
   const intl = useIntl();
   const theme = useTheme();
+  const { preferences } = useAppStore();
 
   const {
     currentContext,
@@ -126,8 +127,8 @@ export const TopBar: React.FC<TopBarProps> = ({ sidebarWidth, transparentMode })
       sx={{
         px: 2,
         py: 1.5,
-        borderBottom: `1px solid ${alpha(theme.palette.divider, transparentMode ? 0.2 : 0.08)}`,
-        backgroundColor: transparentMode ? 'transparent' : theme.palette.background.paper,
+        borderBottom: `1px solid ${alpha(theme.palette.divider, preferences.transparentMode ? 0.2 : 0.08)}`,
+        backgroundColor: preferences.transparentMode ? 'transparent' : theme.palette.background.paper,
         display: 'flex',
         alignItems: 'center',
         gap: 1.5,

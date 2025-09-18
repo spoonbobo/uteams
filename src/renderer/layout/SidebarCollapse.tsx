@@ -34,9 +34,7 @@ import { useAuthenticationState } from '@/stores/useUserStore';
 const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 64;
 
-interface SidebarCollapseProps {
-  transparentMode: boolean;
-}
+interface SidebarCollapseProps {}
 
 // Helper function to get the first letter of course name
 const getCourseInitial = (name: string) => {
@@ -52,10 +50,10 @@ const formatCourseDate = (timestamp?: number) => {
   return `${year % 100}/${nextYear % 100}`;
 };
 
-export const SidebarCollapse: React.FC<SidebarCollapseProps> = ({ transparentMode }) => {
+export const SidebarCollapse: React.FC<SidebarCollapseProps> = () => {
   const intl = useIntl();
   const theme = useTheme();
-  const { theme: appTheme, setTheme } = useAppStore();
+  const { theme: appTheme, setTheme, preferences } = useAppStore();
   const { sidebarCollapsed, setSidebarCollapsed } = useLayoutStore();
   const { courses, isLoadingCourses, fetchCourses, isConfigured, isConnected } = useMoodleStore();
   const { isAuthenticated } = useAuthenticationState();
@@ -93,10 +91,10 @@ export const SidebarCollapse: React.FC<SidebarCollapseProps> = ({ transparentMod
         '& .MuiDrawer-paper': {
           width: currentWidth,
           boxSizing: 'border-box',
-          backgroundColor: transparentMode ? 'transparent' : theme.palette.background.paper,
-          borderRight: `1px solid ${alpha(theme.palette.divider, transparentMode ? 0.2 : 0.08)}`,
+          backgroundColor: preferences.transparentMode ? 'transparent' : theme.palette.background.paper,
+          borderRight: `1px solid ${alpha(theme.palette.divider, preferences.transparentMode ? 0.2 : 0.08)}`,
           boxShadow:
-            theme.palette.mode === 'dark' || transparentMode
+            theme.palette.mode === 'dark' || preferences.transparentMode
               ? 'none'
               : '0 0 10px rgba(0,0,0,0.02)',
           transition: 'width 0.3s ease',
@@ -117,8 +115,8 @@ export const SidebarCollapse: React.FC<SidebarCollapseProps> = ({ transparentMod
           transform: 'translateY(-50%)',
           width: 24,
           height: 48,
-          backgroundColor: transparentMode ? 'rgba(255, 255, 255, 0.1)' : theme.palette.background.paper,
-          border: `1px solid ${alpha(theme.palette.divider, transparentMode ? 0.2 : 0.08)}`,
+          backgroundColor: preferences.transparentMode ? 'rgba(255, 255, 255, 0.1)' : theme.palette.background.paper,
+          border: `1px solid ${alpha(theme.palette.divider, preferences.transparentMode ? 0.2 : 0.08)}`,
           borderLeft: 'none',
           borderRadius: '0 8px 8px 0',
           cursor: 'pointer',

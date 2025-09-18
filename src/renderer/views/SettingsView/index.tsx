@@ -281,7 +281,17 @@ export const SettingsView: React.FC = () => {
 
 
   const renderGeneral = () => (
-    <Paper sx={{ mb: 3 }}>
+    <Paper
+      sx={{
+        mb: 3,
+        backgroundColor: preferences.transparentMode
+          ? 'transparent'
+          : 'background.paper',
+        backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
+        border: preferences.transparentMode ? 1 : 0,
+        borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+      }}
+    >
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="h6" component="h2">
           {intl.formatMessage({ id: 'settings.appearance' })}
@@ -541,7 +551,19 @@ export const SettingsView: React.FC = () => {
 
                 {/* Scrolling Carousel Settings */}
                 {selectedImages.length > 1 && (
-                  <Box sx={{ mb: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                  <Box
+                    sx={{
+                      mb: 2,
+                      p: 2,
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      backgroundColor: preferences.transparentMode
+                        ? 'rgba(255, 255, 255, 0.05)'
+                        : 'background.default',
+                      backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+                    }}
+                  >
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <CarouselIcon sx={{ mr: 1 }} />
                       <Typography variant="subtitle2" sx={{ flex: 1 }}>
@@ -640,7 +662,17 @@ export const SettingsView: React.FC = () => {
 
             {/* Background Preview */}
             {background.type !== 'none' && (
-              <Card sx={{ mb: 2 }}>
+              <Card
+                sx={{
+                  mb: 2,
+                  backgroundColor: preferences.transparentMode
+                    ? 'transparent'
+                    : 'background.paper',
+                  backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
+                  border: preferences.transparentMode ? 1 : 0,
+                  borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+                }}
+              >
                 <CardContent>
                   <Typography variant="subtitle2" gutterBottom>
                     {intl.formatMessage({ id: 'settings.backgroundPreview' })}
@@ -854,7 +886,17 @@ export const SettingsView: React.FC = () => {
   };
 
   const renderApi = () => (
-    <Paper sx={{ mb: 3 }}>
+    <Paper
+      sx={{
+        mb: 3,
+        backgroundColor: preferences.transparentMode
+          ? 'transparent'
+          : 'background.paper',
+        backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
+        border: preferences.transparentMode ? 1 : 0,
+        borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+      }}
+    >
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="h6" component="h2">
           {intl.formatMessage({ id: 'settings.api' })}
@@ -966,7 +1008,10 @@ export const SettingsView: React.FC = () => {
         p: 4,
         maxWidth: 'md',
         mx: 'auto',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        backgroundColor: preferences.transparentMode
+          ? 'transparent'
+          : 'inherit',
       }}
     >
       {renderContent()}

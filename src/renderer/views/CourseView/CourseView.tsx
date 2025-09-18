@@ -5,6 +5,7 @@ import { CourseOverview } from './CourseOverview';
 import { GradingView } from './GradingView';
 import { useIntl } from 'react-intl';
 import { useMoodleStore } from '@/stores/useMoodleStore';
+import { useAppStore } from '@/stores/useAppStore';
 import type { CourseSessionContext } from '@/stores/useContextStore';
 
 interface CourseViewProps {
@@ -15,6 +16,7 @@ export const CourseView: React.FC<CourseViewProps> = ({
   sessionContext,
 }) => {
   const intl = useIntl();
+  const { preferences } = useAppStore();
   const { fetchCourseContent, getCourseContent, courses, fetchCourses } = useMoodleStore();
 
   // Load course content and save to memory when component mounts or session changes
@@ -192,7 +194,16 @@ export const CourseView: React.FC<CourseViewProps> = ({
 
   if (!sessionContext) {
     return (
-      <Box sx={{ p: 4, maxWidth: 'lg', mx: 'auto' }}>
+      <Box
+        sx={{
+          p: 4,
+          maxWidth: 'lg',
+          mx: 'auto',
+          backgroundColor: preferences.transparentMode
+            ? 'transparent'
+            : 'inherit',
+        }}
+      >
         <Typography variant="h4" color="text.secondary" textAlign="center">
           No course selected
         </Typography>
@@ -219,7 +230,10 @@ export const CourseView: React.FC<CourseViewProps> = ({
         p: 4,
         maxWidth: 'xl', // Changed from 'lg' to 'xl' for more space
         mx: 'auto',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        backgroundColor: preferences.transparentMode
+          ? 'transparent'
+          : 'inherit',
       }}
     >
       {renderContent()}

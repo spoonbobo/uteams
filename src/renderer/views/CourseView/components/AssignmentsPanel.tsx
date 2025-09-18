@@ -26,6 +26,7 @@ import {
 import { useIntl } from 'react-intl';
 import type { MoodleAssignment } from '@/types/moodle';
 import { useMoodleStore } from '@/stores/useMoodleStore';
+import { useAppStore } from '@/stores/useAppStore';
 
 export type SortOrder = 'newest' | 'oldest';
 
@@ -50,11 +51,12 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
 }) => {
   const intl = useIntl();
   const theme = useTheme();
+  const { preferences } = useAppStore();
   const { getMoodleAssignmentUrl } = useMoodleStore();
 
   const filteredAssignments = React.useMemo(() => {
     let filtered = assignments;
-    
+
     // Filter by search term if provided
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -63,12 +65,12 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
         (assignment.intro && assignment.intro.toLowerCase().includes(term))
       );
     }
-    
+
     // Sort by due date based on user preference
     // Assignments with no due date go to the end
     return filtered.sort((a, b) => {
       const isNewestFirst = sortOrder === 'newest';
-      
+
       // If both have due dates, sort by due date
       if (a.duedate && b.duedate) {
         return isNewestFirst ? b.duedate - a.duedate : a.duedate - b.duedate;
@@ -85,14 +87,14 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
   const getTimeScale = () => {
     const now = Date.now();
     const assignmentsWithDates = filteredAssignments.filter(a => a.duedate);
-    
+
     if (assignmentsWithDates.length === 0) return { minTime: now, maxTime: now, range: 0 };
-    
+
     const dueDates = assignmentsWithDates.map(a => a.duedate * 1000);
     const minTime = Math.min(now, ...dueDates);
     const maxTime = Math.max(now, ...dueDates);
     const range = maxTime - minTime;
-    
+
     return { minTime, maxTime, range };
   };
 
@@ -105,24 +107,24 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
 
   const getDaysInfo = (duedate: number) => {
     if (!duedate) return { text: 'No due date', days: null, isOverdue: false };
-    
+
     const now = Date.now();
     const due = duedate * 1000;
     const diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) {
-      return { 
-        text: `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'} overdue`, 
-        days: Math.abs(diffDays), 
-        isOverdue: true 
+      return {
+        text: `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'} overdue`,
+        days: Math.abs(diffDays),
+        isOverdue: true
       };
     } else if (diffDays === 0) {
       return { text: 'Due today', days: 0, isOverdue: false };
     } else {
-      return { 
-        text: `${diffDays} day${diffDays === 1 ? '' : 's'} left`, 
-        days: diffDays, 
-        isOverdue: false 
+      return {
+        text: `${diffDays} day${diffDays === 1 ? '' : 's'} left`,
+        days: diffDays,
+        isOverdue: false
       };
     }
   };
@@ -142,25 +144,25 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
     const now = Date.now();
     const dueDate = new Date(assignment.duedate * 1000);
     const dueDateMs = assignment.duedate * 1000;
-    
+
     // Calculate position on shared time scale
     let todayPosition = 0;
     let dueDatePosition = 1;
-    
+
     if (timeScale.range > 0) {
       dueDatePosition = (dueDateMs - timeScale.minTime) / timeScale.range;
       todayPosition = (now - timeScale.minTime) / timeScale.range;
     }
-    
+
     // Ensure chronological order: due date first, then today
-    const leftMarker = dueDateMs <= now 
+    const leftMarker = dueDateMs <= now
       ? { label: 'Due', date: dueDate, position: dueDatePosition }
       : { label: 'Today', date: new Date(), position: todayPosition };
-      
-    const rightMarker = dueDateMs <= now 
+
+    const rightMarker = dueDateMs <= now
       ? { label: 'Today', date: new Date(), position: todayPosition }
       : { label: 'Due', date: dueDate, position: dueDatePosition };
-    
+
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 300 }}>
         {/* Left marker */}
@@ -168,10 +170,10 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
             {leftMarker.label}
           </Typography>
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              fontSize: '0.7rem', 
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: '0.7rem',
               fontWeight: 500,
               color: leftMarker.label === 'Due' && daysInfo.isOverdue ? 'error.main' : 'text.primary'
             }}
@@ -179,7 +181,7 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
             {leftMarker.date.getDate()}/{leftMarker.date.getMonth() + 1}
           </Typography>
         </Box>
-        
+
         {/* Timeline line */}
         <Box sx={{ flex: 1, position: 'relative', height: 24, display: 'flex', alignItems: 'center', mx: 1 }}>
           {/* Background line */}
@@ -204,7 +206,7 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
                 transition: 'all 0.3s ease',
               }}
             />
-            
+
             {/* Today position indicator */}
             <Box
               sx={{
@@ -221,7 +223,7 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
                 zIndex: 2,
               }}
             />
-            
+
             {/* Due date position indicator */}
             <Box
               sx={{
@@ -239,7 +241,7 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
               }}
             />
           </Box>
-          
+
           {/* Days indicator - positioned in center */}
           <Box
             sx={{
@@ -262,16 +264,16 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
             {daysInfo.text}
           </Box>
         </Box>
-        
+
         {/* Right marker */}
         <Box sx={{ textAlign: 'center', minWidth: 50, flexShrink: 0 }}>
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
             {rightMarker.label}
           </Typography>
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              fontSize: '0.7rem', 
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: '0.7rem',
               fontWeight: 500,
               color: rightMarker.label === 'Today' && daysInfo.isOverdue ? 'error.main' : 'text.primary'
             }}
@@ -331,11 +333,16 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 1,
-              backgroundColor: 'background.paper',
+              backgroundColor: preferences.transparentMode
+                ? 'rgba(255, 255, 255, 0.02)'
+                : 'background.paper',
+              backdropFilter: preferences.transparentMode ? 'blur(5px)' : 'none',
               cursor: 'pointer',
               '&:hover': {
                 borderColor: 'primary.light',
-                backgroundColor: 'action.hover',
+                backgroundColor: preferences.transparentMode
+                  ? 'rgba(255, 255, 255, 0.05)'
+                  : 'action.hover',
               },
             }}
           >
@@ -344,14 +351,14 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
               <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1, pr: 1 }}>
                 {assignment.name}
               </Typography>
-              
+
               {assignment.grade && (
                 <Box
                   sx={{
-                    backgroundColor: theme.palette.mode === 'dark' 
-                      ? theme.palette.success.dark 
+                    backgroundColor: theme.palette.mode === 'dark'
+                      ? theme.palette.success.dark
                       : theme.palette.success.light,
-                    color: theme.palette.mode === 'dark' 
+                    color: theme.palette.mode === 'dark'
                       ? theme.palette.success.contrastText || theme.palette.text.primary
                       : theme.palette.success.dark,
                     px: 1.5,
@@ -366,7 +373,7 @@ export const AssignmentsPanel: React.FC<AssignmentsPanelProps> = ({
                 </Box>
               )}
             </Box>
-            
+
             {/* Timeline visualization */}
             {renderTimeline(assignment)}
           </Box>

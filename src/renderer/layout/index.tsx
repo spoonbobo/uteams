@@ -2,7 +2,7 @@ import React from 'react';
 import { Box } from '@mui/material';
 import { SidebarCollapse, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from './SidebarCollapse';
 import { TopBar } from './TopBar';
-import { MainView } from './MainView';
+import MainView from './MainView';
 import { useLayoutStore } from '@/stores/useLayoutStore';
 import { useAppStore } from '@/stores/useAppStore';
 import TitleBar from '@/components/TitleBar';
@@ -54,12 +54,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             display: 'flex',
           }}
         >
-          <SidebarCollapse transparentMode={preferences.transparentMode} />
+          <SidebarCollapse />
         </Box>
 
-        <MainView sidebarWidth={currentSidebarWidth} transparentMode={preferences.transparentMode}>
+        <MainView sidebarWidth={currentSidebarWidth}>
           <Box className="app-topbar">
-            <TopBar sidebarWidth={currentSidebarWidth} transparentMode={preferences.transparentMode} />
+            <TopBar sidebarWidth={currentSidebarWidth} />
           </Box>
 
           {/* Content Area */}
@@ -87,4 +87,4 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 export { Sidebar } from './Sidebar';
 export { SidebarCollapse } from './SidebarCollapse';
 export { TopBar } from './TopBar';
-export { MainView } from './MainView';
+export { default as MainView } from './MainView';

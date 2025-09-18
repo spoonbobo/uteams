@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, ReactNode } from 'react';
 import { Typography, Box, Paper, Tabs, Tab, Skeleton } from '@mui/material';
+import { useAppStore } from '@/stores/useAppStore';
 
 export interface TabSection {
   id: string;
@@ -24,14 +25,15 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
   onTabChange,
   children
 }) => {
+  const { preferences } = useAppStore();
   const [internalSelectedTab, setInternalSelectedTab] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const isScrollingProgrammatically = useRef(false);
-  
+
   // Use external selectedTab if provided, otherwise use internal state
   const selectedTab = externalSelectedTab !== undefined ? externalSelectedTab : internalSelectedTab;
-  
+
   // Handle tab change and scroll to section
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     if (externalSelectedTab === undefined) {
@@ -48,14 +50,14 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
       const container = scrollContainerRef.current;
       // Set flag to prevent scroll handler from interfering
       isScrollingProgrammatically.current = true;
-      
+
       // Use scrollLeft directly from the section element's position
       const targetScrollLeft = index * container.clientWidth;
       container.scrollTo({
         left: targetScrollLeft,
         behavior: 'smooth'
       });
-      
+
       // Clear the flag after scroll completes
       setTimeout(() => {
         isScrollingProgrammatically.current = false;
@@ -81,15 +83,15 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
     const handleScroll = () => {
       // Don't update tabs during programmatic scrolling
       if (isScrollingProgrammatically.current || !scrollContainerRef.current) return;
-      
+
       const container = scrollContainerRef.current;
       const scrollLeft = container.scrollLeft;
       const containerWidth = container.clientWidth;
-      
+
       // Calculate which section we're closest to based on scroll position
       const currentIndex = Math.round(scrollLeft / containerWidth);
       const clampedIndex = Math.max(0, Math.min(sections.length - 1, currentIndex));
-      
+
       if (clampedIndex !== selectedTab) {
         if (externalSelectedTab === undefined) {
           setInternalSelectedTab(clampedIndex);
@@ -108,7 +110,18 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Horizontal Tabs */}
-      <Paper sx={{ mb: 2, borderRadius: 2 }}>
+      <Paper
+        sx={{
+          mb: 2,
+          borderRadius: 2,
+          backgroundColor: preferences.transparentMode
+            ? 'transparent'
+            : 'background.paper',
+          backdropFilter: preferences.transparentMode ? 'blur(10px)' : 'none',
+          border: preferences.transparentMode ? 1 : 0,
+          borderColor: preferences.transparentMode ? 'divider' : 'transparent',
+        }}
+      >
         <Tabs
           value={selectedTab}
           onChange={handleTabChange}
@@ -197,7 +210,7 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
           </Box>
         ))}
       </Box>
-      
+
       {/* Additional children can be rendered here if needed */}
       {children}
     </Box>
