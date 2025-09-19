@@ -340,6 +340,16 @@
     "priceTable": {
       "title": "價格表",
       "comingSoon": "即將推出 - 任務定價和成本分析"
+    },
+    "timeRange": {
+      "title": "時間範圍",
+      "all": "全部時間",
+      "today": "今天",
+      "week": "最近7天",
+      "month": "本月",
+      "custom": "自訂範圍",
+      "startDate": "開始日期",
+      "endDate": "結束日期"
     }
   },
   "disclaimer": {

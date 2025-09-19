@@ -282,9 +282,6 @@ export const CourseworkGenerator: React.FC<CourseworkGeneratorProps> = ({
     <Box
       sx={{
         p: 3,
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
         backgroundColor: 'inherit',
       }}
     >

@@ -349,7 +349,7 @@ export const GradingView: React.FC<GradingViewProps> = ({ sessionContext }) => {
   }
 
   return (
-    <Box sx={{ p: 3, height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 500 }}>

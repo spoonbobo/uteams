@@ -340,6 +340,16 @@
     "priceTable": {
       "title": "Price Table",
       "comingSoon": "Coming soon - Task pricing and cost analysis"
+    },
+    "timeRange": {
+      "title": "Time Range",
+      "all": "All Time",
+      "today": "Today",
+      "week": "Last 7 Days",
+      "month": "This Month",
+      "custom": "Custom Range",
+      "startDate": "Start Date",
+      "endDate": "End Date"
     }
   },
   "disclaimer": {

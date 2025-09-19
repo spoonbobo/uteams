@@ -165,6 +165,17 @@ export const registerWorkIpcHandlers = () => {
       return null;
     }
   });
+
+  // Query work items with custom SQL (for time range filtering)
+  ipcMain.handle('work:query-range', async (_event, { sql, params }) => {
+    try {
+      const data = sqliteQuery(sql, params);
+      return data;
+    } catch (error) {
+      console.error('[work:query-range] Error:', error);
+      return [];
+    }
+  });
 };
 
 // Register all database IPC handlers

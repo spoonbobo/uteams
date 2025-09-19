@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Paper, Typography, Grid, useTheme, CircularProgress } from '@mui/material';
 import { useIntl } from 'react-intl';
 import { useWorkStore } from '@/stores/useWorkStore';
+import type { Work } from '@/types/work';
 
 // Chart component wrapper
 const ChartContainer: React.FC<{
@@ -61,15 +62,14 @@ const ChartContainer: React.FC<{
   );
 };
 
-export const GraphView: React.FC = () => {
+interface GraphViewProps {
+  filteredWorks: Work[];
+}
+
+export const GraphView: React.FC<GraphViewProps> = ({ filteredWorks }) => {
   const intl = useIntl();
   const theme = useTheme();
-  const { works, loadWorks } = useWorkStore();
-
-  // Load works on mount
-  useEffect(() => {
-    loadWorks();
-  }, [loadWorks]);
+  const works = filteredWorks;
 
   // Calculate duration in minutes for a work item
   const calculateDuration = (work: any) => {

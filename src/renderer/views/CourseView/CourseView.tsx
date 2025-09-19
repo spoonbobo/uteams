@@ -231,14 +231,6 @@ export const CourseView: React.FC<CourseViewProps> = ({
         mx: 'auto',
         boxSizing: 'border-box',
         backgroundColor: 'inherit',
-        // Hide scrollbars globally for this view
-        '& *': {
-          '&::-webkit-scrollbar': {
-            display: 'none', // Hide scrollbar for WebKit browsers
-          },
-          scrollbarWidth: 'none', // Hide scrollbar for Firefox
-          msOverflowStyle: 'none', // Hide scrollbar for IE/Edge
-        },
       }}
     >
       {renderContent()}

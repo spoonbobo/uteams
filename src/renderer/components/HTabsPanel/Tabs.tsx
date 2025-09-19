@@ -202,20 +202,36 @@ export function HTabsPanel({
           scrollBehavior: 'smooth',
           // Add padding top to account for sticky tabs
           pt: 0,
+          // Style the horizontal scrollbar for this container
           '&::-webkit-scrollbar': {
-            height: 8,
+            height: 4, // Very thin horizontal scrollbar
+            width: 4, // Very thin vertical scrollbar (if ever needed)
           },
           '&::-webkit-scrollbar-track': {
-            backgroundColor: alpha(theme.palette.action.hover, 0.5),
-            borderRadius: 4,
+            backgroundColor: 'transparent', // No background
+            borderRadius: 2,
           },
           '&::-webkit-scrollbar-thumb': {
-            backgroundColor: alpha(theme.palette.action.disabled, 0.8),
-            borderRadius: 4,
+            backgroundColor: alpha(theme.palette.action.disabled, 0.4),
+            borderRadius: 2,
             transition: theme.transitions.create('background-color'),
             '&:hover': {
-              backgroundColor: theme.palette.action.active,
+              backgroundColor: alpha(theme.palette.action.disabled, 0.6),
             },
+            '&:active': {
+              backgroundColor: alpha(theme.palette.primary.main, 0.6),
+            },
+          },
+          // Firefox scrollbar styling
+          scrollbarWidth: 'thin',
+          scrollbarColor: `${alpha(theme.palette.action.disabled, 0.4)} transparent`,
+          // Hide all scrollbars for nested content
+          '& *': {
+            '&::-webkit-scrollbar': {
+              display: 'none', // Hide scrollbar for WebKit browsers
+            },
+            scrollbarWidth: 'none', // Hide scrollbar for Firefox
+            msOverflowStyle: 'none', // Hide scrollbar for IE/Edge
           },
         }}
       >

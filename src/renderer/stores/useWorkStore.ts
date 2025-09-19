@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { Work } from '../types/work';
 
+export type TimeRange = 'all' | 'today' | 'week' | 'month' | 'custom';
+
+export interface CustomTimeRange {
+  startDate: string; // ISO date string
+  endDate: string; // ISO date string
+}
+
 type WorkState = {
   works: Work[];
   isLoading: boolean;
@@ -9,6 +16,7 @@ type WorkState = {
 
   // CRUD operations
   loadWorks: () => Promise<void>;
+  loadWorksByTimeRange: (timeRange: TimeRange, customRange?: CustomTimeRange) => Promise<void>;
   createWork: (description: string, category?: string, sessionId?: string) => Promise<Work>;
   updateWork: (id: string, updates: Partial<Omit<Work, 'id' | 'createdAt'>>) => Promise<void>;
   endWork: (id: string) => Promise<void>;
@@ -22,6 +30,9 @@ type WorkState = {
   // Active work management
   setActiveWork: (work: Work | null) => void;
   getActiveWork: () => Work | null;
+
+  // Time range filtering
+  filterWorksByTimeRange: (timeRange: TimeRange, customRange?: CustomTimeRange) => Work[];
 };
 
 export const useWorkStore = create<WorkState>()(
@@ -172,6 +183,112 @@ export const useWorkStore = create<WorkState>()(
 
     getActiveWork: () => {
       return get().activeWork;
+    },
+
+    loadWorksByTimeRange: async (timeRange: TimeRange, customRange?: CustomTimeRange) => {
+      set({ isLoading: true }, false, 'work:load:start');
+      try {
+        let sql = 'select * from work';
+        const params: any[] = [];
+
+        if (timeRange !== 'all') {
+          const now = new Date();
+          let startDate: Date;
+
+          switch (timeRange) {
+            case 'today':
+              startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              sql += ' where created_at >= ?';
+              params.push(startDate.toISOString());
+              break;
+            case 'week':
+              startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+              sql += ' where created_at >= ?';
+              params.push(startDate.toISOString());
+              break;
+            case 'month':
+              startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+              sql += ' where created_at >= ?';
+              params.push(startDate.toISOString());
+              break;
+            case 'custom':
+              if (customRange) {
+                sql += ' where created_at >= ? and created_at <= ?';
+                params.push(customRange.startDate, customRange.endDate);
+              } else {
+                startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // Default to 30 days
+                sql += ' where created_at >= ?';
+                params.push(startDate.toISOString());
+              }
+              break;
+            default:
+              // For any other case, don't add where clause
+              break;
+          }
+        }
+
+        sql += ' order by created_at desc';
+
+        const rows = await (window as any).electron?.ipcRenderer?.invoke('work:query-range', {
+          sql,
+          params
+        });
+
+        const works: Work[] = Array.isArray(rows)
+          ? rows.map((r: any) => ({
+              id: String(r.id),
+              createdAt: String(r.created_at),
+              endedAt: r.ended_at ? String(r.ended_at) : undefined,
+              description: String(r.description ?? ''),
+              category: String(r.category ?? 'general'),
+              sessionId: r.session_id ? String(r.session_id) : undefined,
+            }))
+          : [];
+        set({ works }, false, 'work:load:success');
+      } catch (e) {
+        console.error('[work] Failed to load works by time range:', e);
+      } finally {
+        set({ isLoading: false }, false, 'work:load:end');
+      }
+    },
+
+    filterWorksByTimeRange: (timeRange: TimeRange, customRange?: CustomTimeRange) => {
+      const works = get().works;
+
+      if (timeRange === 'all') {
+        return works;
+      }
+
+      const now = new Date();
+      let startDate: Date;
+      let endDate: Date = now;
+
+      switch (timeRange) {
+        case 'today':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'custom':
+          if (customRange) {
+            startDate = new Date(customRange.startDate);
+            endDate = new Date(customRange.endDate);
+          } else {
+            return works;
+          }
+          break;
+        default:
+          return works;
+      }
+
+      return works.filter(work => {
+        const workDate = new Date(work.createdAt);
+        return workDate >= startDate && workDate <= endDate;
+      });
     },
   }))
 );
