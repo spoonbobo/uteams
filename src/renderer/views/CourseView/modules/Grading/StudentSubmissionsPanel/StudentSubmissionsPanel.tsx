@@ -256,6 +256,9 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
       sx={{
         p: 3,
         backgroundColor: 'background.paper',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column', // Enable flex layout for HTabsPanel compatibility
       }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -297,8 +300,11 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
         component={Paper}
         sx={{
           mb: 2,
-          height: 'calc(100vh - 300px)',
+          flex: 1,
+          minHeight: 0, // Allow natural flexbox shrinking for HTabsPanel compatibility
+          maxHeight: '70vh', // Reasonable maximum height instead of viewport calculation
           backgroundColor: 'background.paper',
+          overflow: 'auto' // Let table handle its own scrolling within HTabsPanel
         }}
       >
         <Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}>

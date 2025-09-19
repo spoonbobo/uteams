@@ -87,13 +87,13 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
 
 
 
-      {/* Main Content Area - Optimized Layout */}
+      {/* Main Content Area - HTabsPanel Compatible Layout */}
       <Box sx={{
         display: 'flex',
         gap: 2,
         flex: 1,
-        height: 'calc(100vh - 200px)', // Fixed height to prevent overflow
-        minHeight: '600px'
+        minHeight: 0, // Allow natural flexbox shrinking for HTabsPanel compatibility
+        overflow: 'hidden' // Prevent content overflow, let HTabsPanel handle scrolling
       }}>
         {/* Left Side - Submission Preview */}
         <Box sx={{

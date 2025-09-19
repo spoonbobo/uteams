@@ -286,180 +286,6 @@ function Select({
     setJsonError(null);
   };
 
-  // Helper function to sanitize text for PDF creation (remove problematic Unicode characters)
-  const sanitizeTextForPdf = (text: string): string => {
-    if (!text || typeof text !== 'string') return '';
-
-    try {
-      return text
-      // First, remove null characters and other control characters (0x00-0x1F except tab, newline, carriage return)
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')  // Remove control characters except \t, \n, \r
-      .replace(/\x00/g, '')  // Explicitly remove null bytes
-      // Replace problematic Unicode characters with ASCII equivalents
-      .replace(/[−–—]/g, '-')  // Various dashes to hyphen
-      .replace(/['']/g, "'")   // Smart quotes to straight quotes
-      .replace(/[""]/g, '"')   // Smart quotes to straight quotes
-      .replace(/[…]/g, '...')  // Ellipsis to three dots
-      .replace(/[©]/g, '(c)')  // Copyright symbol
-      .replace(/[®]/g, '(r)')  // Registered trademark
-      .replace(/[™]/g, '(tm)') // Trademark
-      .replace(/[°]/g, ' deg') // Degree symbol
-      .replace(/[µ]/g, 'u')    // Micro symbol
-      .replace(/[×]/g, 'x')    // Multiplication sign
-      .replace(/[÷]/g, '/')    // Division sign
-
-      // Mathematical symbols - convert to readable ASCII equivalents
-      .replace(/[∗]/g, '*')    // Mathematical asterisk to regular asterisk
-      .replace(/[∙•]/g, '*')   // Bullet points to asterisk
-      .replace(/[≤]/g, '<=')   // Less than or equal
-      .replace(/[≥]/g, '>=')   // Greater than or equal
-      .replace(/[≠]/g, '!=')   // Not equal
-      .replace(/[≈]/g, '~=')   // Approximately equal
-      .replace(/[≡]/g, '===')  // Identical to
-      .replace(/[∞]/g, 'inf')  // Infinity
-      .replace(/[∑]/g, 'SUM')  // Summation
-      .replace(/[∏]/g, 'PROD') // Product
-      .replace(/[∫]/g, 'INT')  // Integral
-      .replace(/[√]/g, 'sqrt') // Square root
-      .replace(/[∛]/g, 'cbrt') // Cube root
-      .replace(/[±]/g, '+/-')  // Plus-minus
-      .replace(/[∓]/g, '-/+')  // Minus-plus
-      .replace(/[∝]/g, 'prop') // Proportional to
-      .replace(/[∀]/g, 'forall') // For all
-      .replace(/[∃]/g, 'exists') // There exists
-      .replace(/[∅]/g, 'empty') // Empty set
-      .replace(/[∈]/g, 'in')   // Element of
-      .replace(/[∉]/g, 'notin') // Not element of
-      .replace(/[⊂]/g, 'subset') // Subset of
-      .replace(/[⊃]/g, 'superset') // Superset of
-      .replace(/[∪]/g, 'union') // Union
-      .replace(/[∩]/g, 'intersect') // Intersection
-      .replace(/[∧]/g, 'AND')  // Logical and
-      .replace(/[∨]/g, 'OR')   // Logical or
-      .replace(/[¬]/g, 'NOT')  // Logical not
-      .replace(/[→]/g, '->')   // Right arrow
-      .replace(/[←]/g, '<-')   // Left arrow
-      .replace(/[↔]/g, '<->')  // Left-right arrow
-      .replace(/[⇒]/g, '=>')   // Right double arrow
-      .replace(/[⇐]/g, '<=')   // Left double arrow
-      .replace(/[⇔]/g, '<=>') // Left-right double arrow
-
-      // Greek letters commonly used in mathematics
-      .replace(/[α]/g, 'alpha')   // Greek alpha
-      .replace(/[β]/g, 'beta')    // Greek beta
-      .replace(/[γ]/g, 'gamma')   // Greek gamma
-      .replace(/[δ]/g, 'delta')   // Greek delta
-      .replace(/[ε]/g, 'epsilon') // Greek epsilon
-      .replace(/[ζ]/g, 'zeta')    // Greek zeta
-      .replace(/[η]/g, 'eta')     // Greek eta
-      .replace(/[θ]/g, 'theta')   // Greek theta
-      .replace(/[ι]/g, 'iota')    // Greek iota
-      .replace(/[κ]/g, 'kappa')   // Greek kappa
-      .replace(/[λ]/g, 'lambda')  // Greek lambda
-      .replace(/[μ]/g, 'mu')      // Greek mu
-      .replace(/[ν]/g, 'nu')      // Greek nu
-      .replace(/[ξ]/g, 'xi')      // Greek xi
-      .replace(/[π]/g, 'pi')      // Greek pi
-      .replace(/[ρ]/g, 'rho')     // Greek rho
-      .replace(/[σ]/g, 'sigma')   // Greek sigma
-      .replace(/[τ]/g, 'tau')     // Greek tau
-      .replace(/[υ]/g, 'upsilon') // Greek upsilon
-      .replace(/[φ]/g, 'phi')     // Greek phi
-      .replace(/[χ]/g, 'chi')     // Greek chi
-      .replace(/[ψ]/g, 'psi')     // Greek psi
-      .replace(/[ω]/g, 'omega')   // Greek omega
-
-      // Capital Greek letters
-      .replace(/[Α]/g, 'Alpha')   // Greek capital alpha
-      .replace(/[Β]/g, 'Beta')    // Greek capital beta
-      .replace(/[Γ]/g, 'Gamma')   // Greek capital gamma
-      .replace(/[Δ]/g, 'Delta')   // Greek capital delta
-      .replace(/[Ε]/g, 'Epsilon') // Greek capital epsilon
-      .replace(/[Ζ]/g, 'Zeta')    // Greek capital zeta
-      .replace(/[Η]/g, 'Eta')     // Greek capital eta
-      .replace(/[Θ]/g, 'Theta')   // Greek capital theta
-      .replace(/[Ι]/g, 'Iota')    // Greek capital iota
-      .replace(/[Κ]/g, 'Kappa')   // Greek capital kappa
-      .replace(/[Λ]/g, 'Lambda')  // Greek capital lambda
-      .replace(/[Μ]/g, 'Mu')      // Greek capital mu
-      .replace(/[Ν]/g, 'Nu')      // Greek capital nu
-      .replace(/[Ξ]/g, 'Xi')      // Greek capital xi
-      .replace(/[Π]/g, 'Pi')      // Greek capital pi
-      .replace(/[Ρ]/g, 'Rho')     // Greek capital rho
-      .replace(/[Σ]/g, 'Sigma')   // Greek capital sigma
-      .replace(/[Τ]/g, 'Tau')     // Greek capital tau
-      .replace(/[Υ]/g, 'Upsilon') // Greek capital upsilon
-      .replace(/[Φ]/g, 'Phi')     // Greek capital phi
-      .replace(/[Χ]/g, 'Chi')     // Greek capital chi
-      .replace(/[Ψ]/g, 'Psi')     // Greek capital psi
-      .replace(/[Ω]/g, 'Omega')   // Greek capital omega
-
-      // Superscript and subscript numbers (common in math)
-      .replace(/[⁰]/g, '^0')  // Superscript 0
-      .replace(/[¹]/g, '^1')  // Superscript 1
-      .replace(/[²]/g, '^2')  // Superscript 2
-      .replace(/[³]/g, '^3')  // Superscript 3
-      .replace(/[⁴]/g, '^4')  // Superscript 4
-      .replace(/[⁵]/g, '^5')  // Superscript 5
-      .replace(/[⁶]/g, '^6')  // Superscript 6
-      .replace(/[⁷]/g, '^7')  // Superscript 7
-      .replace(/[⁸]/g, '^8')  // Superscript 8
-      .replace(/[⁹]/g, '^9')  // Superscript 9
-      .replace(/[₀]/g, '_0')  // Subscript 0
-      .replace(/[₁]/g, '_1')  // Subscript 1
-      .replace(/[₂]/g, '_2')  // Subscript 2
-      .replace(/[₃]/g, '_3')  // Subscript 3
-      .replace(/[₄]/g, '_4')  // Subscript 4
-      .replace(/[₅]/g, '_5')  // Subscript 5
-      .replace(/[₆]/g, '_6')  // Subscript 6
-      .replace(/[₇]/g, '_7')  // Subscript 7
-      .replace(/[₈]/g, '_8')  // Subscript 8
-      .replace(/[₉]/g, '_9')  // Subscript 9
-
-      // Fractions
-      .replace(/[½]/g, '1/2')  // One half
-      .replace(/[⅓]/g, '1/3')  // One third
-      .replace(/[⅔]/g, '2/3')  // Two thirds
-      .replace(/[¼]/g, '1/4')  // One quarter
-      .replace(/[¾]/g, '3/4')  // Three quarters
-      .replace(/[⅕]/g, '1/5')  // One fifth
-      .replace(/[⅖]/g, '2/5')  // Two fifths
-      .replace(/[⅗]/g, '3/5')  // Three fifths
-      .replace(/[⅘]/g, '4/5')  // Four fifths
-      .replace(/[⅙]/g, '1/6')  // One sixth
-      .replace(/[⅚]/g, '5/6')  // Five sixths
-      .replace(/[⅐]/g, '1/7')  // One seventh
-      .replace(/[⅛]/g, '1/8')  // One eighth
-      .replace(/[⅜]/g, '3/8')  // Three eighths
-      .replace(/[⅝]/g, '5/8')  // Five eighths
-      .replace(/[⅞]/g, '7/8')  // Seven eighths
-      .replace(/[⅑]/g, '1/9')  // One ninth
-      .replace(/[⅒]/g, '1/10') // One tenth
-
-      // Remove other problematic Unicode ranges (mathematical operators, symbols, etc.)
-      .replace(/[\u2000-\u206F\u2070-\u209F\u20A0-\u20CF\u2100-\u214F\u2150-\u218F\u2190-\u21FF\u2200-\u22FF\u2300-\u23FF\u2460-\u24FF\u25A0-\u25FF\u2600-\u26FF]/g, ' ')
-
-      // Remove any remaining non-ASCII characters as last resort
-      .replace(/[^\x00-\x7F]/g, '?')
-
-      // Remove any remaining null characters that might have been introduced
-      .replace(/\0/g, '')
-
-      // Normalize whitespace and clean up
-      .replace(/\s+/g, ' ')
-      .replace(/\t/g, '    ')  // Convert tabs to spaces
-      .replace(/\r\n/g, '\n')  // Normalize line endings
-      .replace(/\r/g, '\n')    // Convert remaining carriage returns
-      .trim();
-    } catch (error) {
-      console.warn('[PDF Sanitizer] Error sanitizing text:', error);
-      // Fallback: return a safe version of the text
-      return String(text || '')
-        .replace(/[\x00-\x1F\x7F]/g, '')  // Remove all control characters
-        .replace(/[^\x20-\x7E]/g, '?')    // Replace non-printable ASCII with ?
-        .trim() || 'Unable to process text content';
-    }
-  };
 
   // Handle real-time highlighting of current PDF
   const handleHighlightCurrentPdf = async () => {
@@ -698,10 +524,8 @@ function Select({
               <Paper
                 sx={{
                   p: 2,
-                  border: '2px solid',
-                  borderColor: generationType === 'current' ? 'primary.main' : 'divider',
-                  backgroundColor: generationType === 'current' ? 'action.selected' : 'background.paper',
-                  transition: 'all 0.2s ease',
+                  border: '1px solid',
+                  borderColor: 'divider',
                   flex: 1,
                 }}
               >
@@ -728,11 +552,9 @@ function Select({
               <Paper
                 sx={{
                   p: 2,
-                  border: '2px solid',
-                  borderColor: generationType === 'new' ? 'primary.main' : 'divider',
-                  backgroundColor: generationType === 'new' ? 'action.selected' : 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider',
                   opacity: 0.5,
-                  transition: 'all 0.2s ease',
                   flex: 1,
                 }}
               >
@@ -782,15 +604,9 @@ function Select({
                 sx={{
                   p: 2,
                   cursor: 'pointer',
-                  border: '2px solid',
-                  borderColor: selectedCoursework.includes(assignment.id.toString())
-                    ? 'primary.main'
-                    : 'divider',
-                  backgroundColor: selectedCoursework.includes(assignment.id.toString())
-                    ? 'action.selected'
-                    : 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider',
                   '&:hover': {
-                    borderColor: 'primary.main',
                     backgroundColor: 'action.hover',
                   },
                 }}
@@ -820,7 +636,7 @@ function Select({
                     </Box>
                   </Box>
                   {selectedCoursework.includes(assignment.id.toString()) && (
-                    <SchoolIcon color="primary" sx={{ ml: 2 }} />
+                    <SchoolIcon color="action" sx={{ ml: 2, opacity: 0.7 }} />
                   )}
                 </Box>
               </Paper>
@@ -856,23 +672,19 @@ function Select({
                   key={assignmentId}
                   sx={{
                     p: 3,
-                    border: '2px solid',
-                    borderColor: 'primary.main',
-                    backgroundColor: 'action.selected',
+                    border: '1px solid',
+                    borderColor: 'divider',
                   }}
                 >
                   {/* Assignment Header */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <SchoolIcon color="primary" />
+                    <SchoolIcon color="action" sx={{ opacity: 0.7 }} />
                     <Typography variant="h6" sx={{ fontWeight: 500, flex: 1 }}>
                       {assignment.name}
                     </Typography>
-                    <Chip
-                      size="small"
-                      label={`${attachments.length} ${intl.formatMessage({ id: 'courseworkGenerator.attachments' })}`}
-                      variant="outlined"
-                      color="primary"
-                    />
+                    <Typography variant="body2" color="text.secondary">
+                      {attachments.length} {intl.formatMessage({ id: 'courseworkGenerator.attachments' })}
+                    </Typography>
                   </Box>
 
                   {/* Assignment Description */}
@@ -914,9 +726,8 @@ function Select({
                               sx={{
                                 p: 1.5,
                                 border: '1px solid',
-                                borderColor: hasParsedContent ? 'success.main' : 'divider',
-                                backgroundColor: hasParsedContent ? 'success.light' : 'background.paper',
-                                opacity: hasParsedContent ? 1 : 0.9,
+                                borderColor: 'divider',
+                                backgroundColor: 'background.paper',
                               }}
                             >
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -937,47 +748,26 @@ function Select({
 
                                 {/* PDF Actions */}
                                 {isPdf && attachment.fileurl && (
-                                  <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                    <Tooltip title={pdfLoading ? "Loading PDF..." : "Preview PDF"}>
-                                      <span>
-                                        <IconButton
-                                          size="small"
-                                          onClick={() => handlePdfPreview(attachment, assignmentId)}
-                                          disabled={pdfLoading || jsonLoading}
-                                        >
-                                          {pdfLoading ? (
-                                            <CircularProgress size={16} />
-                                          ) : (
-                                            <VisibilityIcon fontSize="small" />
-                                          )}
-                                        </IconButton>
-                                      </span>
-                                    </Tooltip>
-
-                                    <Tooltip title={jsonLoading ? "Parsing PDF..." : "Parse to AI-Ready JSON"}>
-                                      <span>
-                                        <IconButton
-                                          size="small"
-                                          onClick={() => handlePdfParseJson(attachment, assignmentId)}
-                                          disabled={pdfLoading || jsonLoading}
-                                        >
-                                          {jsonLoading ? (
-                                            <CircularProgress size={16} />
-                                          ) : (
-                                            <DataObjectIcon fontSize="small" />
-                                          )}
-                                        </IconButton>
-                                      </span>
-                                    </Tooltip>
-                                  </Box>
+                                  <Tooltip title={jsonLoading ? "Parsing PDF..." : "Parse to AI-Ready JSON"}>
+                                    <span>
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => handlePdfParseJson(attachment, assignmentId)}
+                                        disabled={pdfLoading || jsonLoading}
+                                      >
+                                        {jsonLoading ? (
+                                          <CircularProgress size={16} />
+                                        ) : (
+                                          <DataObjectIcon fontSize="small" />
+                                        )}
+                                      </IconButton>
+                                    </span>
+                                  </Tooltip>
                                 )}
 
-                                <Chip
-                                  size="small"
-                                  label={isPdf ? (hasParsedContent ? 'PDF ✓' : 'PDF') : (attachment.type || 'file')}
-                                  variant="outlined"
-                                  color={hasParsedContent ? 'success' : (isPdf ? 'error' : 'default')}
-                                />
+                                <Typography variant="caption" color="text.secondary">
+                                  {isPdf ? (hasParsedContent ? 'PDF ✓' : 'PDF') : (attachment.type || 'file')}
+                                </Typography>
                               </Box>
                             </Paper>
                           );
@@ -1002,7 +792,6 @@ function Select({
         {/* Highlight Current PDF Button */}
         <Button
           variant="outlined"
-          size="large"
           disabled={!selectedPdfPath || highlightLoading}
           onClick={handleHighlightCurrentPdf}
           startIcon={highlightLoading ? <CircularProgress size={20} /> : <HighlightIcon />}
@@ -1014,7 +803,6 @@ function Select({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Button
             variant="contained"
-            size="large"
             disabled={
               generationType !== 'current' ||
               selectedCoursework.length === 0 ||

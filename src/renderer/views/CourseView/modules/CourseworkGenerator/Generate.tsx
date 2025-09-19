@@ -605,17 +605,6 @@ ${assignment.intro || 'No content available'}
           )}
         </Box>
 
-        {/* Raw Response Display */}
-        {rawResponse && (
-          <Paper variant="outlined" sx={{ mt: 2, p: 2, maxHeight: 200, overflow: 'auto' }}>
-            <Typography variant="h6" gutterBottom>
-              {intl.formatMessage({ id: 'courseworkGenerator.generate.result' }, { defaultMessage: 'Generation Result' })}
-            </Typography>
-            <Typography variant="body2" component="pre" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
-              {rawResponse}
-            </Typography>
-          </Paper>
-        )}
       </Box>
     </HTabPanel>
   );

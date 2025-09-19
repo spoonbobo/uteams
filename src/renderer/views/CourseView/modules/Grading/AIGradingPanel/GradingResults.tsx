@@ -345,7 +345,7 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
-      overflow: 'hidden'
+      minHeight: 0 // Allow natural flexbox shrinking for HTabsPanel compatibility
     }}>
       {/* Simple Header */}
       <Typography
@@ -363,15 +363,15 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden'
+        minHeight: 0 // Allow natural flexbox shrinking, let HTabsPanel handle overflow
       }}>
         {/* Show grading results if available */}
         {gradingResult ? (
           <Box sx={{
-            height: '100%',
+            flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'auto',
+            minHeight: 0, // Allow natural flexbox shrinking
             gap: 2
           }}>
             {/* Clean Score Display */}

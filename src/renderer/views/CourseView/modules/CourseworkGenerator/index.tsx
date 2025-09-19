@@ -127,7 +127,13 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
   ];
 
   return (
-    <Box sx={{ p: 3, backgroundColor: 'inherit' }}>
+    <Box sx={{
+      p: 3,
+      backgroundColor: 'inherit',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column' // Enable flex layout for HTabsPanel compatibility
+    }}>
       {/* Header */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 500 }}>
@@ -136,8 +142,14 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
         </Typography>
       </Box>
 
-      {/* Split Layout: PDF Preview (50%) + Content (50%) */}
-      <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 200px)' }}>
+      {/* Split Layout: PDF Preview (50%) + Content (50%) - HTabsPanel Compatible */}
+      <Box sx={{
+        display: 'flex',
+        gap: 2,
+        flex: 1,
+        minHeight: 0, // Allow natural flexbox shrinking for HTabsPanel compatibility
+        maxHeight: '75vh' // Reasonable maximum height instead of viewport calculation
+      }}>
         {/* Left Side: PDF Preview */}
         <Box sx={{ width: '50%', display: 'flex', flexDirection: 'column' }}>
           <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
