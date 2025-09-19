@@ -204,27 +204,37 @@ export function HTabsPanel({
           pt: 0,
           // Style the horizontal scrollbar for this container
           '&::-webkit-scrollbar': {
-            height: 4, // Very thin horizontal scrollbar
-            width: 4, // Very thin vertical scrollbar (if ever needed)
+            height: 2, // Ultra-thin horizontal scrollbar
+            width: 2, // Ultra-thin vertical scrollbar (if ever needed)
           },
           '&::-webkit-scrollbar-track': {
             backgroundColor: 'transparent', // No background
-            borderRadius: 2,
           },
           '&::-webkit-scrollbar-thumb': {
-            backgroundColor: alpha(theme.palette.action.disabled, 0.4),
-            borderRadius: 2,
-            transition: theme.transitions.create('background-color'),
+            backgroundColor:
+              theme.palette.mode === 'dark'
+                ? alpha(theme.palette.grey[500], 0.4)
+                : alpha(theme.palette.grey[400], 0.4),
+            borderRadius: 1,
+            transition: theme.transitions.create(['background-color'], {
+              duration: theme.transitions.duration.short,
+            }),
             '&:hover': {
-              backgroundColor: alpha(theme.palette.action.disabled, 0.6),
+              backgroundColor:
+                theme.palette.mode === 'dark'
+                  ? alpha(theme.palette.grey[400], 0.6)
+                  : alpha(theme.palette.grey[500], 0.6),
             },
             '&:active': {
-              backgroundColor: alpha(theme.palette.primary.main, 0.6),
+              backgroundColor: alpha(theme.palette.primary.main, 0.7),
             },
           },
           // Firefox scrollbar styling
           scrollbarWidth: 'thin',
-          scrollbarColor: `${alpha(theme.palette.action.disabled, 0.4)} transparent`,
+          scrollbarColor:
+            theme.palette.mode === 'dark'
+              ? `${alpha(theme.palette.grey[500], 0.4)} transparent`
+              : `${alpha(theme.palette.grey[400], 0.4)} transparent`,
           // Hide all scrollbars for nested content
           '& *': {
             '&::-webkit-scrollbar': {

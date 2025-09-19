@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useGradingStore } from '../../../../stores/useGradingStore';
-import { createGradingPrompt } from '../../prompts/gradingPrompt';
+import { useGradingStore } from '@/stores/useGradingStore';
+import { createGradingPrompt } from '../../../prompts/gradingPrompt';
 import type { SubmissionFile, CollapsedCategories, SubmitGradeDialogData } from './types';
-import type { StudentSubmissionData } from '../../../../types/grading';
-import type { MoodleAssignment } from '../../../../types/moodle';
-import type { DocxContent } from '../../../../components/DocxPreview/types';
+import type { StudentSubmissionData } from '@/types/grading';
+import type { MoodleAssignment } from '@/types/moodle';
+import type { DocxContent } from '@/components/DocxPreview/types';
 
 export const useSubmissionFiles = (selectedSubmission: string | null, selectedAssignment: string) => {
   const [submissionFiles, setSubmissionFiles] = useState<SubmissionFile[]>([]);
@@ -48,21 +48,21 @@ export const useSubmissionFiles = (selectedSubmission: string | null, selectedAs
 
         // Download and parse DOCX files
         for (const file of filesResult.data) {
-          if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+          if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
               file.filename.toLowerCase().endsWith('.docx')) {
-            
+
             const uniqueFilename = `${selectedSubmission}_${selectedAssignment}_${file.filename}`;
-            
+
             let downloadUrl = file.fileurl;
             if (downloadUrl && !downloadUrl.includes('token=')) {
               const separator = downloadUrl.includes('?') ? '&' : '?';
               downloadUrl = `${downloadUrl}${separator}token=${config.apiKey}`;
             }
-            
+
             let success = false;
             let lastError = '';
             const maxRetries = 3;
-            
+
             for (let attempt = 1; attempt <= maxRetries && !success; attempt++) {
               try {
                 const downloadResult = await window.electron.ipcRenderer.invoke('fileio:download-file', {
@@ -77,7 +77,7 @@ export const useSubmissionFiles = (selectedSubmission: string | null, selectedAs
 
                 if (downloadResult.success) {
                   await new Promise(resolve => setTimeout(resolve, 100));
-                  
+
                   const parseResult = await window.electron.ipcRenderer.invoke('docx:parse-file', {
                     filePath: downloadResult.filePath
                   });
@@ -88,7 +88,7 @@ export const useSubmissionFiles = (selectedSubmission: string | null, selectedAs
                   } else {
                     lastError = parseResult.error;
                     console.error(`[StudentPanel] Failed to parse DOCX on attempt ${attempt}:`, parseResult.error);
-                    
+
                     if (parseResult.error.includes('Corrupted zip') || parseResult.error.includes('End of data reached')) {
                       continue;
                     } else {
@@ -103,16 +103,16 @@ export const useSubmissionFiles = (selectedSubmission: string | null, selectedAs
                 lastError = error.message;
                 console.error(`[StudentPanel] Exception on attempt ${attempt}:`, error);
               }
-              
+
               if (attempt < maxRetries && !success) {
                 await new Promise(resolve => setTimeout(resolve, 500 * attempt));
               }
             }
-            
+
             if (!success) {
               setFileError(`Failed to download and parse ${file.filename} after ${maxRetries} attempts: ${lastError}`);
             }
-            
+
             break;
           }
         }
@@ -174,8 +174,8 @@ export const useDialogStates = () => {
   const [dialogFilename, setDialogFilename] = useState<string>('');
   const [submitGradeDialogOpen, setSubmitGradeDialogOpen] = useState(false);
   const [submitGradeDialogData, setSubmitGradeDialogData] = useState<SubmitGradeDialogData>({
-    assignment: '', 
-    submission: '' 
+    assignment: '',
+    submission: ''
   });
 
   const handleDialogClose = () => {
@@ -316,16 +316,16 @@ export const useGradingActions = (selectedAssignment: string) => {
 
   const handleStartGrading = async (studentId: string, studentFiles: Record<string, SubmissionFile[]>, loadStudentFiles: (id: string) => Promise<SubmissionFile[]>) => {
     if (!selectedAssignment) return;
-    
+
     startGrading(studentId);
-    
+
     try {
       const files = studentFiles[studentId] || await loadStudentFiles(studentId);
-      const docxFile = files.find((f: SubmissionFile) => 
-        f.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+      const docxFile = files.find((f: SubmissionFile) =>
+        f.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
         f.filename.toLowerCase().endsWith('.docx')
       );
-      
+
       if (!docxFile) {
         console.error('No DOCX file found for student');
         setGradingError(studentId);
@@ -346,7 +346,7 @@ export const useGradingActions = (selectedAssignment: string) => {
 
       const config = configResult.data;
       const uniqueFilename = `${studentId}_${selectedAssignment}_${docxFile.filename}`;
-      
+
       let downloadUrl = docxFile.fileurl;
       if (downloadUrl && !downloadUrl.includes('token=')) {
         const separator = downloadUrl.includes('?') ? '&' : '?';
@@ -368,7 +368,7 @@ export const useGradingActions = (selectedAssignment: string) => {
       }
 
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       const parseResult = await window.electron.ipcRenderer.invoke('docx:parse-file', {
         filePath: downloadResult.filePath
       });
@@ -380,7 +380,7 @@ export const useGradingActions = (selectedAssignment: string) => {
       const docxContent = parseResult.content;
       const rubricData = rubricContent.html || rubricContent.text;
       const submissionData = docxContent.html || docxContent.text;
-      
+
       const gradingPrompt = createGradingPrompt({
         rubricData,
         submissionData
@@ -392,22 +392,22 @@ export const useGradingActions = (selectedAssignment: string) => {
       }
 
       const sessionId = `grading-${selectedAssignment}-${studentId}`;
-      
+
       console.log('🎯 Starting AI Grading for student:', studentId, 'Session:', sessionId);
-      
+
       // Initialize grading stream BEFORE starting any async operations
       initGradingStream(sessionId);
-      
+
       return new Promise<void>((resolve, reject) => {
         let resultReceived = false;
 
         // Track token reception for debugging
         let tokenCount = 0;
         let lastTokenTime = Date.now();
-        
+
         // Debounce timer for processing stream
         let processDebounceTimer: NodeJS.Timeout | null = null;
-        
+
         // Handlers receive payload only per preload bridge contract
         const onToken = (payload: { sessionId: string; token: string; node?: string }) => {
           if (payload?.sessionId !== sessionId) return;
@@ -415,16 +415,16 @@ export const useGradingActions = (selectedAssignment: string) => {
           const now = Date.now();
           const timeSinceLastToken = now - lastTokenTime;
           lastTokenTime = now;
-          
+
           // Log every 50th token for debugging
           if (tokenCount % 50 === 0) {
             console.log(`[Tokens] Session ${sessionId}: Received ${tokenCount} tokens, last gap: ${timeSinceLastToken}ms`);
           }
-          
+
           try {
             // Always append the token immediately
             appendToGradingStream(sessionId, payload.token);
-            
+
             // Debounce the processing to avoid excessive updates
             if (processDebounceTimer) {
               clearTimeout(processDebounceTimer);
@@ -443,28 +443,28 @@ export const useGradingActions = (selectedAssignment: string) => {
 
         // Track if onDone has been called
         let onDoneReceived = false;
-        
+
         const onDone = (payload: { sessionId: string; resultSummary?: string }) => {
           if (payload?.sessionId !== sessionId) return;
-          
+
           console.log('✅ Grading complete for session:', sessionId, {
             hasResultSummary: !!payload.resultSummary,
             resultSummaryType: typeof payload.resultSummary,
             resultSummaryLength: typeof payload.resultSummary === 'string' ? payload.resultSummary.length : 'N/A'
           });
           onDoneReceived = true;
-          
+
           // Clear any pending debounce timer and process immediately
           if (processDebounceTimer) {
             clearTimeout(processDebounceTimer);
             processDebounceTimer = null;
           }
-          
+
           // Ensure stream exists (in case onDone fires very early)
           try {
             initGradingStream(sessionId);
           } catch {}
-          
+
           // Try to parse resultSummary if provided (could be from event or fallback)
           if (payload.resultSummary && typeof payload.resultSummary === 'string') {
             try {
@@ -472,13 +472,13 @@ export const useGradingActions = (selectedAssignment: string) => {
               if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);
                 console.log('📋 Parsed grading result from resultSummary for student:', studentId, parsed);
-                
+
                 // Append the JSON to stream buffer to be processed
                 appendToGradingStream(sessionId, JSON.stringify(parsed));
-                
+
                 // Process the stream to extract the result
                 processGradingStream(sessionId, selectedAssignment, studentId);
-                
+
                 // Also save directly as fallback
                 saveDetailedGradingRecord(selectedAssignment, studentId, parsed);
                 console.log('💾 Grading results saved from resultSummary for student:', studentId);
@@ -505,7 +505,7 @@ export const useGradingActions = (selectedAssignment: string) => {
             reject(new Error('Invalid response format'));
             return;
           }
-          
+
           // Process any final buffered stream content before finishing
           try {
             processGradingStream(sessionId, selectedAssignment, studentId);
@@ -528,8 +528,8 @@ export const useGradingActions = (selectedAssignment: string) => {
               bufferLength: stream?.streamBuffer?.length || 0,
               hasTempResult: !!stream?.tempResult,
               tokenCount: tokenCount,
-              bufferPreview: stream?.streamBuffer ? 
-                (stream.streamBuffer.length > 200 ? 
+              bufferPreview: stream?.streamBuffer ?
+                (stream.streamBuffer.length > 200 ?
                   stream.streamBuffer.substring(0, 100) + '...' + stream.streamBuffer.substring(stream.streamBuffer.length - 100) :
                   stream.streamBuffer) : 'No buffer'
             });
@@ -540,9 +540,9 @@ export const useGradingActions = (selectedAssignment: string) => {
         const onError = (payload: { sessionId: string; error: string }) => {
           if (payload?.sessionId !== sessionId) return;
           console.error('❌ AI Error for session:', sessionId, payload.error);
-          
+
           setGradingError(studentId);
-          
+
           cleanup();
           reject(new Error(payload.error));
         };
@@ -574,17 +574,17 @@ export const useGradingActions = (selectedAssignment: string) => {
         };
 
 
-        ipc?.invoke?.('chat:agent:run', { 
-          sessionId, 
-          prompt: gradingPrompt 
+        ipc?.invoke?.('chat:agent:run', {
+          sessionId,
+          prompt: gradingPrompt
         }).then((response: any) => {
-          console.log('📬 IPC Response for session:', sessionId, { 
-            success: response?.success, 
+          console.log('📬 IPC Response for session:', sessionId, {
+            success: response?.success,
             hasResultSummary: !!response?.resultSummary,
             onDoneReceived,
-            resultReceived 
+            resultReceived
           });
-          
+
           if (response?.success && response?.resultSummary && !resultReceived) {
             // Check if resultSummary is actually a string with JSON content
             if (typeof response.resultSummary === 'string') {
@@ -595,7 +595,7 @@ export const useGradingActions = (selectedAssignment: string) => {
                   console.log('📋 Immediate grading result for student:', studentId, parsed);
                   saveDetailedGradingRecord(selectedAssignment, studentId, parsed);
                   resultReceived = true;
-                  
+
                   // If onDone was already called and we didn't have results then, finish now
                   if (onDoneReceived) {
                     console.log('📋 onDone was already called, finishing now with IPC results');
@@ -650,7 +650,7 @@ export const useGradingActions = (selectedAssignment: string) => {
           reject(error);
         });
       });
-      
+
     } catch (error: any) {
       console.error('❌ Error during AI grading:', error);
       setGradingError(studentId);

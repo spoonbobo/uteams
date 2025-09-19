@@ -737,6 +737,9 @@
   },
   "courseworkGenerator": {
     "title": "課業產生器",
+    "selectedSummary": "已選擇課業摘要",
+    "notSpecified": "未指定",
+    "noAssignments": "此課程沒有可用的作業。",
     "tabs": {
       "selectCoursework": "選擇課業",
       "generate": "產生"
@@ -750,6 +753,19 @@
       "noDescription": "沒有可用的描述",
       "proceedToGenerate": "繼續產生"
     },
+    "generationType": {
+      "title": "產生類型",
+      "current": "基於現有作業",
+      "currentDescription": "根據此課程的現有作業和材料產生課業",
+      "new": "創建新課業",
+      "newDescription": "產生全新的課業問題和材料"
+    },
+    "comingSoon": "即將推出",
+    "noDescription": "沒有可用的描述",
+    "selectedAssignments": "已選擇的作業",
+    "attachments": "附件",
+    "noAttachments": "未找到附件",
+    "loadingAttachments": "載入附件中...",
     "dueDate": "截止日期",
     "maxGrade": "最高分數",
     "proceedToGenerate": "繼續產生",
@@ -757,6 +773,7 @@
       "title": "產生課業",
       "description": "配置課業設定並根據選擇的材料產生問題。",
       "configuration": "課業配置",
+      "configurationSummary": "配置摘要",
       "examType": "課業類型",
       "examTypePlaceholder": "例如：作業、測驗、練習、評估",
       "instructions": "特殊說明",

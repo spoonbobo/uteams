@@ -17,7 +17,7 @@ import {
   Stop as StopIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
-import type { StudentSubmissionData } from '../../../../types/grading';
+import type { StudentSubmissionData } from '@/types/grading';
 import type { SubmissionFile } from './types';
 import { getSubmissionStatus, getGradeStatus, getInitials, getAvatarColor } from './utils';
 
@@ -62,8 +62,8 @@ export const StudentRow: React.FC<StudentRowProps> = ({
   const submissionStatus = getSubmissionStatus(data);
   const gradeStatus = getGradeStatus(data);
   const hasSubmission = data.submission && data.submission.status === 'submitted';
-  const docxFile = files.find((f: SubmissionFile) => 
-    f.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+  const docxFile = files.find((f: SubmissionFile) =>
+    f.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
     f.filename.toLowerCase().endsWith('.docx')
   );
 
@@ -138,8 +138,8 @@ export const StudentRow: React.FC<StudentRowProps> = ({
                     onClick={async () => {
                       if (!files.length) {
                         const loadedFiles = await onLoadStudentFiles(data.student.id);
-                        const loadedDocxFile = loadedFiles.find((f: SubmissionFile) => 
-                          f.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+                        const loadedDocxFile = loadedFiles.find((f: SubmissionFile) =>
+                          f.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
                           f.filename.toLowerCase().endsWith('.docx')
                         );
                         if (loadedDocxFile) {
@@ -182,10 +182,10 @@ export const StudentRow: React.FC<StudentRowProps> = ({
         {hasSubmission ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
             {/* Start Grading */}
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: (hasAIResults || isCurrentlyGrading) ? 'text.disabled' : 'primary.main', 
+            <Typography
+              variant="caption"
+              sx={{
+                color: (hasAIResults || isCurrentlyGrading) ? 'text.disabled' : 'primary.main',
                 cursor: (hasAIResults || isCurrentlyGrading) ? 'not-allowed' : 'pointer',
                 textDecoration: (hasAIResults || isCurrentlyGrading) ? 'none' : 'underline',
                 fontWeight: 500,
@@ -197,13 +197,13 @@ export const StudentRow: React.FC<StudentRowProps> = ({
             >
               {intl.formatMessage({ id: 'grading.submissions.actions.startGrading' })}
             </Typography>
-            
+
             {/* Clear Grading - only show if there are AI results */}
             {hasAIResults && (
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  color: 'error.main', 
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'error.main',
                   cursor: 'pointer',
                   textDecoration: 'underline',
                   fontWeight: 500,
@@ -229,7 +229,7 @@ export const StudentRow: React.FC<StudentRowProps> = ({
       </TableCell>
 
       {/* Autograde Result Column */}
-      <TableCell align="center" sx={{ 
+      <TableCell align="center" sx={{
         borderLeft: '3px solid',
         borderLeftColor: gradingRecord?.hasError ? 'error.main' : 'primary.main',
         borderRight: '3px solid',
@@ -254,10 +254,10 @@ export const StudentRow: React.FC<StudentRowProps> = ({
                 </IconButton>
               </Tooltip>
             </Box>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: 'primary.main', 
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'primary.main',
                 cursor: 'pointer',
                 textDecoration: 'underline',
                 '&:hover': {
@@ -279,14 +279,14 @@ export const StudentRow: React.FC<StudentRowProps> = ({
           </Box>
         ) : gradingRecord?.hasError ? (
           /* Show error state with error message tooltip */
-          <Tooltip 
-            title={gradingRecord.errorMessage || 'An error occurred during grading'} 
+          <Tooltip
+            title={gradingRecord.errorMessage || 'An error occurred during grading'}
             arrow
             placement="top"
           >
-            <Typography 
-              variant="caption" 
-              sx={{ 
+            <Typography
+              variant="caption"
+              sx={{
                 color: 'error.main',
                 fontWeight: 600,
                 cursor: 'help',
@@ -306,10 +306,10 @@ export const StudentRow: React.FC<StudentRowProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
             {/* Score with hover feedback */}
             <Tooltip title={gradingRecord.aiGradeResult.feedback} arrow>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontWeight: 600, 
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
                   color: 'primary.main',
                   cursor: 'help'
                 }}
@@ -317,12 +317,12 @@ export const StudentRow: React.FC<StudentRowProps> = ({
                 {gradingRecord.aiGradeResult.grade}
               </Typography>
             </Tooltip>
-            
+
             {/* View detail text */}
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: 'primary.main', 
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'primary.main',
                 cursor: 'pointer',
                 textDecoration: 'underline',
                 '&:hover': {

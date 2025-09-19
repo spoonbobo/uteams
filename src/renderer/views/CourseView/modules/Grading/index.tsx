@@ -13,9 +13,9 @@ import { HTabsPanel, type TabSection } from '@/components/HTabsPanel';
 
 import {
   AssignmentSelectionPanel,
-  AIGradingPanel,
-} from '../components';
-import { StudentSubmissionsPanel } from '../components/StudentSubmissionsPanel';
+} from './AssignmentSelectionPanel';
+import { AIGradingPanel } from './AIGradingPanel';
+import { StudentSubmissionsPanel } from './StudentSubmissionsPanel';
 
 interface GradingViewProps {
   sessionContext: CourseSessionContext;

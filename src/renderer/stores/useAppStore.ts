@@ -67,10 +67,10 @@ export const useAppStore = create<AppState>()(
         // Initial state
         theme: getSystemTheme(),
         locale: getSystemLocale(),
-        colorPalette: 'blue',
+        colorPalette: 'indigo',
         background: {
           type: 'color',
-          value: '#1a1a1a',
+          value: '#000000',
           images: [],
           scrollEnabled: false,
           scrollSpeed: 30, // default 30 pixels per second

@@ -30,7 +30,7 @@ import {
 import type { MoodleAssignment } from '@/types/moodle';
 import type { GradingStats, RubricContent } from '@/types/grading';
 import DocxPreview from '@/components/DocxPreview/DocxPreview';
-import DocxDialog from './DocxDialog';
+import DocxDialog from '@/components/DocxPreview/DocxDialog';
 import { useIntl } from 'react-intl';
 
 interface AssignmentSelectionPanelProps {

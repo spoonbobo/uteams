@@ -18,11 +18,11 @@ async function getUserId(baseUrl: string, apiKey: string): Promise<number> {
       moodlewsrestformat: 'json'
     }
   });
-  
+
   if (response.data && response.data.userid) {
     return response.data.userid;
   }
-  
+
   throw new Error('Could not get user ID');
 }
 
@@ -39,7 +39,7 @@ export function setupMoodleHandlers() {
 
   // Add API handlers
   setupMoodleApiHandlers();
-  
+
   // Add configuration handlers
   setupMoodleConfigHandlers();
 }
@@ -135,7 +135,7 @@ export function setupMoodleApiHandlers() {
       }
     } catch (error: any) {
       console.error('[Moodle API] Error getting courses:', error.message);
-      
+
       return {
         success: false,
         error: error.message || 'Failed to fetch courses'
@@ -180,7 +180,7 @@ export function setupMoodleApiHandlers() {
     try {
       // Ensure courseId is numeric
       let numericCourseId = parseInt(args.courseId);
-      
+
       if (isNaN(numericCourseId)) {
         // Find the numeric course ID
         const coursesResponse = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, {
@@ -191,12 +191,12 @@ export function setupMoodleApiHandlers() {
             userid: await getUserId(args.baseUrl, args.apiKey)
           }
         });
-        
+
         if (coursesResponse.data && Array.isArray(coursesResponse.data)) {
-          const course = coursesResponse.data.find((c: any) => 
+          const course = coursesResponse.data.find((c: any) =>
             c.shortname === args.courseId || c.fullname.includes(args.courseId)
           );
-          
+
           if (course) {
             numericCourseId = parseInt(course.id);
           } else {
@@ -207,7 +207,7 @@ export function setupMoodleApiHandlers() {
           }
         }
       }
-      
+
       const response = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, {
         params: {
           wstoken: args.apiKey,
@@ -241,7 +241,7 @@ export function setupMoodleApiHandlers() {
     try {
       // Ensure courseId is numeric
       let numericCourseId = parseInt(args.courseId);
-      
+
       if (isNaN(numericCourseId)) {
         // Find the numeric course ID
         const coursesResponse = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, {
@@ -252,12 +252,12 @@ export function setupMoodleApiHandlers() {
             userid: await getUserId(args.baseUrl, args.apiKey)
           }
         });
-        
+
         if (coursesResponse.data && Array.isArray(coursesResponse.data)) {
-          const course = coursesResponse.data.find((c: any) => 
+          const course = coursesResponse.data.find((c: any) =>
             c.shortname === args.courseId || c.fullname.includes(args.courseId)
           );
-          
+
           if (course) {
             numericCourseId = parseInt(course.id);
           } else {
@@ -268,7 +268,7 @@ export function setupMoodleApiHandlers() {
           }
         }
       }
-      
+
       const response = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, {
         params: {
           wstoken: args.apiKey,
@@ -280,7 +280,7 @@ export function setupMoodleApiHandlers() {
 
       if (response.data && Array.isArray(response.data)) {
         // Flatten activities from all sections
-        const activities = response.data.flatMap((section: any) => 
+        const activities = response.data.flatMap((section: any) =>
           // @ts-ignore
           section.modules?.map((module: any) => ({
             id: module.id,
@@ -404,10 +404,10 @@ export function setupMoodleApiHandlers() {
     try {
       // Ensure courseId is numeric - try to parse it or find the actual course ID
       let numericCourseId = parseInt(args.courseId);
-      
+
       // If courseId is not numeric (like "COMP7404"), we need to find the actual course ID first
       if (isNaN(numericCourseId)) {
-        
+
         // First get all courses to find the numeric ID
         const coursesResponse = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, {
           params: {
@@ -417,12 +417,12 @@ export function setupMoodleApiHandlers() {
             userid: await getUserId(args.baseUrl, args.apiKey)
           }
         });
-        
+
         if (coursesResponse.data && Array.isArray(coursesResponse.data)) {
-          const course = coursesResponse.data.find((c: any) => 
+          const course = coursesResponse.data.find((c: any) =>
             c.shortname === args.courseId || c.fullname.includes(args.courseId)
           );
-          
+
           if (course) {
             numericCourseId = parseInt(course.id);
           } else {
@@ -433,7 +433,7 @@ export function setupMoodleApiHandlers() {
           }
         }
       }
-      
+
       // Get the full details for assignments
       const assignmentsResponse = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, {
         params: {
@@ -448,7 +448,7 @@ export function setupMoodleApiHandlers() {
       if (assignmentsResponse.data && assignmentsResponse.data.courses && assignmentsResponse.data.courses.length > 0) {
         // The assignments are nested inside the courses array
         const rawAssignments = assignmentsResponse.data.courses.flatMap((course: any) => course.assignments || []);
-        
+
         // Get course contents to find module IDs for assignments
         const contentsResponse = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, {
           params: {
@@ -495,15 +495,15 @@ export function setupMoodleApiHandlers() {
   });
 
   // Get submission files for a specific user and assignment
-  ipcMain.handle('moodle:get-submission-files', async (event, args: { 
-    baseUrl: string; 
-    apiKey: string; 
-    assignmentId: string; 
-    userId: string; 
+  ipcMain.handle('moodle:get-submission-files', async (event, args: {
+    baseUrl: string;
+    apiKey: string;
+    assignmentId: string;
+    userId: string;
   }) => {
     try {
       // Try multiple approaches to get submission files
-      
+
       // Approach 1: Use mod_assign_get_submission_status
       const statusParams = {
         wstoken: args.apiKey,
@@ -512,29 +512,29 @@ export function setupMoodleApiHandlers() {
         assignid: args.assignmentId,
         userid: args.userId
       };
-      
+
       const statusResponse = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, { params: statusParams });
 
       let files: any[] = [];
-      
+
       // Extract files from status response
       if (statusResponse.data) {
         const data = statusResponse.data;
-        
+
         // Check lastattempt
         if (data.lastattempt && data.lastattempt.submission && data.lastattempt.submission.plugins) {
           for (const plugin of data.lastattempt.submission.plugins) {
             files = files.concat(extractFilesFromPlugin(plugin));
           }
         }
-        
+
         // Check feedback plugins
         if (data.feedback && data.feedback.plugins) {
           for (const plugin of data.feedback.plugins) {
             files = files.concat(extractFilesFromPlugin(plugin));
           }
         }
-        
+
         // Check assignmentdata
         if (data.assignmentdata && data.assignmentdata.attachments) {
           for (const [key, attachments] of Object.entries(data.assignmentdata.attachments)) {
@@ -554,23 +554,23 @@ export function setupMoodleApiHandlers() {
           }
         }
       }
-      
+
       // If no files found, try approach 2: Get submissions directly
       if (files.length === 0) {
-        
+
         const submissionsParams = {
           wstoken: args.apiKey,
           wsfunction: 'mod_assign_get_submissions',
           moodlewsrestformat: 'json',
           'assignmentids[0]': args.assignmentId
         };
-        
+
         const submissionsResponse = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, { params: submissionsParams });
-        
+
         if (submissionsResponse.data && submissionsResponse.data.assignments && submissionsResponse.data.assignments.length > 0) {
           const submissions = submissionsResponse.data.assignments[0].submissions || [];
           const userSubmission = submissions.find((sub: any) => sub.userid.toString() === args.userId.toString());
-          
+
           if (userSubmission && userSubmission.plugins) {
             for (const plugin of userSubmission.plugins) {
               files = files.concat(extractFilesFromPlugin(plugin));
@@ -578,7 +578,7 @@ export function setupMoodleApiHandlers() {
           }
         }
       }
-      
+
       return {
         success: true,
         data: files
@@ -591,11 +591,11 @@ export function setupMoodleApiHandlers() {
       };
     }
   });
-  
+
   // Helper function to extract files from a plugin
   function extractFilesFromPlugin(plugin: any): any[] {
     const files = [];
-    
+
     if (plugin.fileareas) {
       for (const filearea of plugin.fileareas) {
         if (filearea.files && Array.isArray(filearea.files)) {
@@ -613,7 +613,7 @@ export function setupMoodleApiHandlers() {
         }
       }
     }
-    
+
     // Also check if files are directly in the plugin
     if (plugin.files && Array.isArray(plugin.files)) {
       for (const file of plugin.files) {
@@ -628,7 +628,7 @@ export function setupMoodleApiHandlers() {
         }
       }
     }
-    
+
     return files;
   }
 
@@ -641,7 +641,7 @@ export function setupMoodleApiHandlers() {
         moodlewsrestformat: 'json',
         'assignmentids[0]': args.assignmentId  // Fix: Use proper array format
       };
-      
+
       const response = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, { params });
 
       if (response.data && response.data.assignments && response.data.assignments.length > 0) {
@@ -674,7 +674,7 @@ export function setupMoodleApiHandlers() {
         moodlewsrestformat: 'json',
         'assignmentids[0]': args.assignmentId  // Fix: Use proper array format
       };
-      
+
       const response = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, { params });
 
       if (response.data && response.data.assignments && response.data.assignments.length > 0) {
@@ -699,12 +699,12 @@ export function setupMoodleApiHandlers() {
   });
 
   // Update assignment grade
-  ipcMain.handle('moodle:update-assignment-grade', async (event, args: { 
-    baseUrl: string; 
-    apiKey: string; 
-    assignmentId: string; 
-    userId: string; 
-    grade: number; 
+  ipcMain.handle('moodle:update-assignment-grade', async (event, args: {
+    baseUrl: string;
+    apiKey: string;
+    assignmentId: string;
+    userId: string;
+    grade: number;
     feedback?: string;
     courseId?: string; // Optional for validation
   }) => {
@@ -734,7 +734,7 @@ export function setupMoodleApiHandlers() {
 
       // Handle different success response formats
       // Moodle's mod_assign_save_grade can return null, empty array, or object on success
-      const isSuccess = response.data === null || 
+      const isSuccess = response.data === null ||
                        response.data === '' ||
                        (Array.isArray(response.data) && response.data.length === 0) ||
                        (response.data && !response.data.exception);
@@ -760,7 +760,7 @@ export function setupMoodleApiHandlers() {
       }
     } catch (error: any) {
       console.error('[Moodle API] Error updating assignment grade:', error.message);
-      
+
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'Failed to update assignment grade'
@@ -811,7 +811,7 @@ export function setupMoodleApiHandlers() {
         const response = await axios.post(`${args.baseUrl}/webservice/rest/server.php`, null, { params });
 
         // Handle different success response formats
-        const isSuccess = response.data === null || 
+        const isSuccess = response.data === null ||
                          response.data === '' ||
                          (Array.isArray(response.data) && response.data.length === 0) ||
                          (response.data && !response.data.exception);
@@ -868,7 +868,7 @@ export function setupMoodleApiHandlers() {
 
       if (response.data && response.data.assignments && response.data.assignments.length > 0) {
         let grades = response.data.assignments[0].grades || [];
-        
+
         // Filter by user if specified
         if (args.userId) {
           grades = grades.filter((grade: any) => grade.userid.toString() === args.userId);
@@ -938,7 +938,7 @@ export function setupMoodleApiHandlers() {
       const response = await axios.post(`${args.baseUrl}/webservice/rest/server.php`, null, { params });
 
       // Handle different success response formats (same as update grade)
-      const isSuccess = response.data === null || 
+      const isSuccess = response.data === null ||
                        response.data === '' ||
                        (Array.isArray(response.data) && response.data.length === 0) ||
                        (response.data && !response.data.exception);
@@ -962,10 +962,169 @@ export function setupMoodleApiHandlers() {
       }
     } catch (error: any) {
       console.error('[Moodle API] Error deleting assignment grade:', error.message);
-      
+
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'Failed to delete assignment grade'
+      };
+    }
+  });
+
+  // Get assignment attachments/files
+  ipcMain.handle('moodle:get-assignment-attachments', async (event, args: {
+    baseUrl: string;
+    apiKey: string;
+    assignmentId: string;
+    courseId: string;
+  }) => {
+    try {
+      // Ensure courseId is numeric
+      let numericCourseId = parseInt(args.courseId);
+
+      if (isNaN(numericCourseId)) {
+        // Find the numeric course ID
+        const coursesResponse = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, {
+          params: {
+            wstoken: args.apiKey,
+            wsfunction: 'core_enrol_get_users_courses',
+            moodlewsrestformat: 'json',
+            userid: await getUserId(args.baseUrl, args.apiKey)
+          }
+        });
+
+        if (coursesResponse.data && Array.isArray(coursesResponse.data)) {
+          const course = coursesResponse.data.find((c: any) =>
+            c.shortname === args.courseId || c.fullname.includes(args.courseId)
+          );
+
+          if (course) {
+            numericCourseId = parseInt(course.id);
+          } else {
+            return {
+              success: true,
+              data: []
+            };
+          }
+        }
+      }
+
+      // Get assignment details to find intro attachments
+      const assignmentResponse = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, {
+        params: {
+          wstoken: args.apiKey,
+          wsfunction: 'mod_assign_get_assignments',
+          moodlewsrestformat: 'json',
+          'courseids[0]': numericCourseId
+        }
+      });
+
+      let attachments: any[] = [];
+
+      if (assignmentResponse.data && assignmentResponse.data.courses && assignmentResponse.data.courses.length > 0) {
+        const assignments = assignmentResponse.data.courses.flatMap((course: any) => course.assignments || []);
+        const assignment = assignments.find((a: any) => a.id.toString() === args.assignmentId);
+
+        if (assignment) {
+          console.log('[Moodle API] Assignment data structure:', JSON.stringify(assignment, null, 2));
+
+          // Helper function to extract files from any object
+          const extractFilesFromObject = (obj: any, type: string): any[] => {
+            const files: any[] = [];
+
+            if (obj && Array.isArray(obj)) {
+              for (const item of obj) {
+                if (item && typeof item === 'object' && item.filename && item.filename !== '.') {
+                  files.push({
+                    filename: item.filename,
+                    filesize: item.filesize || 0,
+                    fileurl: item.fileurl || item.url || '',
+                    mimetype: item.mimetype || '',
+                    timemodified: item.timemodified || 0,
+                    type
+                  });
+                }
+              }
+            }
+
+            return files;
+          };
+
+          // Check multiple possible locations for attachments
+          const possibleAttachmentFields = [
+            'introattachments',
+            'activityattachments',
+            'attachments',
+            'files',
+            'introfiles',
+            'additionalfiles',
+            'assignmentfiles'
+          ];
+
+          for (const field of possibleAttachmentFields) {
+            if (assignment[field]) {
+              const fieldFiles = extractFilesFromObject(assignment[field], field);
+              attachments = attachments.concat(fieldFiles);
+              console.log(`[Moodle API] Found ${fieldFiles.length} files in ${field}:`, fieldFiles);
+            }
+          }
+
+          // Also try to get files from course contents if no attachments found
+          if (attachments.length === 0) {
+            console.log('[Moodle API] No attachments found in assignment data, trying course contents approach...');
+
+            try {
+              const contentsResponse = await axios.get(`${args.baseUrl}/webservice/rest/server.php`, {
+                params: {
+                  wstoken: args.apiKey,
+                  wsfunction: 'core_course_get_contents',
+                  moodlewsrestformat: 'json',
+                  courseid: numericCourseId
+                }
+              });
+
+              if (contentsResponse.data && Array.isArray(contentsResponse.data)) {
+                // Find the assignment module
+                for (const section of contentsResponse.data) {
+                  if (section.modules && Array.isArray(section.modules)) {
+                    for (const module of section.modules) {
+                      if (module.modname === 'assign' && module.instance &&
+                          module.instance.toString() === args.assignmentId) {
+                        console.log('[Moodle API] Found assignment module:', JSON.stringify(module, null, 2));
+
+                        // Check for contents/files in the module
+                        if (module.contents && Array.isArray(module.contents)) {
+                          const moduleFiles = extractFilesFromObject(module.contents, 'module');
+                          attachments = attachments.concat(moduleFiles);
+                          console.log(`[Moodle API] Found ${moduleFiles.length} files in module contents:`, moduleFiles);
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            } catch (contentsError) {
+              console.error('[Moodle API] Error fetching course contents:', contentsError);
+            }
+          }
+
+          console.log(`[Moodle API] Total attachments found: ${attachments.length}`, attachments);
+        } else {
+          console.log('[Moodle API] Assignment not found with ID:', args.assignmentId);
+          console.log('[Moodle API] Available assignments:', assignments.map((a: any) => ({ id: a.id, name: a.name })));
+        }
+      } else {
+        console.log('[Moodle API] No assignment data in response:', assignmentResponse.data);
+      }
+
+      return {
+        success: true,
+        data: attachments
+      };
+    } catch (error: any) {
+      console.error('[Moodle API] Error fetching assignment attachments:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to fetch assignment attachments'
       };
     }
   });
@@ -978,18 +1137,18 @@ export function setupMoodleConfigHandlers() {
     try {
       // Store in SQLite using key-value store
       const query = `
-        INSERT INTO kv_store (namespace, key, value) 
+        INSERT INTO kv_store (namespace, key, value)
         VALUES ('moodle', 'config', ?)
-        ON CONFLICT(namespace, key) 
+        ON CONFLICT(namespace, key)
         DO UPDATE SET value = excluded.value
       `;
-      
+
       const configData = JSON.stringify({
         baseUrl: args.baseUrl,
         apiKey: args.apiKey,
         updatedAt: new Date().toISOString()
       });
-      
+
       executeQuery(query, [configData]);
       return { success: true };
     } catch (error: any) {
@@ -1005,12 +1164,12 @@ export function setupMoodleConfigHandlers() {
   ipcMain.handle('moodle:get-config', async () => {
     try {
       const query = `
-        SELECT value FROM kv_store 
+        SELECT value FROM kv_store
         WHERE namespace = 'moodle' AND key = 'config'
       `;
-      
+
       const result = executeQuery<{ value: string }>(query) as { value: string }[];
-      
+
       if (result && result.length > 0) {
         const config = JSON.parse(result[0].value);
         return {
@@ -1040,10 +1199,10 @@ export function setupMoodleConfigHandlers() {
   ipcMain.handle('moodle:clear-config', async () => {
     try {
       const query = `
-        DELETE FROM kv_store 
+        DELETE FROM kv_store
         WHERE namespace = 'moodle' AND key = 'config'
       `;
-      
+
       executeQuery(query);
       return { success: true };
     } catch (error: any) {

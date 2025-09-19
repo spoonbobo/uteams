@@ -31,6 +31,7 @@ import { setupFileIOHandlers, registerSecureFileProtocol } from './fileio';
 import { setupDocxHandlers } from './msftdocx';
 import { setupAlertHandlers } from './alert';
 import { setupOcrHandlers } from './ocr';
+import { setupPdfHandlers } from './pdfTool';
 
 // Debug: Log environment variable loading
 console.log('🔧 Environment variables loaded:');
@@ -159,6 +160,13 @@ const createWindow = async () => {
     console.log('✅ OCR handlers registered early');
   } catch (e) {
     console.error('Failed to register OCR handlers early', e);
+  }
+
+  try {
+    setupPdfHandlers();
+    console.log('✅ PDF handlers registered early');
+  } catch (e) {
+    console.error('Failed to register PDF handlers early', e);
   }
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));

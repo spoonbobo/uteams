@@ -18,7 +18,7 @@ import {
   ArrowBack as ArrowBackIcon,
   PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
-import DocxDialog from '../DocxDialog';
+import DocxDialog from '@/components/DocxPreview/DocxDialog';
 import { SubmitGradeDialog } from './SubmitGradeDialog';
 import { useIntl } from 'react-intl';
 
@@ -26,7 +26,7 @@ import { useIntl } from 'react-intl';
 import SubmissionsTableHeader from './SubmissionsTableHeader';
 import { CategoryHeader } from './CategoryHeader';
 import { StudentRow } from './StudentRow';
-import { useFilePreviewHandler } from './FilePreviewHandler';
+import useFilePreviewHandler from './FilePreviewHandler';
 import {
   useSubmissionFiles,
   useStudentFiles,
@@ -37,7 +37,7 @@ import {
 } from './hooks';
 import { categorizeStudents } from './utils';
 import type { StudentSubmissionsPanelProps } from './types';
-import type { StudentSubmissionData } from '../../../../types/grading';
+import type { StudentSubmissionData } from '@/types/grading';
 
 
 
@@ -121,7 +121,7 @@ export const StudentSubmissionsPanel: React.FC<StudentSubmissionsPanelProps> = (
     setDialogStudentName(studentName);
     setDialogFilename(file.filename);
     setDialogOpen(true);
-    await handleFilePreview(studentId, file, studentName, selectedAssignment, (name, filename) => {
+    await handleFilePreview(studentId, file, studentName, selectedAssignment, (name: string, filename: string) => {
       setDialogStudentName(name);
       setDialogFilename(filename);
     });

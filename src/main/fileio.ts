@@ -269,8 +269,11 @@ export function registerSecureFileProtocol() {
     const url = request.url.replace('app-file://', '');
 
     try {
+      // Remove URL fragments (like #page=1&zoom=100) from the path
+      const urlWithoutFragment = url.split('#')[0];
+
       // Decode URL and handle Windows paths
-      const decodedPath = decodeURIComponent(url).replace(/^\/?/, '');
+      const decodedPath = decodeURIComponent(urlWithoutFragment).replace(/^\/?/, '');
 
       // On Windows, the path might start with a drive letter
       const filePath = process.platform === 'win32'
@@ -333,6 +336,9 @@ export function registerSecureFileProtocol() {
         case '.tiff':
         case '.tif':
           mimeType = 'image/tiff';
+          break;
+        case '.pdf':
+          mimeType = 'application/pdf';
           break;
       }
 

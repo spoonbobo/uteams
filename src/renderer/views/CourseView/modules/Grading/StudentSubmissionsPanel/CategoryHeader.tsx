@@ -21,7 +21,7 @@ import {
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 import type { CategoryKey } from './types';
-import type { StudentSubmissionData } from '../../../../types/grading';
+import type { StudentSubmissionData } from '@/types/grading';
 
 interface CategoryHeaderProps {
   title: string;

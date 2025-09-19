@@ -6,8 +6,3 @@ declare module 'views/CompanionOverlay' {
     sessionName: string;
   }>;
 }
-
-
-
-
-

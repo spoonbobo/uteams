@@ -742,6 +742,9 @@
   },
   "courseworkGenerator": {
     "title": "Coursework Generator",
+    "selectedSummary": "Selected Coursework Summary",
+    "notSpecified": "Not specified",
+    "noAssignments": "No assignments available for this course.",
     "tabs": {
       "selectCoursework": "Select Coursework",
       "generate": "Generate"
@@ -755,6 +758,19 @@
       "noDescription": "No description available",
       "proceedToGenerate": "Proceed to Generate"
     },
+    "generationType": {
+      "title": "Generation Type",
+      "current": "Based on Current Assignments",
+      "currentDescription": "Generate coursework based on existing assignments and materials from this course",
+      "new": "Create New Coursework",
+      "newDescription": "Generate completely new coursework questions and materials"
+    },
+    "comingSoon": "Coming Soon",
+    "noDescription": "No description available",
+    "selectedAssignments": "Selected Assignments",
+    "attachments": "Attachments",
+    "noAttachments": "No attachments found",
+    "loadingAttachments": "Loading attachments...",
     "dueDate": "Due",
     "maxGrade": "Max Grade",
     "proceedToGenerate": "Proceed to Generate",
@@ -762,6 +778,7 @@
       "title": "Generate Coursework",
       "description": "Configure your coursework settings and generate questions based on the selected materials.",
       "configuration": "Coursework Configuration",
+      "configurationSummary": "Configuration Summary",
       "examType": "Coursework Type",
       "examTypePlaceholder": "e.g., Assignment, Quiz, Practice Exercise, Assessment",
       "instructions": "Special Instructions",

@@ -39,18 +39,18 @@ interface MoodleState {
   isConfigured: () => boolean;
   fetchCourses: () => Promise<MoodleCourse[]>;
   clearCourses: () => void;
-  
+
   // Course Content Actions
   fetchCourseContent: (courseId: string) => Promise<CourseContent>;
   fetchAllCourseContent: () => Promise<void>;
   getCourseContent: (courseId: string) => CourseContent | null;
   clearCourseContent: (courseId?: string) => void;
-  
+
   // Navigation helpers
   getMoodleAssignmentUrl: (assignment: MoodleAssignment) => string;
   getMoodleCourseUrl: (courseId: string) => string;
   getMoodleUserUrl: (userId: string) => string;
-  
+
   // Assignment aggregation
   getAllAssignments: () => MoodleAssignment[];
   getUpcomingAssignments: (daysAhead?: number) => MoodleAssignment[];
@@ -93,7 +93,7 @@ export const useMoodleStore = create<MoodleState>()(
 
         testConnection: async () => {
           const { config } = get();
-          
+
           if (!config.apiKey) {
             set({
               connectionError: 'API key is required',
@@ -156,7 +156,7 @@ export const useMoodleStore = create<MoodleState>()(
 
         saveApiKey: async (apiKey: string) => {
           const { config } = get();
-          
+
           // Update local state
           set({
             config: { ...config, apiKey },
@@ -175,7 +175,7 @@ export const useMoodleStore = create<MoodleState>()(
             if (result.success) {
               // Test the connection with new API key
               const connected = await get().testConnection();
-              
+
               if (connected) {
                 toast.success('Moodle API key saved and verified');
                 // Fetch courses after successful connection
@@ -183,7 +183,7 @@ export const useMoodleStore = create<MoodleState>()(
               } else {
                 toast.warning('API key saved but connection failed. Please check your credentials.');
               }
-              
+
               return connected;
             } else {
               toast.error('Failed to save API key');
@@ -250,7 +250,7 @@ export const useMoodleStore = create<MoodleState>()(
 
         fetchCourses: async () => {
           const { config, isConnected } = get();
-          
+
           if (!config.apiKey) {
             set({ coursesError: 'API key is required' });
             return [];
@@ -308,7 +308,7 @@ export const useMoodleStore = create<MoodleState>()(
         // Course Content Actions
         fetchCourseContent: async (courseId: string) => {
           const { config } = get();
-          
+
           if (!config.apiKey) {
             const error = 'API key is required';
             set((state) => ({
@@ -414,7 +414,7 @@ export const useMoodleStore = create<MoodleState>()(
 
         fetchAllCourseContent: async () => {
           const { courses, config, courseContent } = get();
-          
+
           if (!config.apiKey || courses.length === 0) {
             console.log('[MoodleStore] Cannot fetch all course content: no API key or no courses loaded');
             return;
@@ -424,9 +424,9 @@ export const useMoodleStore = create<MoodleState>()(
           const coursesToFetch = courses.filter(course => {
             const existingContent = courseContent[course.id];
             // Check if content exists and was successfully loaded (no error and has lastUpdated)
-            const hasContent = existingContent && 
-                             !existingContent.error && 
-                             existingContent.lastUpdated && 
+            const hasContent = existingContent &&
+                             !existingContent.error &&
+                             existingContent.lastUpdated &&
                              !existingContent.isLoading;
             if (hasContent) {
               console.log(`[MoodleStore] Skipping ${course.shortname} - content already loaded at ${existingContent.lastUpdated}`);
@@ -440,9 +440,9 @@ export const useMoodleStore = create<MoodleState>()(
           }
 
           console.log(`[MoodleStore] Fetching content for ${coursesToFetch.length} courses (${courses.length - coursesToFetch.length} already loaded)...`);
-          
+
           // Fetch content for courses that don't have it yet
-          const fetchPromises = coursesToFetch.map(course => 
+          const fetchPromises = coursesToFetch.map(course =>
             get().fetchCourseContent(course.id).catch(error => {
               console.error(`[MoodleStore] Failed to fetch content for course ${course.shortname}:`, error);
               return null;
@@ -497,15 +497,15 @@ export const useMoodleStore = create<MoodleState>()(
           const { courseContent, courses } = get();
           const allAssignments: (MoodleAssignment & { courseShortname?: string })[] = [];
           const seenAssignmentIds = new Set<string>();
-          
+
           Object.entries(courseContent).forEach(([courseId, content]) => {
             if (content.assignments && content.assignments.length > 0) {
               const course = courses.find(c => c.id === courseId);
-              
+
               content.assignments.forEach(assignment => {
                 // Create a unique key combining assignment ID and course ID to handle cross-course duplicates
                 const uniqueKey = `${assignment.id}-${courseId}`;
-                
+
                 // Skip if we've already seen this assignment ID globally
                 if (seenAssignmentIds.has(assignment.id)) {
                   // Log only in development for debugging
@@ -514,7 +514,7 @@ export const useMoodleStore = create<MoodleState>()(
                   }
                   return;
                 }
-                
+
                 seenAssignmentIds.add(assignment.id);
                 allAssignments.push({
                   ...assignment,
@@ -523,11 +523,11 @@ export const useMoodleStore = create<MoodleState>()(
               });
             }
           });
-          
+
           if (process.env.NODE_ENV === 'development') {
             console.log(`[MoodleStore] getAllAssignments: Found ${allAssignments.length} unique assignments from ${Object.keys(courseContent).length} courses`);
           }
-          
+
           // Sort by due date (earliest first)
           return allAssignments.sort((a, b) => {
             if (!a.duedate && !b.duedate) return 0;
@@ -541,7 +541,7 @@ export const useMoodleStore = create<MoodleState>()(
           const allAssignments = get().getAllAssignments();
           const now = Date.now() / 1000; // Current time in seconds
           const futureLimit = now + (daysAhead * 24 * 60 * 60); // Days ahead in seconds
-          
+
           return allAssignments.filter(assignment => {
             if (!assignment.duedate) return false;
             return assignment.duedate >= now && assignment.duedate <= futureLimit;

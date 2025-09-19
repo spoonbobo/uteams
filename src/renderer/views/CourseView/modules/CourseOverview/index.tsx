@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Typography, Box } from '@mui/material';
 import { useIntl } from 'react-intl';
-import { AssignmentsPanel, StudentsPanel, MaterialsPanel } from '../components';
-import type { SortOrder } from '../components/AssignmentsPanel';
+import { AssignmentsPanel } from './AssignmentsPanel';
+import { StudentsPanel } from './StudentsPanel';
+import { MaterialsPanel } from './MaterialsPanel';
+import type { SortOrder } from './AssignmentsPanel';
 import { useMoodleStore } from '@/stores/useMoodleStore';
 import type { CourseSessionContext } from '@/stores/useContextStore';
 import { HTabsPanel, HTabPanel, type TabSection, type PanelControlConfig } from '@/components/HTabsPanel';
