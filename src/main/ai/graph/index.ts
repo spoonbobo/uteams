@@ -4,7 +4,7 @@
  */
 
 // Main builder
-export { MultiAgentGraphBuilder } from './multiAgentGraphBuilder';
+export { MultiAgentGraphBuilder } from './builder';
 
 // Types
 export {

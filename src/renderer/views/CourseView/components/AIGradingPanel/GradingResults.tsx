@@ -3,8 +3,7 @@ import {
   Box,
   Typography,
   CircularProgress,
-  Card,
-  CardContent,
+  Tooltip,
 } from '@mui/material';
 import type { ElementHighlight } from '@/components/DocxPreview/types';
 import type { DocxContent } from '@/components/DocxPreview/types';
@@ -12,12 +11,13 @@ import { PlanWidget } from '@/components/PlanWidget';
 import { useIntl } from 'react-intl';
 import { useChatStore } from '@/stores/useChatStore';
 import { useGradingStore } from '@/stores/useGradingStore';
-import RubricBreakdown from './RubricBreakdown';
 import type { DetailedAIGradeResult } from '@/types/grading';
 
 interface GradingResultsProps {
   selectedAssignment: string;
   selectedSubmission: string | null;
+  selectedAssignmentData?: any;
+  selectedSubmissionData?: any;
   docxContent: DocxContent | null;
   onHighlightsChange: (highlights: ElementHighlight[]) => void;
   onGradingCommentsChange: (comments: Array<{
@@ -31,6 +31,8 @@ interface GradingResultsProps {
 export const GradingResults: React.FC<GradingResultsProps> = ({
   selectedAssignment,
   selectedSubmission,
+  selectedAssignmentData,
+  selectedSubmissionData,
   docxContent,
   onHighlightsChange,
   onGradingCommentsChange,
@@ -345,27 +347,23 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
       flexDirection: 'column',
       overflow: 'hidden'
     }}>
+      {/* Simple Header */}
       <Typography
-        variant="h6"
+        variant="subtitle1"
         sx={{
-          fontWeight: 600,
+          fontWeight: 500,
           mb: 2,
-          color: 'text.primary',
-          fontSize: '1.1rem'
+          color: 'text.primary'
         }}
       >
-        {intl.formatMessage({ id: 'grading.aiGradingProgress' })}
+        {intl.formatMessage({ id: 'grading.ai.results' })}
       </Typography>
 
       <Box sx={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
-        bgcolor: 'background.paper',
-        borderRadius: 1,
-        border: '1px solid',
-        borderColor: 'divider'
+        overflow: 'hidden'
       }}>
         {/* Show grading results if available */}
         {gradingResult ? (
@@ -374,46 +372,39 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
             display: 'flex',
             flexDirection: 'column',
             overflow: 'auto',
-            p: 3
+            gap: 2
           }}>
-            {/* Score Display - Simplified */}
+            {/* Clean Score Display */}
             <Box sx={{
               textAlign: 'center',
-              mb: 3,
-              p: 2,
-              bgcolor: 'grey.50',
-              borderRadius: 1
+              py: 2
             }}>
               <Typography
-                variant="h3"
+                variant="h2"
                 sx={{
-                  fontWeight: 600,
+                  fontWeight: 700,
                   color: gradingResult.overallScore >= 70 ? 'success.main' :
                          gradingResult.overallScore >= 50 ? 'warning.main' : 'error.main',
-                  mb: 0.5
+                  mb: 0.5,
+                  fontSize: '3rem'
                 }}
               >
                 {gradingResult.overallScore}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {intl.formatMessage({ id: 'grading.ai.outOf', defaultMessage: 'out of 100' })}
+                {intl.formatMessage({ id: 'grading.ai.outOfHundred' })}
               </Typography>
             </Box>
 
-            {/* Feedback Display - Simplified */}
+            {/* Clean Feedback Display */}
             {gradingResult.shortFeedback && (
-              <Box sx={{ mb: 3 }}>
+              <Box>
                 <Typography
                   variant="body1"
                   sx={{
-                    lineHeight: 1.6,
+                    lineHeight: 1.7,
                     color: 'text.primary',
-                    fontStyle: 'italic',
-                    p: 2,
-                    bgcolor: 'background.default',
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: 'divider'
+                    fontSize: '0.95rem'
                   }}
                 >
                   {gradingResult.shortFeedback}
@@ -421,18 +412,65 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
               </Box>
             )}
 
-            {/* Rubric Breakdown */}
+            {/* Simplified Score Breakdown */}
             {gradingResult.scoreBreakdown && gradingResult.scoreBreakdown.length > 0 && (
-              <Box sx={{ flex: 1, overflow: 'auto' }}>
-                <RubricBreakdown
-                  scoreBreakdown={gradingResult.scoreBreakdown}
-                  overallScore={gradingResult.overallScore}
-                />
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
+                  {intl.formatMessage({ id: 'grading.ai.scoreBreakdown' })}
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {gradingResult.scoreBreakdown.map((item) => (
+                    <Tooltip
+                      key={item.criteriaName}
+                      title={item.feedback || ''}
+                      placement="left"
+                      arrow
+                      enterDelay={300}
+                      leaveDelay={200}
+                    >
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          py: 1,
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                          cursor: item.feedback ? 'help' : 'default',
+                          '&:hover': item.feedback ? {
+                            backgroundColor: 'action.hover',
+                            borderRadius: 0.5
+                          } : {}
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: 'text.primary',
+                            flex: 1
+                          }}
+                        >
+                          {item.criteriaName}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 600,
+                            color: (item.score / item.maxScore) >= 0.8 ? 'success.main' :
+                                   (item.score / item.maxScore) >= 0.6 ? 'warning.main' : 'error.main'
+                          }}
+                        >
+                          {item.score}/{item.maxScore}
+                        </Typography>
+                      </Box>
+                    </Tooltip>
+                  ))}
+                </Box>
               </Box>
             )}
           </Box>
         ) : (
-          /* Show spinner or PlanWidget based on grading state */
+          /* Clean Loading State */
           (() => {
             const isCurrentlyGrading = selectedSubmission && gradingInProgress.has(selectedSubmission);
             const hasActivePlan = plan || todos.length > 0;
@@ -444,12 +482,11 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
-                alignItems: 'center',
-                p: 3
+                alignItems: 'center'
               }}>
-                <CircularProgress size={40} sx={{ mb: 2 }} />
-                <Typography variant="body2" color="text.secondary" textAlign="center">
-                  {intl.formatMessage({ id: 'grading.ai.initializing', defaultMessage: 'Initializing AI grading...' })}
+                <CircularProgress size={32} sx={{ mb: 2, color: 'primary.main' }} />
+                <Typography variant="body2" color="text.secondary">
+                  {intl.formatMessage({ id: 'grading.ai.analyzingSubmission' })}
                 </Typography>
               </Box>
             ) : (

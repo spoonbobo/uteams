@@ -27,7 +27,7 @@ import {
   initializeSqliteOnStartup,
 } from './db';
 import { setupMoodleHandlers } from './moodle';
-import { setupFileIOHandlers, registerLocalFileProtocol } from './fileio';
+import { setupFileIOHandlers, registerSecureFileProtocol } from './fileio';
 import { setupDocxHandlers } from './msftdocx';
 import { setupAlertHandlers } from './alert';
 import { setupOcrHandlers } from './ocr';
@@ -271,8 +271,8 @@ process.on('unhandledRejection', async (reason, promise) => {
 app
   .whenReady()
   .then(async () => {
-    // Register custom protocol for serving local files
-    registerLocalFileProtocol();
+    // Register secure custom protocol for serving local files
+    registerSecureFileProtocol();
 
     // Register database IPC handlers
     registerDatabaseIpcHandlers();

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback, useLayoutEffect } from 'react';
 import {
   Box,
   Paper,
@@ -27,26 +27,59 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useIntl } from 'react-intl';
 import { useChatStore } from '../stores/useChatStore';
+import { useOcrStore } from '../stores/useOcrStore';
 
 interface ChatWidgetProps {
   sessionId: string;
   sessionName: string;
   courseId?: string;
+  ocrCaptureEnabled?: boolean;
+  ocrLanguage?: string;
 }
 
-export const ChatWidget: React.FC<ChatWidgetProps> = ({
+export const ChatWidget: React.FC<ChatWidgetProps> = React.memo(({
   sessionId,
   sessionName,
   courseId,
+  ocrCaptureEnabled = false,
+  ocrLanguage = 'eng',
 }) => {
   const theme = useTheme();
   const intl = useIntl();
   const [newMessage, setNewMessage] = useState('');
+  const [ocrProgress, setOcrProgress] = useState<number | null>(null);
+
+  // Custom OCR function with progress tracking
+  const performOcrWithProgress = async (options: any) => {
+    return new Promise<any>((resolve, reject) => {
+      let currentProgress = 0;
+      const progressInterval = setInterval(() => {
+        if (currentProgress < 95) {
+          currentProgress += Math.random() * 15 + 5; // Random progress between 5-20%
+          setOcrProgress(Math.min(currentProgress, 95));
+        }
+      }, 300);
+
+      performScreenshotOcr(options)
+        .then((result) => {
+          clearInterval(progressInterval);
+          setOcrProgress(100); // Show 100% briefly
+          setTimeout(() => setOcrProgress(null), 500); // Hide after 500ms
+          resolve(result);
+        })
+        .catch((error) => {
+          clearInterval(progressInterval);
+          setOcrProgress(null);
+          reject(error);
+        });
+    });
+  };
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const {
     messagesBySession,
     loadMessages,
     sendUserMessage,
+    addMessage,
     beginStream,
     appendStream,
     endStream,
@@ -54,8 +87,10 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     deleteMessage,
     clearAllMessages,
     isThinkingBySession,
+    setThinking,
     abortSession,
   } = useChatStore();
+  const { performScreenshotOcr, isProcessing: ocrProcessing } = useOcrStore();
 
   useEffect(() => {
     loadMessages(sessionId);
@@ -63,12 +98,14 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   const streaming = streamingBySession[sessionId];
   const isThinking = isThinkingBySession?.[sessionId] || false;
-  const isExecuting = streaming || isThinking;
+  const isExecuting = !!streaming || isThinking;
+  const isInputDisabled = isExecuting || ocrProgress !== null;
+  // Optimize message list computation with better memoization
+  const baseMessages = messagesBySession[sessionId] ?? [];
   const chatMessages = useMemo(() => {
-    const base = messagesBySession[sessionId] ?? [];
     if (streaming) {
       return [
-        ...base,
+        ...baseMessages,
         {
           id: streaming.id,
           chatId: sessionId,
@@ -79,28 +116,78 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         },
       ];
     }
-    return base;
-  }, [messagesBySession, sessionId, streaming]);
+    return baseMessages;
+  }, [baseMessages, sessionId, streaming?.id, streaming?.text]); // More specific dependencies
 
-  // Auto-scroll to bottom when messages change or thinking state changes
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages, isThinking]);
+  // Use requestAnimationFrame for smoother scrolling
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
+  }, []);
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+  // Auto-scroll to bottom when messages change, thinking state changes, or OCR progress changes
+  // Use layout effect for immediate scroll on message updates
+  useLayoutEffect(() => {
+    // Debounce scroll for streaming messages
+    if (streaming) {
+      const timer = setTimeout(scrollToBottom, 50);
+      return () => clearTimeout(timer);
+    } else {
+      scrollToBottom();
+    }
+  }, [chatMessages.length, isThinking, ocrProgress, streaming, scrollToBottom]);
+
+
+  const handleSendMessage = useCallback(async () => {
+    if (!newMessage.trim() || isInputDisabled) return;
     const text = newMessage;
     setNewMessage('');
-    sendUserMessage(sessionId, text, courseId);
-  };
 
-  const handleAbort = async () => {
+    // If OCR capture is enabled, show user message first, then do OCR
+    if (ocrCaptureEnabled) {
+      // Show user message immediately
+      await addMessage(sessionId, {
+        id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
+        text,
+        sender: 'user',
+      });
+
+      try {
+        // Perform OCR with progress tracking
+        const ocrResult = await performOcrWithProgress({
+          language: ocrLanguage,
+          timeout: 30000,
+        });
+
+        if (ocrResult.success && ocrResult.text) {
+          // Send enhanced message to AI (skip adding user message since we already did)
+          sendUserMessage(sessionId, text, courseId, ocrResult.text, true);
+        } else {
+          // Send message without OCR if it failed (skip adding user message)
+          console.warn('OCR failed, sending message without OCR context:', ocrResult.error);
+          sendUserMessage(sessionId, text, courseId, undefined, true);
+        }
+      } catch (error) {
+        console.error('OCR error:', error);
+        // Send message without OCR if there was an error (skip adding user message)
+        sendUserMessage(sessionId, text, courseId, undefined, true);
+      }
+    } else {
+      // Send message normally without OCR (original behavior)
+      sendUserMessage(sessionId, text, courseId);
+    }
+  }, [newMessage, isInputDisabled, ocrCaptureEnabled, sessionId, courseId, ocrLanguage, addMessage, sendUserMessage, performOcrWithProgress]);
+
+  const handleAbort = useCallback(async () => {
     try {
       await abortSession(sessionId, 'User cancelled via chat widget');
     } catch (error) {
       console.error('Error aborting session:', error);
     }
-  };
+  }, [abortSession, sessionId]);
 
 
   return (
@@ -188,61 +275,44 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           },
         }}
       >
-        {chatMessages.filter(m => m.type !== 'thinking').map((message) => {
-          const createdTime = new Date(message.createdAt).toLocaleString();
-          const isUser = message.sender === 'user';
-          return (
-            <Tooltip key={message.id} title={createdTime} arrow placement="top">
-              <Box
-                sx={{
-                  mb: 1,
-                  p: 1,
-                  borderRadius: 1.5,
-                  backgroundColor: isUser
-                    ? theme.palette.primary.main
-                    : theme.palette.mode === 'dark'
-                      ? 'rgba(55, 65, 81, 0.8)'
-                      : 'rgba(243, 244, 246, 0.8)',
-                  color: isUser
-                    ? theme.palette.primary.contrastText
-                    : theme.palette.text.primary,
-                  alignSelf: isUser ? 'flex-end' : 'flex-start',
-                  maxWidth: '85%',
-                  fontSize: '0.8rem',
-                  textAlign: 'left',
-                  ml: isUser ? 'auto' : 0,
-                  cursor: 'default',
-                  position: 'relative',
-                  '&:hover .chat-delete': { opacity: 1, visibility: 'visible' },
-                }}
-              >
-                <IconButton
-                  className="chat-delete"
-                  size="small"
-                  onClick={() => deleteMessage(sessionId, message.id)}
-                  sx={{
-                    position: 'absolute',
-                    top: -8,
-                    right: -8,
-                    width: 20,
-                    height: 20,
-                    color: theme.palette.text.disabled,
-                    '&:hover': { color: theme.palette.error.main },
-                    backgroundColor: 'transparent',
-                    opacity: 0,
-                    visibility: 'hidden',
-                    transition: 'opacity 0.15s ease',
-                  }}
-                >
-                  <CloseIcon sx={{ fontSize: '0.9rem' }} />
-                </IconButton>
-                <Typography variant="body2" sx={{ mb: 0, fontSize: '0.75rem' }}>
-                  {message.text}
-                </Typography>
-              </Box>
-            </Tooltip>
-          );
-        })}
+        {chatMessages.filter(m => m.type !== 'thinking').map((message) => (
+          <MessageItem
+            key={message.id}
+            message={message}
+            sessionId={sessionId}
+            deleteMessage={deleteMessage}
+            theme={theme}
+            isStreaming={message.id === streaming?.id}
+          />
+        ))}
+
+        {/* Show OCR progress when capturing screen */}
+        {ocrProgress !== null && (
+          <Box
+            sx={{
+              mb: 1,
+              pl: 1,
+              alignSelf: 'flex-start',
+              maxWidth: '85%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                fontSize: '0.65rem',
+                color: theme.palette.text.disabled,
+                opacity: 0.8,
+                fontStyle: 'italic',
+                fontWeight: 500,
+              }}
+            >
+              Recognizing current screen ({Math.round(ocrProgress)}%)
+            </Typography>
+          </Box>
+        )}
 
         {/* Show thinking spinner when agent is processing - appears after user message */}
         {isThinking && !streaming && (
@@ -289,12 +359,13 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           <TextField
             size="small"
             fullWidth
+            disabled={isInputDisabled}
             value={newMessage}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setNewMessage(e.target.value)
             }
             onKeyPress={(e: React.KeyboardEvent) =>
-              e.key === 'Enter' && handleSendMessage()
+              e.key === 'Enter' && !isInputDisabled && handleSendMessage()
             }
             placeholder={intl.formatMessage({ id: 'chat.placeholder' })}
             sx={{
@@ -309,11 +380,17 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           />
           <IconButton
             size="small"
+            disabled={isInputDisabled}
             onClick={handleSendMessage}
             sx={{
               width: 32,
               height: 32,
-              color: theme.palette.primary.main,
+              color: isInputDisabled
+                ? theme.palette.text.disabled
+                : theme.palette.primary.main,
+              '&:disabled': {
+                color: theme.palette.text.disabled,
+              },
             }}
           >
             <SendIcon sx={{ fontSize: '1rem' }} />
@@ -322,4 +399,89 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       </Box>
     </Paper>
   );
-};
+});
+
+// Memoized message item component to prevent unnecessary re-renders
+const MessageItem = React.memo<{
+  message: any;
+  sessionId: string;
+  deleteMessage: (sessionId: string, id: string) => void;
+  theme: any;
+  isStreaming?: boolean;
+}>(({ message, sessionId, deleteMessage, theme, isStreaming = false }) => {
+  const createdTime = useMemo(() => new Date(message.createdAt).toLocaleString(), [message.createdAt]);
+  const isUser = message.sender === 'user';
+
+  const handleDelete = useCallback(() => {
+    deleteMessage(sessionId, message.id);
+  }, [deleteMessage, sessionId, message.id]);
+
+  return (
+    <Tooltip title={createdTime} arrow placement="top">
+      <Box
+        sx={{
+          mb: 1,
+          p: 1,
+          borderRadius: 1.5,
+          backgroundColor: isUser
+            ? theme.palette.primary.main
+            : theme.palette.mode === 'dark'
+              ? 'rgba(55, 65, 81, 0.8)'
+              : 'rgba(243, 244, 246, 0.8)',
+          color: isUser
+            ? theme.palette.primary.contrastText
+            : theme.palette.text.primary,
+          alignSelf: isUser ? 'flex-end' : 'flex-start',
+          maxWidth: '85%',
+          fontSize: '0.8rem',
+          textAlign: 'left',
+          ml: isUser ? 'auto' : 0,
+          cursor: 'default',
+          position: 'relative',
+          '&:hover .chat-delete': { opacity: 1, visibility: 'visible' },
+        }}
+      >
+        <IconButton
+          className="chat-delete"
+          size="small"
+          onClick={handleDelete}
+          sx={{
+            position: 'absolute',
+            top: -8,
+            right: -8,
+            width: 20,
+            height: 20,
+            color: theme.palette.text.disabled,
+            '&:hover': { color: theme.palette.error.main },
+            backgroundColor: 'transparent',
+            opacity: 0,
+            visibility: 'hidden',
+            transition: 'opacity 0.15s ease',
+          }}
+        >
+          <CloseIcon sx={{ fontSize: '0.9rem' }} />
+        </IconButton>
+        <Typography
+          variant="body2"
+          sx={{
+            mb: 0,
+            fontSize: '0.75rem',
+            // Add subtle animation for streaming messages
+            ...(isStreaming && {
+              '&::after': {
+                content: '"▌"',
+                animation: 'blink 1s infinite',
+                '@keyframes blink': {
+                  '0%, 50%': { opacity: 1 },
+                  '51%, 100%': { opacity: 0 },
+                },
+              },
+            }),
+          }}
+        >
+          {message.text}
+        </Typography>
+      </Box>
+    </Tooltip>
+  );
+});

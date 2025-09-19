@@ -1,45 +1,48 @@
 import React, { useState, useEffect, useRef, ReactNode } from 'react';
-import { Typography, Box, Paper, Tabs, Tab, Skeleton } from '@mui/material';
+import {
+  Box,
+  Paper,
+  Tabs,
+  Tab,
+  SxProps,
+  Theme,
+  useTheme,
+  alpha,
+} from '@mui/material';
 
 export interface TabSection {
   id: string;
   title: string;
-  count: number;
   component: ReactNode;
   disabled?: boolean;
 }
 
 interface HTabsPanelProps {
   sections: TabSection[];
-  isLoading?: boolean;
   selectedTab?: number;
   onTabChange?: (index: number) => void;
   children?: ReactNode;
+  sx?: SxProps<Theme>;
 }
 
-export const HTabsPanel: React.FC<HTabsPanelProps> = ({
+export function HTabsPanel({
   sections,
-  isLoading = false,
   selectedTab: externalSelectedTab,
   onTabChange,
   children,
-}) => {
+  sx,
+}: HTabsPanelProps) {
+  const theme = useTheme();
   const [internalSelectedTab, setInternalSelectedTab] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const isScrollingProgrammatically = useRef(false);
 
   // Use external selectedTab if provided, otherwise use internal state
-  const selectedTab = externalSelectedTab !== undefined ? externalSelectedTab : internalSelectedTab;
-
-  // Handle tab change and scroll to section
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    if (externalSelectedTab === undefined) {
-      setInternalSelectedTab(newValue);
-    }
-    onTabChange?.(newValue);
-    scrollToSection(newValue);
-  };
+  const selectedTab =
+    externalSelectedTab !== undefined
+      ? externalSelectedTab
+      : internalSelectedTab;
 
   // Scroll to specific section
   const scrollToSection = (index: number) => {
@@ -53,7 +56,7 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
       const targetScrollLeft = index * container.clientWidth;
       container.scrollTo({
         left: targetScrollLeft,
-        behavior: 'smooth'
+        behavior: 'smooth',
       });
 
       // Clear the flag after scroll completes
@@ -63,12 +66,23 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
     }
   };
 
+  // Handle tab change and scroll to section
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    if (externalSelectedTab === undefined) {
+      setInternalSelectedTab(newValue);
+    }
+    onTabChange?.(newValue);
+    scrollToSection(newValue);
+  };
+
   // Sync scroll position when external selectedTab changes
   useEffect(() => {
     if (externalSelectedTab !== undefined) {
       const container = scrollContainerRef.current;
       if (container) {
-        const currentScrollIndex = Math.round(container.scrollLeft / container.clientWidth);
+        const currentScrollIndex = Math.round(
+          container.scrollLeft / container.clientWidth,
+        );
         if (currentScrollIndex !== externalSelectedTab) {
           scrollToSection(externalSelectedTab);
         }
@@ -80,15 +94,18 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
   useEffect(() => {
     const handleScroll = () => {
       // Don't update tabs during programmatic scrolling
-      if (isScrollingProgrammatically.current || !scrollContainerRef.current) return;
+      if (isScrollingProgrammatically.current || !scrollContainerRef.current)
+        return;
 
       const container = scrollContainerRef.current;
-      const scrollLeft = container.scrollLeft;
-      const containerWidth = container.clientWidth;
+      const { scrollLeft, clientWidth: containerWidth } = container;
 
       // Calculate which section we're closest to based on scroll position
       const currentIndex = Math.round(scrollLeft / containerWidth);
-      const clampedIndex = Math.max(0, Math.min(sections.length - 1, currentIndex));
+      const clampedIndex = Math.max(
+        0,
+        Math.min(sections.length - 1, currentIndex),
+      );
 
       if (clampedIndex !== selectedTab) {
         if (externalSelectedTab === undefined) {
@@ -103,16 +120,23 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
       container.addEventListener('scroll', handleScroll);
       return () => container.removeEventListener('scroll', handleScroll);
     }
+    return undefined;
   }, [selectedTab, sections.length, externalSelectedTab, onTabChange]);
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box
+      sx={[
+        { height: '100%', display: 'flex', flexDirection: 'column' },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+    >
       {/* Horizontal Tabs */}
       <Paper
         sx={{
           mb: 2,
           borderRadius: 2,
-          backgroundColor: 'background.paper',
+          backgroundColor: theme.palette.background.paper,
+          boxShadow: theme.shadows[1],
         }}
       >
         <Tabs
@@ -125,40 +149,38 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
               fontWeight: 500,
               fontSize: '0.9rem',
               minHeight: 48,
+              color: theme.palette.text.secondary,
+              transition: theme.transitions.create(
+                ['background-color', 'color'],
+                {
+                  duration: theme.transitions.duration.short,
+                },
+              ),
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                color: theme.palette.primary.main,
+              },
+              '&.Mui-selected': {
+                color: theme.palette.primary.main,
+                fontWeight: 600,
+              },
+              '&.Mui-disabled': {
+                color: theme.palette.text.disabled,
+                opacity: 0.5,
+              },
             },
             '& .MuiTabs-indicator': {
               height: 3,
+              backgroundColor: theme.palette.primary.main,
+              borderRadius: '3px 3px 0 0',
             },
           }}
         >
-          {sections.map((section, index) => (
+          {sections.map((section) => (
             <Tab
               key={section.id}
               disabled={section.disabled}
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <span>{section.title}</span>
-                  {isLoading ? (
-                    <Skeleton variant="text" width={20} height={16} sx={{ borderRadius: 1 }} />
-                  ) : (
-                    <Box
-                      sx={{
-                        backgroundColor: 'action.hover',
-                        color: 'text.secondary',
-                        px: 1,
-                        py: 0.25,
-                        borderRadius: 1,
-                        fontSize: '0.75rem',
-                        fontWeight: 500,
-                        minWidth: 20,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {section.count}
-                    </Box>
-                  )}
-                </Box>
-              }
+              label={section.title}
             />
           ))}
         </Tabs>
@@ -176,36 +198,50 @@ export const HTabsPanel: React.FC<HTabsPanelProps> = ({
             height: 8,
           },
           '&::-webkit-scrollbar-track': {
-            backgroundColor: 'action.hover',
+            backgroundColor: alpha(theme.palette.action.hover, 0.5),
             borderRadius: 4,
           },
           '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'action.disabled',
+            backgroundColor: alpha(theme.palette.action.disabled, 0.8),
             borderRadius: 4,
+            transition: theme.transitions.create('background-color'),
             '&:hover': {
-              backgroundColor: 'action.active',
+              backgroundColor: theme.palette.action.active,
             },
           },
         }}
       >
-        {sections.map((section, index) => (
-          <Box
-            key={section.id}
-            ref={(el) => (sectionRefs.current[index] = el as HTMLDivElement | null)}
-            sx={{
-              minWidth: '100%',
-              width: '100%',
-              flexShrink: 0,
-              p: 3,
-            }}
-          >
-            {section.component}
-          </Box>
-        ))}
+        {sections.map((section, index) => {
+          const setSectionRef = (el: HTMLDivElement | null) => {
+            sectionRefs.current[index] = el;
+          };
+
+          return (
+            <Box
+              key={section.id}
+              ref={setSectionRef}
+              sx={{
+                minWidth: '100%',
+                width: '100%',
+                flexShrink: 0,
+                p: 3,
+              }}
+            >
+              {section.component}
+            </Box>
+          );
+        })}
       </Box>
 
       {/* Additional children can be rendered here if needed */}
       {children}
     </Box>
   );
+}
+
+HTabsPanel.defaultProps = {
+  selectedTab: undefined,
+  onTabChange: undefined,
+  children: undefined,
+  sx: undefined,
 };

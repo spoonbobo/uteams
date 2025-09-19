@@ -84,9 +84,12 @@ export class Orchestrator extends EventEmitter {
 
     console.log('[Orchestrator] Creating LLM with baseURL:', baseURL || 'default OpenAI API');
 
+    const model = process.env.OPENAI_MODEL || 'deepseek-chat';
+    const temperature = parseFloat(process.env.OPENAI_MODEL_TEMPERATURE || '0.0');
+
     this.llm = new ChatOpenAI({
-      model: 'deepseek-chat',
-      temperature: 0.3,
+      model: model,
+      temperature: temperature,
       streaming: true, // Enable streaming for token-by-token output
       openAIApiKey: apiKey,
       configuration: {

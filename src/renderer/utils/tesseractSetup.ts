@@ -63,7 +63,7 @@ export async function createTesseractWorker(
         onProgress(progress, status);
       }
 
-      // Log important status updates
+      // Log important status updates (reduced spam)
       if (m.status === 'loading language traineddata') {
         console.log(`📦 Loading language data: ${language}...`);
       } else if (m.status === 'initializing tesseract') {
@@ -71,7 +71,11 @@ export async function createTesseractWorker(
       } else if (m.status === 'initialized tesseract') {
         console.log('✅ Tesseract engine ready');
       } else if (m.status === 'recognizing text') {
-        console.log(`🔍 OCR Progress: ${Math.round(m.progress * 100)}%`);
+        // Only log progress at 25%, 50%, 75%, and 100% to reduce spam
+        const progressPercent = Math.round(m.progress * 100);
+        if (progressPercent % 25 === 0 || progressPercent === 100) {
+          console.log(`🔍 OCR Progress: ${progressPercent}%`);
+        }
       }
     }
   };

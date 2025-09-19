@@ -18,12 +18,12 @@ import {
   ArrowBack as ArrowBackIcon,
   PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
-import { DocxDialog } from '../DocxDialog';
+import DocxDialog from '../DocxDialog';
 import { SubmitGradeDialog } from './SubmitGradeDialog';
 import { useIntl } from 'react-intl';
 
 // Import decomposed components
-import { SubmissionsTableHeader } from './SubmissionsTableHeader';
+import SubmissionsTableHeader from './SubmissionsTableHeader';
 import { CategoryHeader } from './CategoryHeader';
 import { StudentRow } from './StudentRow';
 import { useFilePreviewHandler } from './FilePreviewHandler';

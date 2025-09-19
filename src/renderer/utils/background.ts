@@ -12,7 +12,7 @@ export interface BackgroundConfig {
 }
 
 /**
- * Convert file paths to proper URLs for local file protocol
+ * Convert file paths to proper URLs using secure custom protocol
  */
 export function getImageUrl(imagePath: string): string {
   if (!imagePath) return '';
@@ -22,18 +22,18 @@ export function getImageUrl(imagePath: string): string {
     return imagePath;
   }
 
-  // Convert to local-file protocol URL
+  // Convert to secure app-file protocol URL
   const normalizedPath = imagePath.replace(/\\/g, '/');
 
   // If it's an absolute path, use it directly
   if (normalizedPath.startsWith('/') || normalizedPath.match(/^[A-Za-z]:/)) {
     // Remove leading slash for Windows paths with drive letters
     const cleanPath = normalizedPath.replace(/^\//, '');
-    return `local-file://${encodeURIComponent(cleanPath)}`;
+    return `app-file://${encodeURIComponent(cleanPath)}`;
   }
 
   // Relative path - shouldn't happen but handle it
-  return `local-file://${encodeURIComponent(normalizedPath)}`;
+  return `app-file://${encodeURIComponent(normalizedPath)}`;
 }
 
 /**
@@ -224,6 +224,7 @@ export function useScrollingAnimation(background: BackgroundConfig) {
       const direction = background.scrollDirection === 'right' ? 1 : -1;
       let animationId: number;
       let lastTime = performance.now();
+      let isVisible = !document.hidden; // Track visibility state
 
       // Calculate the width of one complete image set
       const viewportWidth = window.innerWidth;
@@ -234,30 +235,61 @@ export function useScrollingAnimation(background: BackgroundConfig) {
       let scrollPosition = -imageSetWidth; // Start at beginning of second set
 
       const animate = (currentTime: number) => {
-        const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+        // Cap deltaTime to prevent huge jumps after window regains focus
+        const rawDeltaTime = (currentTime - lastTime) / 1000;
+        const deltaTime = Math.min(rawDeltaTime, 0.1); // Cap at 100ms to prevent jumps
         lastTime = currentTime;
 
-        // Update scroll position
-        scrollPosition += direction * scrollSpeed * deltaTime;
+        // Only update position if the page is visible
+        if (isVisible) {
+          // Update scroll position
+          scrollPosition += direction * scrollSpeed * deltaTime;
 
-        // Handle seamless looping - reset when we reach the boundaries
-        if (direction === -1) {
-          // Scrolling left: when we've scrolled past the second set, reset to start of second set
-          if (scrollPosition <= -2 * imageSetWidth) {
-            scrollPosition = -imageSetWidth; // Reset to start of second set
+          // Handle seamless looping - reset when we reach the boundaries
+          if (direction === -1) {
+            // Scrolling left: when we've scrolled past the second set, reset to start of second set
+            if (scrollPosition <= -2 * imageSetWidth) {
+              scrollPosition = -imageSetWidth; // Reset to start of second set
+            }
+          } else {
+            // Scrolling right: when we reach the start of second set, reset to start of first set
+            if (scrollPosition >= 0) {
+              scrollPosition = -imageSetWidth; // Reset to start of second set
+            }
           }
-        } else {
-          // Scrolling right: when we reach the start of second set, reset to start of first set
-          if (scrollPosition >= 0) {
-            scrollPosition = -imageSetWidth; // Reset to start of second set
-          }
+
+          // Apply transform
+          scrollElement.style.transform = `translateX(${scrollPosition}px)`;
         }
-
-        // Apply transform
-        scrollElement.style.transform = `translateX(${scrollPosition}px)`;
 
         animationId = requestAnimationFrame(animate);
       };
+
+      // Handle visibility changes to prevent timing issues
+      const handleVisibilityChange = () => {
+        const wasVisible = isVisible;
+        isVisible = !document.hidden;
+
+        // If we just became visible, reset the timing to prevent jumps
+        if (!wasVisible && isVisible) {
+          lastTime = performance.now();
+        }
+      };
+
+      // Handle window focus/blur events as additional safety
+      const handleFocus = () => {
+        isVisible = true;
+        lastTime = performance.now(); // Reset timing on focus
+      };
+
+      const handleBlur = () => {
+        isVisible = false;
+      };
+
+      // Add event listeners
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('focus', handleFocus);
+      window.addEventListener('blur', handleBlur);
 
       animationId = requestAnimationFrame(animate);
 
@@ -265,6 +297,9 @@ export function useScrollingAnimation(background: BackgroundConfig) {
         if (animationId) {
           cancelAnimationFrame(animationId);
         }
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('focus', handleFocus);
+        window.removeEventListener('blur', handleBlur);
       };
     }, 100); // 100ms delay to ensure DOM is ready
 

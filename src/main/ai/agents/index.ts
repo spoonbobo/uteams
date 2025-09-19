@@ -9,7 +9,7 @@ import { TavilyAgent } from './tavilyAgent';
 import { PlaywrightAgent } from './playwrightAgent';
 import { MemoryAgent } from './memoryAgent';
 import { GeneralAgent } from './generalAgent';
-import { MCPClient } from '../utils/mcpClient';
+import { MCPClient } from '../tools/mcpClient';
 
 /**
  * Agent types available in the system
@@ -51,10 +51,10 @@ export class AgentRegistry {
   async initialize(mcpClient: MCPClient, llm?: ChatOpenAI): Promise<void> {
     this.mcpClient = mcpClient;
     this.llm = llm || this.createDefaultLLM();
-    
+
     // Initialize MCP client if not already initialized
     await this.mcpClient.initialize();
-    
+
     // Create default agents
     await this.createDefaultAgents();
   }
@@ -65,17 +65,20 @@ export class AgentRegistry {
   private createDefaultLLM(): ChatOpenAI {
     const apiKey = process.env.OPENAI_API_KEY;
     const baseURL = process.env.OPENAI_BASE_URL;
-    
+
     if (!apiKey) {
       console.error('[AgentRegistry] OPENAI_API_KEY is not set. Please check your .env.production file.');
       throw new Error('OpenAI API key is required but not found in environment variables. Please set OPENAI_API_KEY in your .env.production file.');
     }
-    
+
     console.log('[AgentRegistry] Creating default LLM with baseURL:', baseURL || 'default OpenAI API');
-    
+
+    const model = process.env.OPENAI_MODEL || 'deepseek-chat';
+    const temperature = parseFloat(process.env.OPENAI_MODEL_TEMPERATURE || '0.0');
+
     return new ChatOpenAI({
-      model: 'deepseek-chat',
-      temperature: 0.3,
+      model: model,
+      temperature: temperature,
       openAIApiKey: apiKey,
       configuration: {
         baseURL: baseURL,
@@ -101,8 +104,8 @@ export class AgentRegistry {
 
     const playwrightTools = mcpTools.filter((t: any) => {
       const name = String(t?.name || '').toLowerCase();
-      return name.includes('playwright') || 
-             name.includes('navigate') || 
+      return name.includes('playwright') ||
+             name.includes('navigate') ||
              name.includes('screenshot') ||
              name.includes('click') ||
              name.includes('scrape');
@@ -146,7 +149,7 @@ export class AgentRegistry {
       prompt: 'You are a memory specialist that helps users manage their information and preferences.',
       handoffTargets: [AgentType.TAVILY, AgentType.PLAYWRIGHT, AgentType.GENERAL],
     };
-    
+
     const memoryAgent = new MemoryAgent(
       memoryConfig,
       this.llm!,
@@ -240,7 +243,7 @@ export class AgentRegistry {
 
     // Memory management keywords
     if (config.capabilities.memory) {
-      const keywords = ['remember', 'recall', 'memory', 'forget', 'my name', 'my preference', 
+      const keywords = ['remember', 'recall', 'memory', 'forget', 'my name', 'my preference',
                        'last time', 'previous', 'history', 'save this', 'store'];
       score += keywords.filter(k => text.includes(k)).length * 15; // Higher weight for memory
     }
@@ -262,7 +265,7 @@ export class AgentRegistry {
     if (this.mcpClient) {
       await this.mcpClient.cleanup();
     }
-    
+
     // Clear agent registry
     this.agents.clear();
   }

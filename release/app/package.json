@@ -15,10 +15,6 @@
     "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.ts"
   },
   "dependencies": {
-    "better-sqlite3": "^12.2.0",
-    "pg": "^8.16.3"
-  },
-  "devDependencies": {
-    "@types/pg": "^8.15.5"
+    "better-sqlite3": "^12.2.0"
   }
 }

@@ -1,5 +1,4 @@
 import { ipcMain } from 'electron';
-import { Client } from 'pg';
 import {
   initializeDatabase as sqliteInit,
   closeDatabase as sqliteClose,
@@ -9,67 +8,6 @@ import {
   getDatabaseFilePath,
 } from './index';
 
-let dbClient: Client | null = null;
-
-// PostgreSQL IPC handlers
-export const registerPostgresIpcHandlers = () => {
-  ipcMain.handle('db:connect', async (event, config) => {
-    try {
-      if (dbClient) {
-        await dbClient.end();
-      }
-
-      dbClient = new Client({
-        host: config.host || 'localhost',
-        port: config.port || 5432,
-        database: config.database || 'ezzzbet_db',
-        user: config.user || 'ezzzbet_user',
-        password: config.password || 'ezzzbet_pass',
-      });
-
-      await dbClient.connect();
-      console.log('Database connected successfully');
-      return { success: true };
-    } catch (error) {
-      console.error('Database connection failed:', error);
-      return { success: false, error: (error as Error).message };
-    }
-  });
-
-  ipcMain.handle('db:query', async (event, { sql, params = [] }) => {
-    try {
-      if (!dbClient) {
-        throw new Error('Database not connected');
-      }
-
-      const result = await dbClient.query(sql, params);
-      return {
-        success: true,
-        data: {
-          rows: result.rows,
-          rowCount: result.rowCount,
-        },
-      };
-    } catch (error) {
-      console.error('Database query failed:', error);
-      return { success: false, error: (error as Error).message };
-    }
-  });
-
-  ipcMain.handle('db:disconnect', async () => {
-    try {
-      if (dbClient) {
-        await dbClient.end();
-        dbClient = null;
-        console.log('Database disconnected');
-      }
-      return { success: true };
-    } catch (error) {
-      console.error('Database disconnect failed:', error);
-      return { success: false, error: (error as Error).message };
-    }
-  });
-};
 
 // SQLite IPC handlers
 export const registerSqliteIpcHandlers = () => {
@@ -134,37 +72,19 @@ export const registerSqliteIpcHandlers = () => {
 export const registerAppConfigHandler = () => {
   ipcMain.handle('app:get-config', () => {
     return {
-      database: {
-        host: process.env.PGHOST || 'localhost',
-        port: parseInt(process.env.PGPORT || '5432'),
-        database: process.env.PGDATABASE || 'ezzzbet_db',
-        user: process.env.PGUSER || 'ezzzbet_user',
-        password: process.env.PGPASSWORD || 'ezzzbet_pass',
-      },
+      // App configuration without PostgreSQL settings
     };
   });
 };
 
 // Register all database IPC handlers
 export const registerDatabaseIpcHandlers = () => {
-  registerPostgresIpcHandlers();
   registerSqliteIpcHandlers();
   registerAppConfigHandler();
 };
 
 // Cleanup function for database connections
 export const cleanupDatabaseConnections = async () => {
-  // Clean up PostgreSQL connection
-  if (dbClient) {
-    try {
-      await dbClient.end();
-      dbClient = null;
-      console.log('PostgreSQL connection closed');
-    } catch (error) {
-      console.error('Error closing PostgreSQL connection:', error);
-    }
-  }
-
   // Clean up SQLite connection
   try {
     sqliteClose();

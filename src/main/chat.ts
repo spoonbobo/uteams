@@ -116,19 +116,6 @@ export const registerChatIpc = () => {
                 return;
               }
 
-              // Log progress updates
-              // if (payload.node || payload.type === 'message' || payload.type === 'complete' || payload.progress === 0) {
-              //   console.log('📢 Agent progress:', {
-              //     sessionId,
-              //     node: payload.node,
-              //     step: payload.step,
-              //     totalSteps: payload.totalSteps,
-              //     progress: payload.progress,
-              //     type: payload.type,
-              //     chunkPreview: chunk ? String(chunk).slice(0, 60) : undefined
-              //   });
-              // }
-
                // Handle different message types
                if (payload.type === 'plan') {
                  // Send plan information to renderer

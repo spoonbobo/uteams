@@ -18,8 +18,7 @@ import {
 } from '@mui/material';
 import {
   Warning as WarningIcon,
-  Analytics as AnalyticsIcon,
-  Security as SecurityIcon,
+  Info as InfoIcon,
   VpnKey as VpnKeyIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
@@ -82,12 +81,6 @@ export const Disclaimer: React.FC<DisclaimerProps> = ({
       </DialogTitle>
 
       <DialogContent sx={{ py: 3 }}>
-        {isNewUser && (
-          <Alert severity="info" icon={false} sx={{ mb: 3 }}>
-            {intl.formatMessage({ id: 'disclaimer.welcome' }, { productName })}
-          </Alert>
-        )}
-
         <Typography
           variant="body1"
           sx={{
@@ -102,23 +95,11 @@ export const Disclaimer: React.FC<DisclaimerProps> = ({
         <List>
           <ListItem>
             <ListItemIcon sx={{ minWidth: 40 }}>
-              <AnalyticsIcon color="primary" fontSize="small" />
+              <InfoIcon color="primary" fontSize="small" />
             </ListItemIcon>
             <ListItemText
-              primary={intl.formatMessage({ id: 'disclaimer.analytics.title' })}
-              secondary={intl.formatMessage({ id: 'disclaimer.analytics.description' })}
-            />
-          </ListItem>
-
-          <Divider variant="inset" component="li" />
-
-          <ListItem>
-            <ListItemIcon sx={{ minWidth: 40 }}>
-              <SecurityIcon color="primary" fontSize="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary={intl.formatMessage({ id: 'disclaimer.p2p.title' })}
-              secondary={intl.formatMessage({ id: 'disclaimer.p2p.description' })}
+              primary={intl.formatMessage({ id: 'disclaimer.aiResults.title' })}
+              secondary={intl.formatMessage({ id: 'disclaimer.aiResults.description' })}
             />
           </ListItem>
 
@@ -134,29 +115,12 @@ export const Disclaimer: React.FC<DisclaimerProps> = ({
             />
           </ListItem>
         </List>
-
-        {isNewUser && (
-          <Alert severity="warning" icon={false} sx={{ mt: 3 }}>
-            {intl.formatMessage({ id: 'disclaimer.agreement' })}
-          </Alert>
-        )}
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3 }}>
-        {isNewUser ? (
-          <>
-            <Button onClick={onDecline} color="inherit">
-              {intl.formatMessage({ id: 'disclaimer.decline' })}
-            </Button>
-            <Button onClick={onAccept} variant="contained" color="primary">
-              {intl.formatMessage({ id: 'disclaimer.accept' })}
-            </Button>
-          </>
-        ) : (
-          <Button onClick={onClose} variant="contained" color="primary">
-            {intl.formatMessage({ id: 'common.close' })}
-          </Button>
-        )}
+        <Button onClick={onAccept || onClose} variant="contained" color="primary">
+          {intl.formatMessage({ id: 'disclaimer.understand' })}
+        </Button>
       </DialogActions>
     </Dialog>
   );

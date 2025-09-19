@@ -54,7 +54,7 @@ When synthesizing:
 - Provide comprehensive yet readable responses`,
       handoffTargets: ['tavily_agent', 'playwright_agent', 'memory_agent'],
       llmConfig: {
-        temperature: 0.3,
+        temperature: 0.0,
       },
     };
 

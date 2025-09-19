@@ -1,4 +1,7 @@
+// Main CourseView component
 export { CourseView } from './CourseView';
-export { AskView } from './AskView';
-export { CourseOverview } from './CourseOverview';
-export * from './components';
+
+// courseview modules
+export { AskView } from './modules/Ask';
+export { GradingView } from './modules/Grading';
+export { CourseOverview } from './modules/CourseOverview';

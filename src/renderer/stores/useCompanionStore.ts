@@ -12,10 +12,17 @@ interface CompanionState {
     height: number;
   };
 
+  // OCR capture settings
+  ocrCaptureEnabled: boolean;
+  ocrLanguage: string;
+
   // Actions
   setPosition: (x: number, y: number) => void;
   setSize: (width: number, height: number) => void;
   updateBounds: (bounds: { x: number; y: number; width: number; height: number }) => void;
+  toggleOcrCapture: () => void;
+  setOcrCapture: (enabled: boolean) => void;
+  setOcrLanguage: (language: string) => void;
 }
 
 export const useCompanionStore = create<CompanionState>()(
@@ -31,6 +38,10 @@ export const useCompanionStore = create<CompanionState>()(
         height: 620,
       },
 
+      // Default OCR capture state
+      ocrCaptureEnabled: false,
+      ocrLanguage: 'eng', // Default to English
+
       // Actions
       setPosition: (x: number, y: number) =>
         set({ position: { x, y } }),
@@ -43,13 +54,24 @@ export const useCompanionStore = create<CompanionState>()(
           position: { x: bounds.x, y: bounds.y },
           size: { width: bounds.width, height: bounds.height }
         }),
+
+      toggleOcrCapture: () =>
+        set((state) => ({ ocrCaptureEnabled: !state.ocrCaptureEnabled })),
+
+      setOcrCapture: (enabled: boolean) =>
+        set({ ocrCaptureEnabled: enabled }),
+
+      setOcrLanguage: (language: string) =>
+        set({ ocrLanguage: language }),
     }),
     {
       name: 'companion-store',
-      // Only persist position and size
+      // Persist position, size, and OCR capture state
       partialize: (state) => ({
         position: state.position,
         size: state.size,
+        ocrCaptureEnabled: state.ocrCaptureEnabled,
+        ocrLanguage: state.ocrLanguage,
       }),
     }
   )

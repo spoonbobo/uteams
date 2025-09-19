@@ -122,6 +122,8 @@ export const AIGradingPanel: React.FC<AIGradingPanelProps> = ({
           <GradingResults
             selectedAssignment={selectedAssignment}
             selectedSubmission={selectedSubmission}
+            selectedAssignmentData={selectedAssignmentData}
+            selectedSubmissionData={selectedSubmissionData}
             docxContent={docxContent}
             onHighlightsChange={handleHighlightsChange}
             onGradingCommentsChange={handleGradingCommentsChange}

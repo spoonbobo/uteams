@@ -181,27 +181,36 @@ export const useOcrStore = create<OcrState>((set, get) => ({
       oem = 1  // OEM.LSTM_ONLY
     } = options || {};
 
-      try {
-        console.log(`🔍 Starting Tesseract.js OCR in renderer process - Language: ${language}`);
+    try {
+      console.log(`🔍 Starting Tesseract.js OCR in renderer process - Language: ${language}`);
 
-        // Convert file path to data URL if it's a string (file path)
-        let processedImageData: string | File = imageData;
-        if (typeof imageData === 'string' && (imageData.startsWith('file://') || (!imageData.startsWith('data:') && !imageData.startsWith('blob:')))) {
-          console.log('🔄 Converting file path to data URL for OCR processing');
+      // Convert file path to data URL if it's a string (app-file URL or local path)
+      let processedImageData: string | File = imageData;
+        if (typeof imageData === 'string' && (
+          imageData.startsWith('app-file://') ||
+          (!imageData.startsWith('data:') && !imageData.startsWith('blob:') && !imageData.startsWith('http'))
+        )) {
+          console.log('🔄 Converting app-file path to data URL for Tesseract.js compatibility');
           try {
-            // Clean up file path (remove file:// prefix if present)
-            const cleanPath = imageData.replace('file:///', '').replace('file://', '');
+            // Clean up file path (remove app-file protocol prefix if present)
+            let cleanPath = imageData;
+            if (cleanPath.startsWith('app-file://')) {
+              cleanPath = decodeURIComponent(cleanPath.replace('app-file://', ''));
+            }
 
             // Use IPC to read the file as data URL from main process
-            const result = await (window as any)?.electron?.ipcRenderer?.invoke?.('fileio:read-as-data-url', { filepath: cleanPath });
+            const result = await (window as any)?.electron?.ipcRenderer?.invoke?.('fileio:read-as-data-url', {
+              filepath: cleanPath
+            });
+
             if (result?.success && result.dataUrl) {
               processedImageData = result.dataUrl;
-              console.log('✅ File converted to data URL');
+              console.log('✅ File converted to data URL for Tesseract.js');
             } else {
               throw new Error(result?.error || 'Failed to read file as data URL');
             }
           } catch (error) {
-            console.error('❌ Failed to convert file path to data URL:', error);
+            console.error('❌ Failed to convert file to data URL:', error);
             throw new Error(`Failed to load image file: ${error}`);
           }
         }
@@ -212,7 +221,11 @@ export const useOcrStore = create<OcrState>((set, get) => ({
         oem,
         undefined,
         (progress, status) => {
-          console.log(`OCR Status: ${status} (${Math.round(progress * 100)}%)`);
+          // Only log meaningful progress updates (every 10% or key milestones)
+          const progressPercent = Math.round(progress * 100);
+          if (progressPercent % 10 === 0 || progressPercent === 100 || status !== 'recognizing text') {
+            console.log(`📋 OCR: ${status} (${progressPercent}%)`);
+          }
         }
       );
 

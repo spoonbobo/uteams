@@ -48,7 +48,7 @@ When searching, be specific with your queries and use advanced search options wh
 Prefer recent information and authoritative sources.`,
       handoffTargets: ['playwright_agent'],
       llmConfig: {
-        temperature: 0.3,
+        temperature: 0.0,
       },
     };
 

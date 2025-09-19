@@ -52,7 +52,7 @@ When scraping:
 - Return structured, clean data`,
       handoffTargets: ['tavily_agent'],
       llmConfig: {
-        temperature: 0.2,
+        temperature: 0.0,
       },
     };
 
@@ -134,7 +134,7 @@ When scraping:
       const scrapingPlan = await this.planScraping(request, state);
 
       // Execute the scraping plan
-      const results = await this.executeScraping(scrapingPlan);
+      const results = await this.executeScraping(scrapingPlan, state);
 
       // Format results
       let formattedResult = this.formatScrapingResults(results);
@@ -217,7 +217,7 @@ When scraping:
   /**
    * Execute the scraping plan using Playwright tools
    */
-  private async executeScraping(plan: any): Promise<any[]> {
+  private async executeScraping(plan: any, state: AgentState): Promise<any[]> {
     const results: any[] = [];
 
     try {

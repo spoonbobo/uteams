@@ -147,9 +147,12 @@ export abstract class BaseAgent {
 
     console.log('[Agent] Creating LLM with baseURL:', baseURL || 'default OpenAI API');
 
+    const envModel = process.env.OPENAI_MODEL || 'deepseek-chat';
+    const envTemperature = parseFloat(process.env.OPENAI_MODEL_TEMPERATURE || '0.3');
+
     return new ChatOpenAI({
-      model: this.config.llmConfig?.model || 'deepseek-chat',
-      temperature: this.config.llmConfig?.temperature || 0.3,
+      model: this.config.llmConfig?.model || envModel,
+      temperature: this.config.llmConfig?.temperature || envTemperature,
       openAIApiKey: apiKey,
       configuration: {
         baseURL: baseURL,

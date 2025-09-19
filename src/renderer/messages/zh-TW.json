@@ -291,24 +291,16 @@
   },
   "disclaimer": {
     "title": "使用條款與隱私聲明",
-    "welcome": "歡迎使用 {productName}！在繼續前，請先閱讀以下重要資訊。",
     "description": "使用 {productName} 即表示您了解並同意以下條款：",
-    "analytics": {
-      "title": "工作空間活動分析",
-      "description": "工作空間內的使用者活動可能用於分析與洞察，以改善團隊協作與生產力。"
-    },
-    "p2p": {
-      "title": "訊息隱私與法律存取",
-      "description": "所有訊息皆以點對點加密方式儲存。然而在涉及法律要求或機構紀律處分之特殊情況下，我們保留存取已儲存資料（包含影像）的所有權利。"
+    "aiResults": {
+      "title": "AI 結果僅供參考",
+      "description": "所有 AI 生成的回應僅供參考，不應視為官方建議或指導。"
     },
     "credentials": {
       "title": "本機憑證儲存",
       "description": "所有使用者憑證與 API 金鑰僅儲存在您的裝置上，不會傳送至我們的伺服器。"
     },
-    "agreement": "點擊「接受」即表示您同意上述條款與條件。",
-    "accept": "接受並繼續",
-    "decline": "拒絕",
-    "declined": "已拒絕條款。您已登出。"
+    "understand": "我了解"
   },
   "common": {
     "cancel": "取消",
@@ -318,6 +310,7 @@
     "add": "新增",
     "close": "關閉",
     "confirm": "確認",
+    "selected": "已選擇",
     "yes": "是",
     "no": "否",
     "ok": "確定",
@@ -439,7 +432,13 @@
     "backToDesktop": "回到桌面",
     "backToApp": "回到應用程式",
     "stopResearch": "停止研究",
-    "exitOverlay": "退出覆蓋視窗"
+    "exitOverlay": "退出覆蓋視窗",
+    "testOcr": "測試 OCR (螢幕截圖與文字提取)",
+    "toggleCapture": "切換螢幕擷取",
+    "enableCapture": "啟用螢幕擷取",
+    "disableCapture": "停用螢幕擷取",
+    "ocrLanguage": "OCR 語言",
+    "selectLanguage": "選擇 OCR 語言"
   },
   "grading": {
     "title": "評分",
@@ -479,7 +478,9 @@
       "graded": "已評分",
       "submissionsFound": "找到提交",
       "gradesFound": "找到成績",
-      "loadingSubmissionData": "載入提交資料中..."
+      "loadingSubmissionData": "載入提交資料中...",
+      "viewFullDocument": "檢視完整文件",
+      "markingRubric": "評分標準"
     },
     "submissions": {
       "title": "選擇學生提交",
@@ -646,9 +647,14 @@
       "debugButton": "除錯：顯示兩個文件",
       "overallResult": "總體結果",
       "score": "分數",
-      "outOf": "滿分 100",
+      "outOf": "滿分 {total}",
+      "outOfHundred": "滿分 100",
       "feedback": "回饋",
       "detailedComments": "詳細評語",
+      "results": "AI 評分結果",
+      "scoreBreakdown": "分數細項",
+      "analyzingSubmission": "分析提交中...",
+      "gradingFor": "正在為 {student} 評分 {assignment}",
       "clear": "清除",
       "legend": {
         "title": "標記圖例",

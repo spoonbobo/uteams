@@ -70,7 +70,7 @@ await orchestrator.updateUserProfile({
   language: 'English',
   preferences: {
     defaultAgent: 'tavily_agent',
-    temperature: 0.7,
+    temperature: 0.0,
     maxTokens: 2000,
     responseStyle: 'detailed',
   },
@@ -290,7 +290,7 @@ await orchestrator.updateUserProfile({
   userId: 'user_123',
   preferences: {
     responseStyle: 'detailed',
-    temperature: 0.8,
+    temperature: 0.0,
   },
 });
 

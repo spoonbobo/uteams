@@ -123,7 +123,7 @@ const buildLightTheme = (isZh: boolean, colorPalette: ColorPalette) => {
         paper: `${paletteColor.main}08`, // Very light tint of the palette color
       },
       text: {
-        primary: '#0f172a',
+        primary: '#334155', // Lighter than the previous #0f172a for better readability
         secondary: '#64748b',
       },
     },

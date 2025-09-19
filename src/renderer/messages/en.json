@@ -291,24 +291,16 @@
   },
   "disclaimer": {
     "title": "Terms of Use & Privacy Statement",
-    "welcome": "Welcome to {productName}! Please review the following important information before continuing.",
     "description": "By using {productName}, you acknowledge and agree to the following terms:",
-    "analytics": {
-      "title": "Workspace Activity Analytics",
-      "description": "User activities within workspaces may be used for analytics and insight generation to improve team collaboration and productivity."
-    },
-    "p2p": {
-      "title": "Message Privacy and Legal Access",
-      "description": "All messages are stored using peer-to-peer encryption. However, in exceptional circumstances involving legal requirements and institutional disciplinary actions, we reserve all rights to access stored data, including images."
+    "aiResults": {
+      "title": "AI Results for Reference Only",
+      "description": "All AI-generated responses are for reference purposes only and should not be considered as official advice or guidance."
     },
     "credentials": {
       "title": "Local Credential Storage",
       "description": "All user credentials and API keys are stored locally on your device only and are never transmitted to our servers."
     },
-    "agreement": "By clicking 'Accept', you agree to these terms and conditions.",
-    "accept": "Accept and Continue",
-    "decline": "Decline",
-    "declined": "Terms declined. You have been logged out."
+    "understand": "I Understand"
   },
   "common": {
     "cancel": "Cancel",
@@ -436,7 +428,13 @@
     "backToDesktop": "Back to desktop",
     "backToApp": "Back to app",
     "stopResearch": "Stop research",
-    "exitOverlay": "Exit overlay"
+    "exitOverlay": "Exit overlay",
+    "testOcr": "Test OCR (Screenshot & Extract Text)",
+    "toggleCapture": "Toggle Screen Capture",
+    "enableCapture": "Enable Screen Capture",
+    "disableCapture": "Disable Screen Capture",
+    "ocrLanguage": "OCR Language",
+    "selectLanguage": "Select OCR language"
   },
   "grading": {
     "title": "Grading",
@@ -476,7 +474,9 @@
       "graded": "Graded",
       "submissionsFound": "Submissions found",
       "gradesFound": "Grades found",
-      "loadingSubmissionData": "Loading submission data..."
+      "loadingSubmissionData": "Loading submission data...",
+      "viewFullDocument": "View Full Document",
+      "markingRubric": "Marking Rubric"
     },
     "submissions": {
       "title": "Select Student Submission",
@@ -602,9 +602,14 @@
       "debugButton": "Debug: Show Both Documents",
       "overallResult": "Overall Result",
       "score": "Score",
-      "outOf": "out of 100",
+      "outOf": "out of {total}",
+      "outOfHundred": "out of 100",
       "feedback": "Feedback",
       "detailedComments": "Detailed Comments",
+      "results": "AI Grading Results",
+      "scoreBreakdown": "Score Breakdown",
+      "analyzingSubmission": "Analyzing submission...",
+      "gradingFor": "Grading {student} for {assignment}",
       "legend": {
         "title": "Highlight Legend",
         "green": "Good point",

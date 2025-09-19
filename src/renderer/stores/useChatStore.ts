@@ -14,16 +14,25 @@ type ChatState = {
   todosBySession: Record<string, TodoItem[] | undefined>;
   // Thinking state: whether agent is processing
   isThinkingBySession: Record<string, boolean>;
+  // Token batching state with RAF support
+  tokenBatchBySession: Record<string, {
+    tokens: string[];
+    timeoutId?: NodeJS.Timeout;
+    rafId?: number;
+    lastFlush?: number;
+  } | undefined>;
 
   loadMessages: (sessionId: string) => Promise<void>;
   addMessage: (sessionId: string, message: Omit<ChatMessage, 'chatId' | 'createdAt'>) => Promise<void>;
-  sendUserMessage: (sessionId: string, text: string, courseId?: string) => Promise<void>;
+  sendUserMessage: (sessionId: string, text: string, courseId?: string, ocrText?: string, skipUserMessage?: boolean) => Promise<void>;
   sendCompanionMessage: (sessionId: string, text: string) => Promise<void>;
   deleteMessage: (sessionId: string, id: string) => Promise<void>;
   clearAllMessages: (sessionId: string) => Promise<void>;
   // Streaming controls
   beginStream: (sessionId: string) => string; // returns stream message id
   appendStream: (sessionId: string, chunk: string) => void;
+  appendStreamBatched: (sessionId: string, token: string) => void; // New batched append
+  flushTokenBatch: (sessionId: string) => void; // Force flush tokens
   endStream: (sessionId: string) => void;
   // Thinking messages
   addThinkingMessage: (sessionId: string, text: string) => void;
@@ -51,6 +60,7 @@ export const useChatStore = create<ChatState>()(
     planBySession: {},
     todosBySession: {},
     isThinkingBySession: {},
+    tokenBatchBySession: {},
 
     loadMessages: async (sessionId) => {
       const state = get();
@@ -173,25 +183,33 @@ export const useChatStore = create<ChatState>()(
       );
     },
 
-    sendUserMessage: async (sessionId, text, courseId?: string) => {
+    sendUserMessage: async (sessionId, text, courseId?: string, ocrText?: string, skipUserMessage?: boolean) => {
       if (!text?.trim()) return;
 
       // Set thinking state immediately when user sends message
       get().setThinking(sessionId, true);
 
-      // If courseId is available, enhance the prompt to encourage memory agent usage
+      // Enhance the prompt with available context
       let enhancedText = text;
-      if (courseId) {
-        // Add a subtle hint to the prompt that course context is available
-        enhancedText = `${text}\n\n[Context: Course ${courseId} data is available in memory]`;
+
+      // Add OCR context if available
+      if (ocrText && ocrText.trim()) {
+        enhancedText = `${text}\n\n[Screen Content OCR]: ${ocrText.trim()}`;
       }
 
-      // Store the original user message (without the hint)
-      await get().addMessage(sessionId, {
-        id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
-        text, // Original text without enhancement
-        sender: 'user',
-      });
+      // Add course context if available
+      if (courseId) {
+        enhancedText = `${enhancedText}\n\n[Context: Course ${courseId} data is available in memory]`;
+      }
+
+      // Store the original user message (without the hint) unless skipped
+      if (!skipUserMessage) {
+        await get().addMessage(sessionId, {
+          id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
+          text, // Original text without enhancement
+          sender: 'user',
+        });
+      }
 
       // Defer starting stream until content (non-thinking) arrives
       try {
@@ -290,7 +308,15 @@ export const useChatStore = create<ChatState>()(
         };
         const onToken = (payload: { sessionId: string; token: string; node: string }) => {
           if (payload?.sessionId !== sessionId) return;
-          // Stream tokens directly to the chat
+
+          // Prevent processing if we're in a recursion loop
+          const batch = get().tokenBatchBySession[sessionId];
+          if (batch && batch.tokens.length > 100) {
+            console.warn('[chat] Token batch overflow, skipping token to prevent recursion');
+            return;
+          }
+
+          // Stream tokens using batched approach to prevent recursion limits
           const current = get().streamingBySession[sessionId];
           if (!current) {
             // Start streaming and clear thinking state in a single update
@@ -300,7 +326,7 @@ export const useChatStore = create<ChatState>()(
                 const updates: any = {
                   streamingBySession: {
                     ...s.streamingBySession,
-                    [sessionId]: { id: streamId, text: payload.token },
+                    [sessionId]: { id: streamId, text: '' }, // Start with empty text, tokens will be batched
                   },
                 };
                 // Only update thinking if it's currently true
@@ -317,10 +343,10 @@ export const useChatStore = create<ChatState>()(
             );
             console.log('[chat] beginStream for tokens', { sessionId, streamId });
             get().clearThinkingMessages(sessionId);
-          } else {
-            // Just append to existing stream
-            get().appendStream(sessionId, payload.token);
           }
+
+          // Use batched streaming to prevent recursion limits with fast models
+          get().appendStreamBatched(sessionId, payload.token);
         };
         const onSynthesisStart = (payload: { sessionId: string; progress: number }) => {
           if (payload?.sessionId !== sessionId) return;
@@ -435,18 +461,126 @@ export const useChatStore = create<ChatState>()(
         'chat:stream:append',
       );
     },
+
+    appendStreamBatched: (sessionId: string, token: string) => {
+      if (!token) return;
+
+      const state = get();
+      const currentBatch = state.tokenBatchBySession[sessionId];
+      const now = Date.now();
+
+      // Clear existing schedulers
+      if (currentBatch?.timeoutId) {
+        clearTimeout(currentBatch.timeoutId);
+      }
+      if (currentBatch?.rafId) {
+        cancelAnimationFrame(currentBatch.rafId);
+      }
+
+      // Add token to batch
+      const tokens = [...(currentBatch?.tokens || []), token];
+
+      // Check if we should force flush (adaptive throttling)
+      const lastFlush = currentBatch?.lastFlush || now;
+      const timeSinceFlush = now - lastFlush;
+      const shouldForceFlush = tokens.length > 50 || timeSinceFlush > 100; // Force flush if too many tokens or 100ms passed
+
+      if (shouldForceFlush) {
+        // Immediate flush for large batches or time threshold
+        set(
+          (s) => ({
+            tokenBatchBySession: {
+              ...s.tokenBatchBySession,
+              [sessionId]: { tokens: [], lastFlush: now },
+            },
+          }),
+          false,
+          'chat:stream:force-flush',
+        );
+        // Append immediately
+        get().appendStream(sessionId, tokens.join(''));
+      } else {
+        // Use requestAnimationFrame for smooth updates aligned with browser rendering
+        const rafId = requestAnimationFrame(() => {
+          const batch = get().tokenBatchBySession[sessionId];
+          if (batch && batch.tokens.length > 0) {
+            get().flushTokenBatch(sessionId);
+          }
+        });
+
+        // Fallback timeout in case RAF doesn't fire (e.g., tab not visible)
+        const timeoutId = setTimeout(() => {
+          get().flushTokenBatch(sessionId);
+        }, 50); // Increased to 50ms for better batching
+
+        // Update batch state
+        set(
+          (s) => ({
+            tokenBatchBySession: {
+              ...s.tokenBatchBySession,
+              [sessionId]: { tokens, timeoutId, rafId, lastFlush },
+            },
+          }),
+          false,
+          'chat:stream:batch',
+        );
+      }
+    },
+
+    flushTokenBatch: (sessionId: string) => {
+      const state = get();
+      const batch = state.tokenBatchBySession[sessionId];
+
+      if (!batch || batch.tokens.length === 0) return;
+
+      // Clear all schedulers
+      if (batch.timeoutId) {
+        clearTimeout(batch.timeoutId);
+      }
+      if (batch.rafId) {
+        cancelAnimationFrame(batch.rafId);
+      }
+
+      // Join all tokens and append to stream
+      const combinedTokens = batch.tokens.join('');
+
+      // Throttle the actual append to prevent too frequent updates
+      if (combinedTokens) {
+        get().appendStream(sessionId, combinedTokens);
+      }
+
+      // Clear the batch but keep lastFlush time
+      const now = Date.now();
+      set(
+        (s) => ({
+          tokenBatchBySession: {
+            ...s.tokenBatchBySession,
+            [sessionId]: { tokens: [], lastFlush: now },
+          },
+        }),
+        false,
+        'chat:stream:flush',
+      );
+    },
     endStream: (sessionId: string) => {
       const state = get();
+
+      // Flush any remaining tokens first
+      get().flushTokenBatch(sessionId);
+
       const current = state.streamingBySession[sessionId];
       if (!current) return;
       const finalText = current.text;
+
       set(
         (s) => ({
           streamingBySession: { ...s.streamingBySession, [sessionId]: undefined },
+          tokenBatchBySession: { ...s.tokenBatchBySession, [sessionId]: undefined }, // Clean up batch state
         }),
         false,
         'chat:stream:end:clear',
       );
+
       // persist the streamed message
       void state.addMessage(sessionId, {
         id: current.id,
@@ -595,6 +729,15 @@ export const useChatStore = create<ChatState>()(
         if (result?.success) {
           console.log(`[Chat] Session ${sessionId} aborted successfully`);
 
+          // Clear any pending token batch first
+          const batch = get().tokenBatchBySession[sessionId];
+          if (batch?.timeoutId) {
+            clearTimeout(batch.timeoutId);
+          }
+          if (batch?.rafId) {
+            cancelAnimationFrame(batch.rafId);
+          }
+
           // Clear local state immediately
           set(
             (s) => ({
@@ -602,6 +745,7 @@ export const useChatStore = create<ChatState>()(
               isThinkingBySession: { ...s.isThinkingBySession, [sessionId]: false },
               planBySession: { ...s.planBySession, [sessionId]: undefined },
               todosBySession: { ...s.todosBySession, [sessionId]: undefined },
+              tokenBatchBySession: { ...s.tokenBatchBySession, [sessionId]: undefined },
             }),
             false,
             'chat:abort:cleanup',

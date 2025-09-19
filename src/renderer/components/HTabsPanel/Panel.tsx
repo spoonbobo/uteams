@@ -1,7 +1,21 @@
 import React, { ReactNode } from 'react';
-import { Typography, Box, TextField, InputAdornment, IconButton, Tooltip, Select, MenuItem, FormControl, Chip } from '@mui/material';
-import { Search as SearchIcon, ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon } from '@mui/icons-material';
-import { useIntl } from 'react-intl';
+import {
+  Typography,
+  Box,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Tooltip,
+  Select,
+  MenuItem,
+  FormControl,
+  Chip,
+} from '@mui/material';
+import {
+  Search as SearchIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
+} from '@mui/icons-material';
 
 export interface PanelControlConfig {
   // Search configuration
@@ -11,7 +25,7 @@ export interface PanelControlConfig {
     value: string;
     onChange: (value: string) => void;
   };
-  
+
   // Sort configuration (for assignments-like panels)
   sort?: {
     enabled: boolean;
@@ -22,7 +36,7 @@ export interface PanelControlConfig {
       oldest: string;
     };
   };
-  
+
   // Filter configuration (for materials-like panels)
   filter?: {
     enabled: boolean;
@@ -43,25 +57,31 @@ interface HTabPanelProps {
   children: ReactNode;
 }
 
-export const HTabPanel: React.FC<HTabPanelProps> = ({
+export function HTabPanel({
   title,
   count,
   isLoading = false,
   showControls = true,
   controlsConfig,
-  children
-}) => {
-  const intl = useIntl();
-  
+  children,
+}: HTabPanelProps) {
   // Determine if controls should be shown based on count and configuration
-  const shouldShowControls = showControls && 
-    count > (controlsConfig?.filter?.enabled ? 2 : 1) && 
+  const shouldShowControls =
+    showControls &&
+    count > (controlsConfig?.filter?.enabled ? 2 : 1) &&
     (controlsConfig?.search || controlsConfig?.sort || controlsConfig?.filter);
 
   return (
     <Box>
       {/* Panel Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 3,
+        }}
+      >
         <Typography variant="h5" sx={{ fontWeight: 500 }}>
           {title}
           {!isLoading && (
@@ -75,22 +95,27 @@ export const HTabPanel: React.FC<HTabPanelProps> = ({
             </Typography>
           )}
         </Typography>
-        
+
         {/* Controls */}
         {shouldShowControls && (
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             {/* Sort Control */}
             {controlsConfig?.sort?.enabled && (
-              <Tooltip 
-                title={controlsConfig.sort.order === 'newest' 
-                  ? controlsConfig.sort.tooltips.newest
-                  : controlsConfig.sort.tooltips.oldest
+              <Tooltip
+                title={
+                  controlsConfig.sort.order === 'newest'
+                    ? controlsConfig.sort.tooltips.newest
+                    : controlsConfig.sort.tooltips.oldest
                 }
               >
                 <IconButton
-                  onClick={() => controlsConfig.sort!.onOrderChange(
-                    controlsConfig.sort!.order === 'newest' ? 'oldest' : 'newest'
-                  )}
+                  onClick={() =>
+                    controlsConfig.sort!.onOrderChange(
+                      controlsConfig.sort!.order === 'newest'
+                        ? 'oldest'
+                        : 'newest',
+                    )
+                  }
                   size="small"
                   sx={{
                     border: '1px solid',
@@ -118,9 +143,10 @@ export const HTabPanel: React.FC<HTabPanelProps> = ({
                   multiple
                   value={controlsConfig.filter.selectedTypes}
                   onChange={(e) => {
-                    const value = typeof e.target.value === 'string' 
-                      ? e.target.value.split(',') 
-                      : e.target.value;
+                    const value =
+                      typeof e.target.value === 'string'
+                        ? e.target.value.split(',')
+                        : e.target.value;
                     controlsConfig.filter!.onTypeChange(value);
                   }}
                   displayEmpty
@@ -139,7 +165,7 @@ export const HTabPanel: React.FC<HTabPanelProps> = ({
                             key={value}
                             label={controlsConfig.filter!.getTypeLabel(value)}
                             size="small"
-                            sx={{ 
+                            sx={{
                               height: 20,
                               fontSize: '0.7rem',
                               '& .MuiChip-label': {
@@ -165,14 +191,19 @@ export const HTabPanel: React.FC<HTabPanelProps> = ({
                 </Select>
               </FormControl>
             )}
-            
+
             {/* Search Control */}
             {controlsConfig?.search?.enabled && (
               <TextField
                 variant="outlined"
-                placeholder={controlsConfig.search.placeholder || `Search ${title.toLowerCase()}...`}
+                placeholder={
+                  controlsConfig.search.placeholder ||
+                  `Search ${title.toLowerCase()}...`
+                }
                 value={controlsConfig.search.value}
-                onChange={(e) => controlsConfig.search!.onChange(e.target.value)}
+                onChange={(e) =>
+                  controlsConfig.search!.onChange(e.target.value)
+                }
                 size="small"
                 sx={{ width: 250 }}
                 InputProps={{
@@ -187,9 +218,15 @@ export const HTabPanel: React.FC<HTabPanelProps> = ({
           </Box>
         )}
       </Box>
-      
+
       {/* Panel Content */}
       {children}
     </Box>
   );
+}
+
+HTabPanel.defaultProps = {
+  isLoading: false,
+  showControls: true,
+  controlsConfig: undefined,
 };

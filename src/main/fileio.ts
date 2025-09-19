@@ -262,11 +262,11 @@ export function setupFileIOHandlers() {
   });
 }
 
-// Register custom protocol for serving local files
-export function registerLocalFileProtocol() {
-  // Register protocol to handle local-file:// URLs
-  protocol.registerFileProtocol('local-file', (request, callback) => {
-    const url = request.url.replace('local-file://', '');
+// Register secure custom protocol for serving local files
+export function registerSecureFileProtocol() {
+  // Register protocol to handle app-file:// URLs with proper security
+  protocol.registerBufferProtocol('app-file', (request, callback) => {
+    const url = request.url.replace('app-file://', '');
 
     try {
       // Decode URL and handle Windows paths
@@ -279,16 +279,76 @@ export function registerLocalFileProtocol() {
 
       console.log('[Protocol] Serving file:', filePath);
 
-      // Check if file exists
-      if (fs.existsSync(filePath)) {
-        callback({ path: filePath });
-      } else {
-        console.error('[Protocol] File not found:', filePath);
-        callback({ error: -6 }); // NET_ERROR_FILE_NOT_FOUND
+      // Security: Validate that the file path is safe
+      const normalizedPath = path.normalize(filePath);
+      const appDataPath = app.getPath('userData');
+      const userHomePath = app.getPath('home');
+
+      // Allow files from user data directory, user home, or absolute paths for background images
+      const isInUserData = normalizedPath.startsWith(path.normalize(appDataPath));
+      const isInUserHome = normalizedPath.startsWith(path.normalize(userHomePath));
+      const isAbsolutePath = path.isAbsolute(normalizedPath);
+
+      if (!isInUserData && !isInUserHome && !isAbsolutePath) {
+        console.error('[Protocol] File path not allowed for security reasons:', normalizedPath);
+        callback({ error: -10 }); // NET_ERROR_ACCESS_DENIED
+        return;
       }
+
+      // Check if file exists
+      if (!fs.existsSync(normalizedPath)) {
+        console.error('[Protocol] File not found:', normalizedPath);
+        callback({ error: -6 }); // NET_ERROR_FILE_NOT_FOUND
+        return;
+      }
+
+      // Read file and determine MIME type
+      const fileBuffer = fs.readFileSync(normalizedPath);
+      const ext = path.extname(normalizedPath).toLowerCase();
+
+      let mimeType = 'application/octet-stream'; // default
+      switch(ext) {
+        case '.png':
+          mimeType = 'image/png';
+          break;
+        case '.jpg':
+        case '.jpeg':
+          mimeType = 'image/jpeg';
+          break;
+        case '.gif':
+          mimeType = 'image/gif';
+          break;
+        case '.webp':
+          mimeType = 'image/webp';
+          break;
+        case '.svg':
+          mimeType = 'image/svg+xml';
+          break;
+        case '.bmp':
+          mimeType = 'image/bmp';
+          break;
+        case '.ico':
+          mimeType = 'image/x-icon';
+          break;
+        case '.tiff':
+        case '.tif':
+          mimeType = 'image/tiff';
+          break;
+      }
+
+      console.log(`[Protocol] Serving ${mimeType} file: ${normalizedPath} (${fileBuffer.length} bytes)`);
+
+      callback({
+        mimeType,
+        data: fileBuffer
+      });
+
     } catch (error) {
       console.error('[Protocol] Error serving file:', error);
       callback({ error: -2 }); // NET_ERROR_FAILED
     }
   });
 }
+
+// Legacy function name for backward compatibility
+export const registerLocalFileProtocol = registerSecureFileProtocol;

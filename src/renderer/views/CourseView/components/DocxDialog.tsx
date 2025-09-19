@@ -11,12 +11,9 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-} from '@mui/icons-material';
+import { Close as CloseIcon } from '@mui/icons-material';
 import DocxPreview from '@/components/DocxPreview/DocxPreview';
 import type { DocxContent } from '@/components/DocxPreview/types';
-import { useIntl } from 'react-intl';
 
 interface DocxDialogProps {
   open: boolean;
@@ -28,7 +25,7 @@ interface DocxDialogProps {
   error: string | null;
 }
 
-export const DocxDialog: React.FC<DocxDialogProps> = ({
+function DocxDialog({
   open,
   onClose,
   studentName,
@@ -36,9 +33,7 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
   docxContent,
   loading,
   error,
-}) => {
-  const intl = useIntl();
-
+}: DocxDialogProps) {
   return (
     <Dialog
       open={open}
@@ -49,15 +44,17 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
         sx: {
           height: '90vh',
           maxHeight: '90vh',
-        }
+        },
       }}
     >
-      <DialogTitle sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        pb: 1
-      }}>
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          pb: 1,
+        }}
+      >
         <Box>
           <Typography variant="h6" component="div">
             Document Preview - {studentName}
@@ -79,24 +76,28 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        p: 0,
-        '&.MuiDialogContent-root': {
-          paddingTop: 0,
-        }
-      }}>
+      <DialogContent
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          p: 0,
+          '&.MuiDialogContent-root': {
+            paddingTop: 0,
+          },
+        }}
+      >
         {loading && (
-          <Box sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            flex: 1,
-            flexDirection: 'column',
-            gap: 2
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              flex: 1,
+              flexDirection: 'column',
+              gap: 2,
+            }}
+          >
             <CircularProgress />
             <Typography variant="body2" color="text.secondary">
               Loading document preview...
@@ -107,21 +108,21 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
         {error && (
           <Box sx={{ p: 3 }}>
             <Alert severity="error">
-              <Typography variant="body2">
-                {error}
-              </Typography>
+              <Typography variant="body2">{error}</Typography>
             </Alert>
           </Box>
         )}
 
         {!loading && !error && docxContent && (
-          <Box sx={{
-            flex: 1,
-            p: 2,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
+          <Box
+            sx={{
+              flex: 1,
+              p: 2,
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             <DocxPreview
               content={{
                 text: docxContent.text,
@@ -129,10 +130,10 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
                 wordCount: docxContent.wordCount,
                 characterCount: docxContent.characterCount,
                 filename: filename || 'Student Submission',
-                elementCounts: (docxContent as any).elementCounts
+                elementCounts: (docxContent as any).elementCounts,
               }}
               variant="full"
-              showStats={true}
+              showStats
               showHoverPreview={false}
               showDebugInfo={false}
               maxPreviewLength={1000}
@@ -143,25 +144,31 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
                 '& .docx-content-container': {
                   flex: 1,
                   overflow: 'auto',
-                }
+                },
               }}
             />
           </Box>
         )}
 
         {!loading && !error && !docxContent && (
-          <Box sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            flex: 1,
-            flexDirection: 'column',
-            gap: 2
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              flex: 1,
+              flexDirection: 'column',
+              gap: 2,
+            }}
+          >
             <Typography variant="h6" color="text.secondary">
               No Document Available
             </Typography>
-            <Typography variant="body2" color="text.secondary" textAlign="center">
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+            >
               The document could not be loaded or does not exist.
             </Typography>
           </Box>
@@ -175,4 +182,10 @@ export const DocxDialog: React.FC<DocxDialogProps> = ({
       </DialogActions>
     </Dialog>
   );
+}
+
+DocxDialog.defaultProps = {
+  filename: undefined,
 };
+
+export default DocxDialog;

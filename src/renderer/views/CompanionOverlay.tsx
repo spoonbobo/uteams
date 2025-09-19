@@ -1,6 +1,7 @@
 import React from 'react';
-import { Box, IconButton, Typography, alpha, useTheme, Tooltip } from '@mui/material';
+import { Box, IconButton, Typography, alpha, useTheme, Tooltip, Select, MenuItem, FormControl } from '@mui/material';
 import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
+import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
 import { useIntl } from 'react-intl';
 import { ChatWidget } from '@/components/ChatWidget';
 import { useCompanionStore } from '@/stores/useCompanionStore';
@@ -16,12 +17,34 @@ export const CompanionOverlay: React.FC<CompanionOverlayProps> = ({
 }) => {
   const intl = useIntl();
   const theme = useTheme();
-  const { updateBounds } = useCompanionStore();
+  const { updateBounds, ocrCaptureEnabled, toggleOcrCapture, ocrLanguage, setOcrLanguage } = useCompanionStore();
+  const [availableLanguages, setAvailableLanguages] = React.useState<string[]>([]);
+
+  // Language display names for the three supported languages
+  const languageNames: Record<string, string> = {
+    'eng': 'English',
+    'chi_sim': '中文 (简体)',
+    'chi_tra': '中文 (繁體)',
+  };
 
   const handleExit = React.useCallback(() => {
     try {
       (window as any)?.electron?.companion?.close?.();
     } catch {}
+  }, []);
+
+  const handleToggleOcrCapture = React.useCallback(() => {
+    toggleOcrCapture();
+  }, [toggleOcrCapture]);
+
+  const handleLanguageChange = React.useCallback((event: any) => {
+    setOcrLanguage(event.target.value);
+  }, [setOcrLanguage]);
+
+  // Load available languages on mount
+  React.useEffect(() => {
+    // Only show English, Chinese Simplified, and Chinese Traditional
+    setAvailableLanguages(['eng', 'chi_sim', 'chi_tra']);
   }, []);
 
   React.useEffect(() => {
@@ -104,8 +127,75 @@ export const CompanionOverlay: React.FC<CompanionOverlayProps> = ({
           >
             {sessionName || intl.formatMessage({ id: 'overlay.companionTitle' })}
           </Typography>
-          <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5, WebkitAppRegion: 'no-drag' }}>
-            <Tooltip title={intl.formatMessage({ id: 'overlay.backToApp', defaultMessage: 'Back to app' })} placement="bottom">
+          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5, WebkitAppRegion: 'no-drag' }}>
+            {/* OCR Language Selector */}
+            <Tooltip title={intl.formatMessage({ id: 'overlay.selectLanguage' })} placement="bottom">
+              <FormControl size="small" sx={{ minWidth: 80 }}>
+                <Select
+                  value={ocrLanguage}
+                  onChange={handleLanguageChange}
+                  displayEmpty
+                  sx={{
+                    height: 28,
+                    fontSize: '0.75rem',
+                    color: theme.palette.text.secondary,
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: alpha(theme.palette.divider, 0.3),
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: alpha(theme.palette.divider, 0.5),
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: theme.palette.primary.main,
+                    },
+                    '& .MuiSelect-select': {
+                      py: 0.5,
+                      px: 1,
+                    },
+                  }}
+                >
+                  {availableLanguages.map((lang) => (
+                    <MenuItem key={lang} value={lang} sx={{ fontSize: '0.75rem' }}>
+                      {languageNames[lang] || lang.toUpperCase()}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Tooltip>
+
+            {/* Capture Screen Toggle Button */}
+            <Tooltip
+              title={intl.formatMessage({
+                id: ocrCaptureEnabled ? 'overlay.disableCapture' : 'overlay.enableCapture'
+              })}
+              placement="bottom"
+            >
+              <IconButton
+                size="small"
+                onClick={handleToggleOcrCapture}
+                sx={{
+                  color: ocrCaptureEnabled
+                    ? theme.palette.primary.main
+                    : theme.palette.text.secondary,
+                  backgroundColor: ocrCaptureEnabled
+                    ? alpha(theme.palette.primary.main, 0.1)
+                    : 'transparent',
+                  '&:hover': {
+                    color: ocrCaptureEnabled
+                      ? theme.palette.primary.dark
+                      : theme.palette.text.primary,
+                    backgroundColor: ocrCaptureEnabled
+                      ? alpha(theme.palette.primary.main, 0.2)
+                      : alpha(theme.palette.action.hover, 0.1),
+                  },
+                }}
+              >
+                <CameraAltOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+
+            {/* Back to App Button */}
+            <Tooltip title={intl.formatMessage({ id: 'overlay.backToApp' })} placement="bottom">
               <IconButton
                 size="small"
                 onClick={handleExit}
@@ -131,7 +221,12 @@ export const CompanionOverlay: React.FC<CompanionOverlayProps> = ({
           backgroundColor: theme.palette.background.paper,
           '& .MuiAppBar-root': { display: 'none' },
         }}>
-          <ChatWidget sessionId={sessionId} sessionName={sessionName} />
+          <ChatWidget
+            sessionId={sessionId}
+            sessionName={sessionName}
+            ocrCaptureEnabled={ocrCaptureEnabled}
+            ocrLanguage={ocrLanguage}
+          />
         </Box>
       </Box>
     </Box>

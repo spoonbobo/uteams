@@ -9,6 +9,8 @@ import {
   Button,
   Tooltip,
   CircularProgress,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -57,7 +59,8 @@ export const CategoryHeader: React.FC<CategoryHeaderProps> = ({
   showSubmitAction = false,
 }) => {
   const intl = useIntl();
-  
+  const theme = useTheme();
+
   if (count === 0) return null;
 
   const categoryStudentIds = students.map(s => s.student.id);
@@ -81,23 +84,28 @@ export const CategoryHeader: React.FC<CategoryHeaderProps> = ({
 
   return (
     <TableRow>
-      <TableCell 
-        colSpan={8} 
-        sx={{ 
-          bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.800' : 'grey.50',
-          borderTop: '1px solid',
+      <TableCell
+        colSpan={8}
+        sx={{
+          bgcolor: theme.palette.mode === 'dark'
+            ? alpha(theme.palette.background.paper, 0.8)
+            : alpha(theme.palette.primary.main, 0.04),
+          borderTop: 1,
           borderTopColor: 'divider',
-          py: 1,
+          py: theme.spacing(1),
           position: 'sticky',
+          transition: theme.transitions.create(['background-color'], {
+            duration: theme.transitions.duration.short,
+          }),
         }}
       >
-        <Box sx={{ 
+        <Box sx={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 2
+          gap: theme.spacing(2)
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: theme.spacing(1) }}>
             {/* Checkbox for select all */}
             <Checkbox
               checked={isAllSelected}
@@ -106,34 +114,61 @@ export const CategoryHeader: React.FC<CategoryHeaderProps> = ({
               size="small"
               disabled={isCollapsed}
             />
-            
+
             {/* Expand/Collapse button and title */}
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1, 
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing(1),
                 cursor: 'pointer',
+                borderRadius: theme.shape.borderRadius / 2,
+                p: theme.spacing(0.5),
+                transition: theme.transitions.create(['background-color', 'opacity'], {
+                  duration: theme.transitions.duration.short,
+                }),
                 '&:hover': {
-                  opacity: 0.8
+                  backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                  opacity: 0.9
                 }
               }}
               onClick={() => onToggle(categoryKey)}
             >
-              <IconButton size="small" sx={{ p: 0 }}>
+              <IconButton
+                size="small"
+                sx={{
+                  p: 0,
+                  color: theme.palette.text.secondary,
+                  '&:hover': {
+                    color: theme.palette.primary.main,
+                  }
+                }}
+              >
                 {isCollapsed ? <ChevronRightIcon /> : <ExpandMoreIcon />}
               </IconButton>
-              <Typography variant="subtitle2" sx={{ 
-                fontWeight: 500, 
-                color: 'text.primary'
-              }}>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: theme.typography.fontWeightMedium,
+                  color: theme.palette.text.primary,
+                  fontSize: theme.typography.pxToRem(14),
+                }}
+              >
                 {title} ({count})
               </Typography>
             </Box>
 
             {/* Selected count */}
             {selectedInCategory.length > 0 && (
-              <Typography variant="caption" sx={{ color: 'primary.main', ml: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: theme.palette.primary.main,
+                  ml: theme.spacing(1),
+                  fontWeight: theme.typography.fontWeightMedium,
+                  fontSize: theme.typography.pxToRem(12),
+                }}
+              >
                 ({selectedInCategory.length} {intl.formatMessage({ id: 'common.selected' })})
               </Typography>
             )}
@@ -141,7 +176,16 @@ export const CategoryHeader: React.FC<CategoryHeaderProps> = ({
 
           {/* Batch action buttons */}
           {!isCollapsed && selectedInCategory.length > 0 && (
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Box sx={{
+              display: 'flex',
+              gap: theme.spacing(1),
+              alignItems: 'center',
+              [theme.breakpoints.down('md')]: {
+                flexDirection: 'column',
+                alignItems: 'flex-end',
+                gap: theme.spacing(0.5),
+              }
+            }}>
               {/* Batch Start Grading - For "Ready to Grade" category */}
               {showGradingActions && onBatchStartGrading && categoryKey === 'readyToGrade' && (
                 <Tooltip title={intl.formatMessage({ id: 'grading.submissions.batch.startGrading' }, { count: selectedInCategory.length })}>
@@ -152,6 +196,14 @@ export const CategoryHeader: React.FC<CategoryHeaderProps> = ({
                     startIcon={isBatchGrading ? <CircularProgress size={16} /> : <PlayArrowIcon />}
                     onClick={(e) => handleActionClick(e, onBatchStartGrading)}
                     disabled={isBatchGrading}
+                    sx={{
+                      minWidth: theme.spacing(12),
+                      fontSize: theme.typography.pxToRem(12),
+                      borderRadius: theme.shape.borderRadius,
+                      '&:hover': {
+                        backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                      }
+                    }}
                   >
                     {intl.formatMessage({ id: 'grading.submissions.batch.grade' })} ({selectedInCategory.length})
                   </Button>
@@ -168,6 +220,14 @@ export const CategoryHeader: React.FC<CategoryHeaderProps> = ({
                     startIcon={isBatchGrading ? <CircularProgress size={16} /> : <PlayArrowIcon />}
                     onClick={(e) => handleActionClick(e, onBatchStartGrading)}
                     disabled={isBatchGrading}
+                    sx={{
+                      minWidth: theme.spacing(12),
+                      fontSize: theme.typography.pxToRem(12),
+                      borderRadius: theme.shape.borderRadius,
+                      '&:hover': {
+                        backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                      }
+                    }}
                   >
                     {intl.formatMessage({ id: 'grading.submissions.batch.regrade' })} ({selectedInCategory.length})
                   </Button>
@@ -183,6 +243,14 @@ export const CategoryHeader: React.FC<CategoryHeaderProps> = ({
                     color="error"
                     startIcon={<ClearIcon />}
                     onClick={(e) => handleActionClick(e, onBatchClearGrading)}
+                    sx={{
+                      minWidth: theme.spacing(12),
+                      fontSize: theme.typography.pxToRem(12),
+                      borderRadius: theme.shape.borderRadius,
+                      '&:hover': {
+                        backgroundColor: alpha(theme.palette.error.main, 0.08),
+                      }
+                    }}
                   >
                     {intl.formatMessage({ id: 'grading.submissions.batch.clear' })} ({selectedInCategory.length})
                   </Button>
@@ -198,6 +266,15 @@ export const CategoryHeader: React.FC<CategoryHeaderProps> = ({
                     color="secondary"
                     startIcon={<SendIcon />}
                     onClick={(e) => handleActionClick(e, onBatchSubmitGrades)}
+                    sx={{
+                      minWidth: theme.spacing(12),
+                      fontSize: theme.typography.pxToRem(12),
+                      borderRadius: theme.shape.borderRadius,
+                      boxShadow: theme.shadows[2],
+                      '&:hover': {
+                        boxShadow: theme.shadows[4],
+                      }
+                    }}
                   >
                     {intl.formatMessage({ id: 'grading.submissions.batch.submit' })} ({selectedInCategory.length})
                   </Button>

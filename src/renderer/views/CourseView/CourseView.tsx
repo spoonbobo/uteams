@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { Typography, Box } from '@mui/material';
-import { AskView } from './AskView';
-import { CourseOverview } from './CourseOverview';
-import { GradingView } from './GradingView';
+import { AskView } from './modules/Ask';
+import { CourseOverview } from './modules/CourseOverview';
+import { GradingView } from './modules/Grading';
 import { useIntl } from 'react-intl';
 import { useMoodleStore } from '@/stores/useMoodleStore';
 import type { CourseSessionContext } from '@/stores/useContextStore';
@@ -228,6 +228,14 @@ export const CourseView: React.FC<CourseViewProps> = ({
         mx: 'auto',
         boxSizing: 'border-box',
         backgroundColor: 'inherit',
+        // Hide scrollbars globally for this view
+        '& *': {
+          '&::-webkit-scrollbar': {
+            display: 'none', // Hide scrollbar for WebKit browsers
+          },
+          scrollbarWidth: 'none', // Hide scrollbar for Firefox
+          msOverflowStyle: 'none', // Hide scrollbar for IE/Edge
+        },
       }}
     >
       {renderContent()}

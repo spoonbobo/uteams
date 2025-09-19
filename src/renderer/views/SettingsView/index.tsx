@@ -552,6 +552,44 @@ export const SettingsView: React.FC = () => {
                   </Box>
                 )}
 
+                {/* Opacity Slider - Only for image backgrounds */}
+                {background.type === 'image' && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" gutterBottom>
+                      {intl.formatMessage({ id: 'settings.backgroundOpacity' })}: {background.opacity}%
+                    </Typography>
+                    <Slider
+                      value={background.opacity}
+                      onChange={handleBackgroundOpacityChange}
+                      min={5}
+                      max={95}
+                      step={5}
+                      marks
+                      valueLabelDisplay="auto"
+                      valueLabelFormat={(value) => `${value}%`}
+                    />
+                  </Box>
+                )}
+
+                {/* Blur Slider */}
+                {background.type === 'image' && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" gutterBottom>
+                      {intl.formatMessage({ id: 'settings.backgroundBlur' })}: {background.blur}px
+                    </Typography>
+                    <Slider
+                      value={background.blur}
+                      onChange={handleBackgroundBlurChange}
+                      min={0}
+                      max={10}
+                      step={1}
+                      marks
+                      valueLabelDisplay="auto"
+                      valueLabelFormat={(value) => `${value}px`}
+                    />
+                  </Box>
+                )}
+
                 {/* Scrolling Carousel Settings */}
                 {selectedImages.length > 1 && (
                   <Card
@@ -683,44 +721,6 @@ export const SettingsView: React.FC = () => {
                     </CardContent>
                   </Card>
                 )}
-              </Box>
-            )}
-
-            {/* Opacity Slider - Only for image backgrounds */}
-            {background.type === 'image' && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" gutterBottom>
-                  {intl.formatMessage({ id: 'settings.backgroundOpacity' })}: {background.opacity}%
-                </Typography>
-                <Slider
-                  value={background.opacity}
-                  onChange={handleBackgroundOpacityChange}
-                  min={5}
-                  max={95}
-                  step={5}
-                  marks
-                  valueLabelDisplay="auto"
-                  valueLabelFormat={(value) => `${value}%`}
-                />
-              </Box>
-            )}
-
-            {/* Blur Slider */}
-            {background.type === 'image' && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" gutterBottom>
-                  {intl.formatMessage({ id: 'settings.backgroundBlur' })}: {background.blur}px
-                </Typography>
-                <Slider
-                  value={background.blur}
-                  onChange={handleBackgroundBlurChange}
-                  min={0}
-                  max={10}
-                  step={1}
-                  marks
-                  valueLabelDisplay="auto"
-                  valueLabelFormat={(value) => `${value}px`}
-                />
               </Box>
             )}
 

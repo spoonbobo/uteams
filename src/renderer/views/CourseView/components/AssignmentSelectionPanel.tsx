@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Box,
   Typography,
@@ -16,6 +16,7 @@ import {
   CircularProgress,
   Divider,
   Grid,
+  Link,
 } from '@mui/material';
 import {
   Assignment as AssignmentIcon,
@@ -24,10 +25,12 @@ import {
   CloudUpload as CloudUploadIcon,
   Description as DescriptionIcon,
   Delete as DeleteIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import type { MoodleAssignment } from '@/types/moodle';
 import type { GradingStats, RubricContent } from '@/types/grading';
 import DocxPreview from '@/components/DocxPreview/DocxPreview';
+import DocxDialog from './DocxDialog';
 import { useIntl } from 'react-intl';
 
 interface AssignmentSelectionPanelProps {
@@ -65,6 +68,7 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
 }) => {
   const intl = useIntl();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [docxDialogOpen, setDocxDialogOpen] = useState(false);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -330,26 +334,43 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
 
                   return (
                     <>
-                      <Alert severity="success" sx={{ mb: 2 }}>
-                        {intl.formatMessage({ id: 'grading.assignment.rubricLoadedSuccessfully' })} {rubricContent.wordCount} {intl.formatMessage({ id: 'grading.assignment.wordsParsed' })}.
-                      </Alert>
+                      <DocxPreview
+                        content={{
+                          text: rubricContent.text,
+                          html: rubricContent.html || '',
+                          wordCount: rubricContent.wordCount,
+                          characterCount: rubricContent.characterCount,
+                          filename: rubricFile?.name || 'Rubric',
+                          elementCounts: rubricContent.elementCounts
+                        }}
+                        variant="compact"
+                        showStats={true}
+                        showHoverPreview={false}
+                        showDebugInfo={false}
+                        maxPreviewLength={200}
+                      />
 
-                    <DocxPreview
-                      content={{
-                        text: rubricContent.text,
-                        html: rubricContent.html || '',
-                        wordCount: rubricContent.wordCount,
-                        characterCount: rubricContent.characterCount,
-                        filename: rubricFile?.name || 'Rubric',
-                        elementCounts: rubricContent.elementCounts
-                      }}
-                      variant="full"
-                      showStats={true}
-                      showHoverPreview={false}
-                      showDebugInfo={true}
-                      maxPreviewLength={300}
-                    />
-                  </>
+                      {/* View Full Document Link */}
+                      <Box sx={{ mt: 2, textAlign: 'center' }}>
+                        <Link
+                          component="button"
+                          variant="body2"
+                          onClick={() => setDocxDialogOpen(true)}
+                          sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            textDecoration: 'none',
+                            '&:hover': {
+                              textDecoration: 'underline',
+                            },
+                          }}
+                        >
+                          <VisibilityIcon fontSize="small" />
+                          {intl.formatMessage({ id: 'grading.assignment.viewFullDocument' })}
+                        </Link>
+                      </Box>
+                    </>
                   );
                 })()}
               </CardContent>
@@ -381,6 +402,22 @@ export const AssignmentSelectionPanel: React.FC<AssignmentSelectionPanelProps> =
           {intl.formatMessage({ id: 'common.next' })}: {intl.formatMessage({ id: 'grading.steps.studentSubmissions' })}
         </Button>
       </Box>
+
+      {/* DocxDialog for full rubric preview */}
+      <DocxDialog
+        open={docxDialogOpen}
+        onClose={() => setDocxDialogOpen(false)}
+        studentName={intl.formatMessage({ id: 'grading.assignment.markingRubric' })}
+        filename={rubricFile?.name || rubricContent?.filename || 'Rubric'}
+        docxContent={rubricContent ? {
+          text: rubricContent.text,
+          html: rubricContent.html || '',
+          wordCount: rubricContent.wordCount,
+          characterCount: rubricContent.characterCount,
+        } : null}
+        loading={false}
+        error={null}
+      />
     </Paper>
   );
 };
