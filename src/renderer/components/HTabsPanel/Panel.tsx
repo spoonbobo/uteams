@@ -50,8 +50,6 @@ export interface PanelControlConfig {
 
 interface HTabPanelProps {
   title: string;
-  count: number;
-  isLoading?: boolean;
   showControls?: boolean;
   controlsConfig?: PanelControlConfig;
   children: ReactNode;
@@ -59,16 +57,13 @@ interface HTabPanelProps {
 
 export function HTabPanel({
   title,
-  count,
-  isLoading = false,
   showControls = true,
   controlsConfig,
   children,
 }: HTabPanelProps) {
-  // Determine if controls should be shown based on count and configuration
+  // Determine if controls should be shown based on configuration
   const shouldShowControls =
     showControls &&
-    count > (controlsConfig?.filter?.enabled ? 2 : 1) &&
     (controlsConfig?.search || controlsConfig?.sort || controlsConfig?.filter);
 
   return (
@@ -84,16 +79,6 @@ export function HTabPanel({
       >
         <Typography variant="h5" sx={{ fontWeight: 500 }}>
           {title}
-          {!isLoading && (
-            <Typography
-              component="span"
-              variant="body2"
-              color="text.secondary"
-              sx={{ ml: 2 }}
-            >
-              ({count})
-            </Typography>
-          )}
         </Typography>
 
         {/* Controls */}
@@ -226,7 +211,6 @@ export function HTabPanel({
 }
 
 HTabPanel.defaultProps = {
-  isLoading: false,
   showControls: true,
   controlsConfig: undefined,
 };

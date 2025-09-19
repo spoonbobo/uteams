@@ -94,8 +94,6 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
       component: (
         <HTabPanel
           title={intl.formatMessage({ id: 'courseOverview.assignments.title' })}
-          count={courseContent?.assignments?.length || 0}
-          isLoading={courseContent?.isLoading || false}
           controlsConfig={{
             search: {
               enabled: true,
@@ -134,8 +132,6 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
       component: (
         <HTabPanel
           title={intl.formatMessage({ id: 'courseOverview.materials.title' })}
-          count={courseContent?.activities?.length || 0}
-          isLoading={courseContent?.isLoading || false}
           controlsConfig={{
             search: {
               enabled: true,
@@ -173,8 +169,6 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
       component: (
         <HTabPanel
           title={intl.formatMessage({ id: 'courseOverview.students.title' })}
-          count={courseContent?.students?.length || 0}
-          isLoading={courseContent?.isLoading || false}
           controlsConfig={{
             search: {
               enabled: true,
@@ -225,7 +219,6 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
       {/* Horizontal Tabs Panel */}
       <HTabsPanel
         sections={sections}
-        isLoading={isLoading}
         selectedTab={selectedTab}
         onTabChange={handleTabChange}
       />

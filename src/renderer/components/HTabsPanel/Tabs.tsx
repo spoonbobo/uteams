@@ -130,13 +130,19 @@ export function HTabsPanel({
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      {/* Horizontal Tabs */}
+      {/* Horizontal Tabs - Sticky positioned */}
       <Paper
         sx={{
+          position: 'sticky',
+          top: 64, // TopBar height (64px) to avoid overlap
+          zIndex: theme.zIndex.appBar - 1, // Below TopBar but above content
           mb: 2,
           borderRadius: 2,
           backgroundColor: theme.palette.background.paper,
-          boxShadow: theme.shadows[1],
+          boxShadow: theme.shadows[2], // Slightly more shadow when sticky
+          transition: theme.transitions.create('box-shadow', {
+            duration: theme.transitions.duration.short,
+          }),
         }}
       >
         <Tabs
@@ -194,6 +200,8 @@ export function HTabsPanel({
           overflow: 'auto',
           display: 'flex',
           scrollBehavior: 'smooth',
+          // Add padding top to account for sticky tabs
+          pt: 0,
           '&::-webkit-scrollbar': {
             height: 8,
           },

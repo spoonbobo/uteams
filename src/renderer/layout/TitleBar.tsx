@@ -17,16 +17,13 @@ import {
 } from '@mui/icons-material';
 import './TitleBar.css';
 
-interface TitleBarProps {
-  title: string;
-}
-
-export default function TitleBar({ title = 'THEiTeams' }: TitleBarProps) {
+export default function TitleBar() {
   const theme = useTheme();
   const [isMaximized, setIsMaximized] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string>('');
+  const [appTitle, setAppTitle] = useState<string>('THEiTeams');
 
   // Check if window is maximized on mount and listen for changes
   useEffect(() => {
@@ -44,19 +41,22 @@ export default function TitleBar({ title = 'THEiTeams' }: TitleBarProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch app version on mount
+  // Fetch app version and title on mount
   useEffect(() => {
-    const fetchVersion = async () => {
+    const fetchAppInfo = async () => {
       try {
-        const version = await (window as any).electron?.ipcRenderer?.invoke(
-          'app:get-version',
-        );
+        const [version, productName] = await Promise.all([
+          (window as any).electron?.ipcRenderer?.invoke('app:get-version'),
+          (window as any).electron?.ipcRenderer?.invoke('app:get-product-name'),
+        ]);
         setAppVersion(version || '');
+        setAppTitle(productName || 'THEiTeams');
       } catch (error) {
-        console.error('Failed to fetch app version:', error);
+        // eslint-disable-next-line no-console
+        console.error('Failed to fetch app info:', error);
       }
     };
-    fetchVersion();
+    fetchAppInfo();
   }, []);
 
   const handleMinimize = () => {
@@ -147,7 +147,7 @@ export default function TitleBar({ title = 'THEiTeams' }: TitleBarProps) {
           }}
         />
         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-          {title}
+          {appTitle}
         </Typography>
       </Box>
 

@@ -4,7 +4,7 @@ import { SidebarCollapse, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from './Sideb
 import TopBar from './TopBar';
 import MainView from './MainView';
 import { useLayoutStore } from '@/stores/useLayoutStore';
-import TitleBar from '@/components/TitleBar';
+import TitleBar from './TitleBar';
 
 interface AppLayoutProps {
   children: React.ReactNode;
