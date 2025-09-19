@@ -14,12 +14,11 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DataObjectIcon from '@mui/icons-material/DataObject';
+import HighlightIcon from '@mui/icons-material/Highlight';
 import PDFJsonDialog from '@/components/PDFPreview/PDFJsonDialog';
 
 interface SelectProps {
   sessionContext: CourseSessionContext;
-  selectedCoursework: string[];
-  onCourseworkToggle: (assignmentId: string) => void;
   examType: string;
   onExamTypeChange: (type: string) => void;
   examInstructions: string;
@@ -30,8 +29,6 @@ interface SelectProps {
 
 function Select({
   sessionContext,
-  selectedCoursework,
-  onCourseworkToggle,
   examType,
   onExamTypeChange,
   examInstructions,
@@ -49,12 +46,33 @@ function Select({
   const [jsonLoading, setJsonLoading] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [selectedJsonFilename, setSelectedJsonFilename] = useState<string>('');
+  const [highlightLoading, setHighlightLoading] = useState(false);
+  const [currentPdfData, setCurrentPdfData] = useState<any>(null);
 
   const sessionId = sessionContext.sessionId;
   const courseContent = getCourseContent(sessionId);
 
-  // Use store for PDF preview state
-  const { setSelectedPdf, setPdfLoading, setPdfError, pdfLoading, clearPdfPreview } = useCourseworkGeneratorStore();
+  // Use store for PDF preview state and assignment selection
+  const {
+    setSelectedPdf,
+    setPdfLoading,
+    setPdfError,
+    pdfLoading,
+    clearPdfPreview,
+    selectedPdfPath,
+    getSelectedAssignments,
+    toggleAssignment,
+    setPreviewPdf,
+    getPreviewPdf
+  } = useCourseworkGeneratorStore();
+
+  // Get current course selections from store
+  const selectedCoursework = getSelectedAssignments(sessionId);
+
+  // Handle assignment toggle
+  const onCourseworkToggle = (assignmentId: string) => {
+    toggleAssignment(sessionId, assignmentId);
+  };
 
   const handleGenerationTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setGenerationType(event.target.value);
@@ -64,6 +82,14 @@ function Select({
   const isPdfFile = (filename: string, mimetype?: string): boolean => {
     const filenameLower = filename.toLowerCase();
     return filenameLower.endsWith('.pdf') || mimetype === 'application/pdf';
+  };
+
+  // Check if any selected assignments have PDF attachments
+  const hasPdfAttachments = (): boolean => {
+    return selectedCoursework.some(assignmentId => {
+      const attachments = assignmentAttachments[assignmentId] || [];
+      return attachments.some(attachment => isPdfFile(attachment.filename, attachment.mimetype));
+    });
   };
 
   // Handle PDF preview - download PDF and show in left panel
@@ -114,6 +140,25 @@ function Select({
 
       // Set the PDF in the store to show in left panel
       setSelectedPdf(downloadResult.filePath, attachment.filename);
+
+      // Also persist the preview PDF for this course
+      setPreviewPdf(sessionId, downloadResult.filePath, attachment.filename);
+
+      // Also parse the PDF structure for potential highlighting
+      try {
+        const parseResult = await window.electron.ipcRenderer.invoke('pdf:parse-to-json', {
+          filePath: downloadResult.filePath,
+          includeText: true,
+          includeMetadata: true,
+          includeStructure: false
+        });
+
+        if (parseResult.success) {
+          setCurrentPdfData(parseResult.data);
+        }
+      } catch (parseError) {
+        console.warn('Could not parse PDF for highlighting:', parseError);
+      }
 
     } catch (error: any) {
       console.error('❌ Error downloading PDF for preview:', error);
@@ -379,7 +424,110 @@ function Select({
     }
   };
 
+  // Handle real-time highlighting of current PDF
+  const handleHighlightCurrentPdf = async () => {
+    if (!selectedPdfPath) {
+      alert('No PDF currently loaded for highlighting');
+      return;
+    }
 
+    // If we don't have PDF data yet, try to parse it first
+    if (!currentPdfData) {
+      console.log('🔍 PDF data not available, attempting to parse...');
+      await parsePdfForHighlighting(selectedPdfPath);
+
+      // Check again after parsing
+      if (!currentPdfData) {
+        alert('Could not parse PDF data for highlighting. The file may no longer exist or be corrupted.');
+        return;
+      }
+    }
+
+    setHighlightLoading(true);
+
+    try {
+      console.log('🎯 Applying intelligent highlights to current PDF...');
+
+      // Generate AI-style patches for key content
+      const aiPatches: any[] = [];
+
+      // Find mathematical and important content to highlight
+      currentPdfData.elements?.forEach((element: any, index: number) => {
+        const shouldHighlight =
+          element.content.type === 'math_symbol' ||
+          element.content.type === 'formula' ||
+          element.content.type === 'greek_letter' ||
+          element.content.type === 'theorem' ||
+          element.content.type === 'solution' ||
+          (element.content.type === 'number' && element.content.text.includes('.')) ||
+          element.content.type === 'variable';
+
+        if (shouldHighlight && aiPatches.length < 8) { // Limit to 8 highlights
+          aiPatches.push({
+            elementId: element.elementId,
+            action: 'annotate',
+            data: {
+              comment: getSmartComment(element),
+              highlightColor: getHighlightColor(element.content.type),
+              importance: element.content.type.includes('formula') ? 'high' : 'medium'
+            }
+          });
+        }
+      });
+
+      if (aiPatches.length === 0) {
+        alert('No suitable content found for highlighting in this PDF');
+        return;
+      }
+
+      // Apply the highlights using our AI patches handler
+      const highlightResult = await window.electron.ipcRenderer.invoke('pdf:apply-ai-patches', {
+        filePath: selectedPdfPath,
+        outputPath: selectedPdfPath.replace('.pdf', '_highlighted.pdf'),
+        pdfStructure: currentPdfData,
+        patches: aiPatches
+      });
+
+      if (!highlightResult.success) {
+        throw new Error(highlightResult.error || 'Failed to apply highlights');
+      }
+
+      console.log('✅ Highlights applied successfully:', highlightResult.data);
+
+      // Update the preview to show the highlighted version
+      setSelectedPdf(highlightResult.data.outputPath, `Highlighted - ${currentPdfData.document.metadata?.title || 'PDF'}`);
+
+      alert(`✅ Applied ${highlightResult.data.patchesApplied} highlights to PDF!\n\nHighlighted version now showing in preview.`);
+
+    } catch (error: any) {
+      console.error('❌ Error highlighting PDF:', error);
+      alert(`Error applying highlights: ${error.message}`);
+    } finally {
+      setHighlightLoading(false);
+    }
+  };
+
+  // Helper function to get smart comments based on element type
+  const getSmartComment = (element: any): string => {
+    switch (element.content.type) {
+      case 'math_symbol': return 'Mathematical symbol';
+      case 'formula': return 'Key formula';
+      case 'greek_letter': return 'Greek letter';
+      case 'theorem': return 'Important theorem';
+      case 'solution': return 'Solution method';
+      case 'variable': return 'Variable';
+      case 'number': return 'Numerical value';
+      default: return 'Important content';
+    }
+  };
+
+  // Helper function to get highlight color based on content type
+  const getHighlightColor = (type: string): 'yellow' | 'green' | 'blue' | 'red' => {
+    if (type.includes('formula') || type.includes('theorem')) return 'red';
+    if (type.includes('math') || type.includes('greek')) return 'yellow';
+    if (type.includes('solution')) return 'green';
+    return 'blue';
+  };
 
   // Fetch attachments for a specific assignment
   const fetchAssignmentAttachments = async (assignmentId: string) => {
@@ -426,26 +574,63 @@ function Select({
     });
   }, [selectedCoursework]);
 
-  // Auto-preview first PDF when assignments change
+  // Function to parse PDF data for highlighting
+  const parsePdfForHighlighting = async (filePath: string) => {
+    try {
+      const parseResult = await window.electron.ipcRenderer.invoke('pdf:parse-to-json', {
+        filePath,
+        includeText: true,
+        includeMetadata: true,
+        includeStructure: false
+      });
+
+      if (parseResult.success) {
+        setCurrentPdfData(parseResult.data);
+        console.log('✅ PDF parsed for highlighting:', parseResult.data);
+      } else {
+        console.warn('Could not parse PDF for highlighting:', parseResult.error);
+      }
+    } catch (parseError) {
+      console.warn('Could not parse PDF for highlighting:', parseError);
+    }
+  };
+
+  // Restore previously selected PDF on component mount
+  useEffect(() => {
+    const savedPreview = getPreviewPdf(sessionId);
+    if (savedPreview.filePath && savedPreview.filename) {
+      setSelectedPdf(savedPreview.filePath, savedPreview.filename);
+
+      // Also parse the PDF for highlighting if the file still exists
+      parsePdfForHighlighting(savedPreview.filePath);
+    }
+  }, [sessionId, getPreviewPdf, setSelectedPdf]);
+
+  // Auto-preview first PDF when assignments change (only if no PDF is currently selected)
   useEffect(() => {
     if (selectedCoursework.length === 0) {
       // Clear preview when no assignments selected
       clearPdfPreview();
+      setPreviewPdf(sessionId, null, null);
+      setCurrentPdfData(null); // Also clear PDF data for highlighting
       return;
     }
 
-    // Find first PDF attachment from selected assignments
-    for (const assignmentId of selectedCoursework) {
-      const attachments = assignmentAttachments[assignmentId];
-      if (attachments && attachments.length > 0) {
-        const firstPdf = attachments.find(att => isPdfFile(att.filename, att.mimetype));
-        if (firstPdf && firstPdf.fileurl) {
-          handlePdfPreview(firstPdf);
-          break; // Only preview the first PDF found
+    // Only auto-preview if no PDF is currently selected
+    if (!selectedPdfPath) {
+      // Find first PDF attachment from selected assignments
+      for (const assignmentId of selectedCoursework) {
+        const attachments = assignmentAttachments[assignmentId];
+        if (attachments && attachments.length > 0) {
+          const firstPdf = attachments.find(att => isPdfFile(att.filename, att.mimetype));
+          if (firstPdf && firstPdf.fileurl) {
+            handlePdfPreview(firstPdf);
+            break; // Only preview the first PDF found
+          }
         }
       }
     }
-  }, [selectedCoursework, assignmentAttachments]);
+  }, [selectedCoursework, assignmentAttachments, selectedPdfPath, sessionId, clearPdfPreview, setPreviewPdf]);
 
   return (
     <HTabPanel
@@ -770,8 +955,29 @@ function Select({
         </Box>
       )}
 
-      {/* Action Button */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
+      {/* PDF Format Supplement Text */}
+      {generationType === 'current' && selectedCoursework.length > 0 && hasPdfAttachments() && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+            {intl.formatMessage({ id: 'courseworkGenerator.pdfFormatNotice' })}
+          </Typography>
+        </Box>
+      )}
+
+      {/* Action Buttons */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+        {/* Highlight Current PDF Button */}
+        <Button
+          variant="outlined"
+          size="large"
+          disabled={!selectedPdfPath || highlightLoading}
+          onClick={handleHighlightCurrentPdf}
+          startIcon={highlightLoading ? <CircularProgress size={20} /> : <HighlightIcon />}
+        >
+          {highlightLoading ? 'Highlighting...' : 'Highlight PDF'}
+        </Button>
+
+        {/* Generate Button */}
         <Button
           variant="contained"
           size="large"
@@ -781,7 +987,6 @@ function Select({
             isGenerating
           }
           onClick={onProceedToGenerate}
-          startIcon={<AutoAwesomeIcon />}
         >
           {intl.formatMessage({ id: 'courseworkGenerator.proceedToGenerate' })}
         </Button>

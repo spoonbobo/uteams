@@ -755,8 +755,7 @@
       "availableAssignments": "Available Assignments",
       "selectedSummary": "Selected Coursework",
       "noAssignments": "No assignments available for this course.",
-      "noDescription": "No description available",
-      "proceedToGenerate": "Proceed to Generate"
+      "noDescription": "No description available"
     },
     "generationType": {
       "title": "Generation Type",
@@ -773,7 +772,6 @@
     "loadingAttachments": "Loading attachments...",
     "dueDate": "Due",
     "maxGrade": "Max Grade",
-    "proceedToGenerate": "Proceed to Generate",
     "generate": {
       "title": "Generate Coursework",
       "description": "Configure your coursework settings and generate questions based on the selected materials.",
@@ -788,7 +786,9 @@
       "pleaseWait": "This may take a few moments. We're analyzing your materials and creating relevant coursework questions."
     },
     "generateCoursework": "Generate Coursework",
-    "generating": "Generating..."
+    "generating": "Generating...",
+    "proceedToGenerate": "Generate",
+    "pdfFormatNotice": "Please note: If generating PDF coursework, we only provide new coursework through DOCX format."
   },
   "dashboard": {
     "title": "Dashboard",

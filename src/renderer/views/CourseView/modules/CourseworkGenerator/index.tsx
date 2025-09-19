@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Typography, Box, Paper } from '@mui/material';
+import { Typography, Box, Paper, Card, CardContent } from '@mui/material';
 import { useIntl } from 'react-intl';
 import { HTabsPanel, type TabSection } from '@/components/HTabsPanel';
 import type { CourseSessionContext } from '@/stores/useContextStore';
 import { useCourseworkGeneratorStore } from '@/stores/useCourseworkGeneratorStore';
-import { PDFDialog } from '@/components/PDFPreview';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import Select from './Select';
 import Generate from './Generate';
 
@@ -15,7 +15,6 @@ interface CourseworkGeneratorProps {
 function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
   const intl = useIntl();
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedCoursework, setSelectedCoursework] = useState<string[]>([]);
   const [examType, setExamType] = useState('');
   const [examInstructions, setExamInstructions] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -26,22 +25,19 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
     selectedPdfFilename,
     pdfLoading,
     pdfError,
-    clearPdfPreview
+    clearPdfPreview,
+    getSelectedAssignments
   } = useCourseworkGeneratorStore();
+
+  // Get selected assignments from store
+  const selectedCoursework = getSelectedAssignments(sessionContext.sessionId);
 
   // Handle tab change
   const handleTabChange = (newValue: number) => {
     setSelectedTab(newValue);
   };
 
-  // Handle coursework selection
-  const handleCourseworkToggle = (assignmentId: string) => {
-    setSelectedCoursework((prev) =>
-      prev.includes(assignmentId)
-        ? prev.filter((id) => id !== assignmentId)
-        : [...prev, assignmentId],
-    );
-  };
+  // Coursework selection is now handled by the store in the Select component
 
   // Handle exam type change
   const handleExamTypeChange = (type: string) => {
@@ -91,8 +87,6 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
       component: (
         <Select
           sessionContext={sessionContext}
-          selectedCoursework={selectedCoursework}
-          onCourseworkToggle={handleCourseworkToggle}
           examType={examType}
           onExamTypeChange={handleExamTypeChange}
           examInstructions={examInstructions}
@@ -108,7 +102,6 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
       component: (
         <Generate
           sessionContext={sessionContext}
-          selectedCoursework={selectedCoursework}
           examType={examType}
           examInstructions={examInstructions}
           onGenerateExam={handleGenerateExam}
@@ -131,35 +124,51 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
       {/* Split Layout: PDF Preview (50%) + Content (50%) */}
       <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 200px)' }}>
         {/* Left Side: PDF Preview */}
-        <Box sx={{ width: '50%' }}>
+        <Box sx={{ width: '50%', display: 'flex', flexDirection: 'column' }}>
+          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+            PDF Preview
+          </Typography>
+
           {selectedPdfPath ? (
-            <iframe
-              src={`app-file://${selectedPdfPath}#toolbar=0&navpanes=0&view=FitH`}
-              style={{
-                width: '100%',
-                height: '100%',
-                border: '1px solid #e0e0e0',
-                borderRadius: '4px',
-              }}
-              title={selectedPdfFilename || 'PDF Preview'}
-            />
+            <Box sx={{ flex: 1 }}>
+              <iframe
+                src={`app-file://${selectedPdfPath}#toolbar=0&navpanes=0&view=FitH`}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '4px',
+                }}
+                title={selectedPdfFilename || 'PDF Preview'}
+              />
+            </Box>
           ) : (
-            <Box
+            <Card
+              variant="outlined"
               sx={{
-                height: '100%',
+                flex: 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: 'grey.50',
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'grey.300'
+                bgcolor: 'background.default'
               }}
             >
-              <Typography variant="body1" color="text.secondary">
-                Select an assignment to preview PDF
-              </Typography>
-            </Box>
+              <CardContent sx={{ textAlign: 'center', py: 8 }}>
+                <PictureAsPdfIcon
+                  sx={{
+                    fontSize: 64,
+                    color: 'text.disabled',
+                    mb: 2
+                  }}
+                />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No PDF Selected
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 300 }}>
+                  Select an assignment from the right panel to automatically preview its PDF attachments here
+                </Typography>
+              </CardContent>
+            </Card>
           )}
         </Box>
 
