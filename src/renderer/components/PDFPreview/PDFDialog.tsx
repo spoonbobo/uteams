@@ -130,7 +130,7 @@ function PDFDialog({
                 }}
               >
                 <iframe
-                  src={`app-file://${content.info.filePath}#page=1&zoom=120&view=FitH`}
+                  src={`app-file://${content.info.filePath}#page=1&zoom=120&view=FitH&toolbar=0&navpanes=0`}
                   style={{
                     width: '100%',
                     height: '100%',

@@ -3,6 +3,7 @@ export { default as PDFPreview } from './PDFPreview';
 export { default as PDFDialog } from './PDFDialog';
 export { default as PDFPreviewHeader } from './PDFPreviewHeader';
 export { default as PDFPageRenderer } from './PDFPageRenderer';
+export { default as PDFJsonDialog } from './PDFJsonDialog';
 
 // Export types
 export type {

@@ -25,38 +25,22 @@ export const usePDFLoader = (filePath?: string) => {
 
       const pdfInfo: PDFInfo = infoResult.data;
 
-      // Get page previews for all pages
+      // Create page structure from PDF info
       const pages = [];
       for (let i = 0; i < pdfInfo.pageCount; i++) {
-        const pageResult = await window.electron.ipcRenderer.invoke('pdf:get-page-preview', {
-          filePath: path,
-          pageNumber: i,
-          scale: 1.0
+        pages.push({
+          pageNumber: i + 1,
+          dimensions: pdfInfo.firstPageDimensions,
+          originalDimensions: pdfInfo.firstPageDimensions,
+          scale: 1.0,
+          hasText: true // Assume pages have text, will be determined by actual parsing
         });
-
-        if (pageResult.success) {
-          pages.push(pageResult.data);
-        }
-      }
-
-      // Try to extract text information
-      let extractedText;
-      try {
-        const textResult = await window.electron.ipcRenderer.invoke('pdf:extract-text', {
-          filePath: path
-        });
-        if (textResult.success) {
-          extractedText = textResult.data;
-        }
-      } catch (textError) {
-        console.warn('Text extraction failed:', textError);
       }
 
       const pdfContent: PDFContent = {
         info: { ...pdfInfo, filePath: path }, // Add filePath to info
         currentPage: 0,
-        pages,
-        extractedText
+        pages
       };
 
       setContent(pdfContent);

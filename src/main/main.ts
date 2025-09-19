@@ -163,7 +163,7 @@ const createWindow = async () => {
   }
 
   try {
-    setupPdfHandlers();
+    await setupPdfHandlers();
     console.log('✅ PDF handlers registered early');
   } catch (e) {
     console.error('Failed to register PDF handlers early', e);

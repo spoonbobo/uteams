@@ -138,7 +138,7 @@ function PDFPageRenderer({
         >
           {/* PDF Viewer using iframe with app-file protocol */}
           <iframe
-            src={`app-file://${filePath}#page=${pageNumber}&zoom=${scale * 100}`}
+            src={`app-file://${filePath}#page=${pageNumber}&zoom=${scale * 100}&toolbar=0&navpanes=0`}
             style={{
               width: '100%',
               height: '100%',

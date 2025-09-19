@@ -10,7 +10,7 @@
         default-src 'self';
         script-src 'self' blob: 'wasm-unsafe-eval' 'unsafe-eval';
         style-src 'self' 'unsafe-inline';
-        worker-src 'self' blob:;
+        worker-src 'self' blob: app-file:;
         connect-src 'self' blob: data: app-file:;
         img-src 'self' blob: data: app-file:;
         font-src 'self' data:;

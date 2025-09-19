@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Typography, Box } from '@mui/material';
+import { Typography, Box, Paper } from '@mui/material';
 import { useIntl } from 'react-intl';
 import { HTabsPanel, type TabSection } from '@/components/HTabsPanel';
 import type { CourseSessionContext } from '@/stores/useContextStore';
+import { useCourseworkGeneratorStore } from '@/stores/useCourseworkGeneratorStore';
+import { PDFDialog } from '@/components/PDFPreview';
 import Select from './Select';
 import Generate from './Generate';
 
@@ -17,6 +19,15 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
   const [examType, setExamType] = useState('');
   const [examInstructions, setExamInstructions] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // PDF preview state from store
+  const {
+    selectedPdfPath,
+    selectedPdfFilename,
+    pdfLoading,
+    pdfError,
+    clearPdfPreview
+  } = useCourseworkGeneratorStore();
 
   // Handle tab change
   const handleTabChange = (newValue: number) => {
@@ -108,12 +119,7 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
   ];
 
   return (
-    <Box
-      sx={{
-        p: 3,
-        backgroundColor: 'inherit',
-      }}
-    >
+    <Box sx={{ p: 3, backgroundColor: 'inherit' }}>
       {/* Header */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 500 }}>
@@ -122,12 +128,50 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
         </Typography>
       </Box>
 
-      {/* Horizontal Tabs Panel */}
-      <HTabsPanel
-        sections={sections}
-        selectedTab={selectedTab}
-        onTabChange={handleTabChange}
-      />
+      {/* Split Layout: PDF Preview (50%) + Content (50%) */}
+      <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 200px)' }}>
+        {/* Left Side: PDF Preview */}
+        <Box sx={{ width: '50%' }}>
+          {selectedPdfPath ? (
+            <iframe
+              src={`app-file://${selectedPdfPath}#toolbar=0&navpanes=0&view=FitH`}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: '1px solid #e0e0e0',
+                borderRadius: '4px',
+              }}
+              title={selectedPdfFilename || 'PDF Preview'}
+            />
+          ) : (
+            <Box
+              sx={{
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'grey.50',
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'grey.300'
+              }}
+            >
+              <Typography variant="body1" color="text.secondary">
+                Select an assignment to preview PDF
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* Right Side: Tabs Content */}
+        <Box sx={{ width: '50%' }}>
+          <HTabsPanel
+            sections={sections}
+            selectedTab={selectedTab}
+            onTabChange={handleTabChange}
+          />
+        </Box>
+      </Box>
     </Box>
   );
 }
