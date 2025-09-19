@@ -350,6 +350,19 @@
       "custom": "Custom Range",
       "startDate": "Start Date",
       "endDate": "End Date"
+    },
+    "table": {
+      "description": "Description",
+      "category": "Category",
+      "status": "Status",
+      "started": "Started",
+      "ended": "Ended",
+      "duration": "Duration",
+      "allCategories": "All Categories",
+      "allStatus": "All Status",
+      "search": "Search",
+      "refresh": "Refresh",
+      "chatSession": "Chat Session"
     }
   },
   "disclaimer": {
@@ -747,7 +760,7 @@
     "noAssignments": "No assignments available for this course.",
     "tabs": {
       "selectCoursework": "Select Coursework",
-      "generate": "Generate"
+      "newCoursework": "New Coursework"
     },
     "selectCoursework": {
       "title": "Select Coursework for Generation",
@@ -783,7 +796,11 @@
       "instructionsPlaceholder": "Any specific requirements or focus areas for the coursework questions...",
       "basedOn": "Based on Selected Coursework",
       "generatingProgress": "Generating Your Coursework...",
-      "pleaseWait": "This may take a few moments. We're analyzing your materials and creating relevant coursework questions."
+      "pleaseWait": "This may take a few moments. We're analyzing your materials and creating relevant coursework questions.",
+      "noAssignmentsSelected": "No assignments selected",
+      "error": "Failed to start coursework generation",
+      "result": "Generation Result",
+      "noplan": "Generate to get new coursework"
     },
     "generateCoursework": "Generate Coursework",
     "generating": "Generating...",

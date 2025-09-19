@@ -350,6 +350,19 @@
       "custom": "自訂範圍",
       "startDate": "開始日期",
       "endDate": "結束日期"
+    },
+    "table": {
+      "description": "描述",
+      "category": "類別",
+      "status": "狀態",
+      "started": "開始時間",
+      "ended": "結束時間",
+      "duration": "持續時間",
+      "allCategories": "所有類別",
+      "allStatus": "所有狀態",
+      "search": "搜尋",
+      "refresh": "刷新",
+      "chatSession": "聊天會話"
     }
   },
   "disclaimer": {
@@ -742,7 +755,7 @@
     "noAssignments": "此課程沒有可用的作業。",
     "tabs": {
       "selectCoursework": "選擇課業",
-      "generate": "產生"
+      "newCoursework": "新課業"
     },
     "selectCoursework": {
       "title": "選擇課業用於產生",
@@ -778,7 +791,11 @@
       "instructionsPlaceholder": "課業問題的任何特定要求或重點領域...",
       "basedOn": "基於已選擇的課業",
       "generatingProgress": "正在產生您的課業...",
-      "pleaseWait": "這可能需要一些時間。我們正在分析您的材料並創建相關的課業問題。"
+      "pleaseWait": "這可能需要一些時間。我們正在分析您的材料並創建相關的課業問題。",
+      "noAssignmentsSelected": "未選擇作業",
+      "error": "無法開始課業產生",
+      "result": "產生結果",
+      "noplan": "點擊產生以獲得新課業"
     },
     "generateCoursework": "產生課業",
     "generating": "產生中...",

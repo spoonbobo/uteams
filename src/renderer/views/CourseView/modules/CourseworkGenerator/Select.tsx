@@ -15,6 +15,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DataObjectIcon from '@mui/icons-material/DataObject';
 import HighlightIcon from '@mui/icons-material/Highlight';
+import InfoIcon from '@mui/icons-material/Info';
 import PDFJsonDialog from '@/components/PDFPreview/PDFJsonDialog';
 
 interface SelectProps {
@@ -62,6 +63,15 @@ function Select({
     selectedPdfPath,
     getSelectedAssignments,
     toggleAssignment,
+    // New granular PDF methods
+    setAssignmentPdf,
+    setCurrentPreviewPdf,
+    getCurrentPreviewPdf,
+    getAssignmentPdfs,
+    // Parsed content methods
+    setParsedContent,
+    getAllParsedContent,
+    // Legacy methods for backward compatibility
     setPreviewPdf,
     getPreviewPdf
   } = useCourseworkGeneratorStore();
@@ -93,7 +103,7 @@ function Select({
   };
 
   // Handle PDF preview - download PDF and show in left panel
-  const handlePdfPreview = async (attachment: any) => {
+  const handlePdfPreview = async (attachment: any, assignmentId: string) => {
     if (!attachment.fileurl || !attachment.filename) {
       console.error('PDF attachment missing required fields');
       return;
@@ -109,6 +119,26 @@ function Select({
         throw new Error('No Moodle API key available');
       }
 
+      // Check if we already have this PDF downloaded
+      const existingPdfs = getAssignmentPdfs(sessionId, assignmentId);
+      const existingPdf = existingPdfs[attachment.filename];
+
+      if (existingPdf) {
+        console.log('📄 Using cached PDF:', attachment.filename);
+        // Set the PDF in the store to show in left panel
+        setSelectedPdf(existingPdf.filePath, existingPdf.filename);
+        // Set as current preview
+        setCurrentPreviewPdf(sessionId, assignmentId, attachment.filename);
+
+        // Try to parse for highlighting if not already done
+        if (!currentPdfData) {
+          await parsePdfForHighlighting(existingPdf.filePath);
+        }
+
+        setPdfLoading(false);
+        return;
+      }
+
       // Prepare download URL with token
       let downloadUrl = attachment.fileurl;
       if (downloadUrl && !downloadUrl.includes('token=')) {
@@ -117,7 +147,7 @@ function Select({
       }
 
       // Create unique filename for temp storage
-      const uniqueFilename = `pdf_preview_${sessionId}_${attachment.filename}`;
+      const uniqueFilename = `pdf_preview_${sessionId}_${assignmentId}_${attachment.filename}`;
 
       console.log('📄 Downloading PDF for preview:', attachment.filename);
 
@@ -138,11 +168,14 @@ function Select({
 
       console.log('✅ PDF downloaded successfully:', downloadResult.filePath);
 
+      // Store the PDF in the granular store
+      setAssignmentPdf(sessionId, assignmentId, attachment.filename, downloadResult.filePath);
+
+      // Set as current preview
+      setCurrentPreviewPdf(sessionId, assignmentId, attachment.filename);
+
       // Set the PDF in the store to show in left panel
       setSelectedPdf(downloadResult.filePath, attachment.filename);
-
-      // Also persist the preview PDF for this course
-      setPreviewPdf(sessionId, downloadResult.filePath, attachment.filename);
 
       // Also parse the PDF structure for potential highlighting
       try {
@@ -169,7 +202,7 @@ function Select({
   };
 
   // Handle PDF parsing to JSON
-  const handlePdfParseJson = async (attachment: any) => {
+  const handlePdfParseJson = async (attachment: any, assignmentId: string) => {
     if (!attachment.fileurl || !attachment.filename) {
       console.error('PDF attachment missing required fields');
       return;
@@ -227,6 +260,10 @@ function Select({
       }
 
       console.log('✅ PDF parsed successfully (AI-optimized format):', parseResult.data);
+
+      // Store the parsed content in the store for later use in generation
+      console.log('💾 Storing parsed PDF content for assignment:', assignmentId, attachment.filename);
+      setParsedContent(sessionId, assignmentId, attachment.filename, parseResult.data);
 
       // Open the AI-optimized JSON dialog (no data saving)
       setPdfJsonData(parseResult.data);
@@ -595,23 +632,25 @@ function Select({
     }
   };
 
-  // Restore previously selected PDF on component mount
+  // Restore previously selected PDF on component mount or course change
   useEffect(() => {
-    const savedPreview = getPreviewPdf(sessionId);
-    if (savedPreview.filePath && savedPreview.filename) {
-      setSelectedPdf(savedPreview.filePath, savedPreview.filename);
+    const currentPreview = getCurrentPreviewPdf(sessionId);
+    if (currentPreview.filePath && currentPreview.filename) {
+      console.log(`📄 Restoring PDF preview for course ${sessionId}:`, currentPreview.filename);
+      setSelectedPdf(currentPreview.filePath, currentPreview.filename);
 
       // Also parse the PDF for highlighting if the file still exists
-      parsePdfForHighlighting(savedPreview.filePath);
+      parsePdfForHighlighting(currentPreview.filePath);
+    } else {
+      console.log(`📄 No saved PDF preview for course ${sessionId}`);
     }
-  }, [sessionId, getPreviewPdf, setSelectedPdf]);
+  }, [sessionId, getCurrentPreviewPdf, setSelectedPdf]);
 
   // Auto-preview first PDF when assignments change (only if no PDF is currently selected)
   useEffect(() => {
     if (selectedCoursework.length === 0) {
       // Clear preview when no assignments selected
       clearPdfPreview();
-      setPreviewPdf(sessionId, null, null);
       setCurrentPdfData(null); // Also clear PDF data for highlighting
       return;
     }
@@ -624,13 +663,13 @@ function Select({
         if (attachments && attachments.length > 0) {
           const firstPdf = attachments.find(att => isPdfFile(att.filename, att.mimetype));
           if (firstPdf && firstPdf.fileurl) {
-            handlePdfPreview(firstPdf);
+            handlePdfPreview(firstPdf, assignmentId);
             break; // Only preview the first PDF found
           }
         }
       }
     }
-  }, [selectedCoursework, assignmentAttachments, selectedPdfPath, sessionId, clearPdfPreview, setPreviewPdf]);
+  }, [selectedCoursework, assignmentAttachments, selectedPdfPath, sessionId, clearPdfPreview]);
 
   return (
     <HTabPanel
@@ -865,6 +904,9 @@ function Select({
                       <Stack spacing={1}>
                         {attachments.map((attachment, index) => {
                           const isPdf = isPdfFile(attachment.filename, attachment.mimetype);
+                          // Check if this PDF has been parsed
+                          const hasParsedContent = isPdf && getAllParsedContent(sessionId)
+                            .some(pc => pc.assignmentId === assignmentId && pc.filename === attachment.filename);
 
                           return (
                             <Paper
@@ -872,8 +914,9 @@ function Select({
                               sx={{
                                 p: 1.5,
                                 border: '1px solid',
-                                borderColor: 'divider',
-                                backgroundColor: 'background.paper',
+                                borderColor: hasParsedContent ? 'success.main' : 'divider',
+                                backgroundColor: hasParsedContent ? 'success.light' : 'background.paper',
+                                opacity: hasParsedContent ? 1 : 0.9,
                               }}
                             >
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -895,13 +938,12 @@ function Select({
                                 {/* PDF Actions */}
                                 {isPdf && attachment.fileurl && (
                                   <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                    <Tooltip title={pdfLoading ? "Downloading PDF..." : "Preview PDF"}>
+                                    <Tooltip title={pdfLoading ? "Loading PDF..." : "Preview PDF"}>
                                       <span>
                                         <IconButton
                                           size="small"
-                                          onClick={() => handlePdfPreview(attachment)}
+                                          onClick={() => handlePdfPreview(attachment, assignmentId)}
                                           disabled={pdfLoading || jsonLoading}
-                                          sx={{ mr: 0.5 }}
                                         >
                                           {pdfLoading ? (
                                             <CircularProgress size={16} />
@@ -916,9 +958,8 @@ function Select({
                                       <span>
                                         <IconButton
                                           size="small"
-                                          onClick={() => handlePdfParseJson(attachment)}
+                                          onClick={() => handlePdfParseJson(attachment, assignmentId)}
                                           disabled={pdfLoading || jsonLoading}
-                                          sx={{ mr: 1 }}
                                         >
                                           {jsonLoading ? (
                                             <CircularProgress size={16} />
@@ -933,9 +974,9 @@ function Select({
 
                                 <Chip
                                   size="small"
-                                  label={isPdf ? 'PDF' : (attachment.type || 'file')}
+                                  label={isPdf ? (hasParsedContent ? 'PDF ✓' : 'PDF') : (attachment.type || 'file')}
                                   variant="outlined"
-                                  color={isPdf ? 'error' : 'default'}
+                                  color={hasParsedContent ? 'success' : (isPdf ? 'error' : 'default')}
                                 />
                               </Box>
                             </Paper>
@@ -955,14 +996,6 @@ function Select({
         </Box>
       )}
 
-      {/* PDF Format Supplement Text */}
-      {generationType === 'current' && selectedCoursework.length > 0 && hasPdfAttachments() && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-            {intl.formatMessage({ id: 'courseworkGenerator.pdfFormatNotice' })}
-          </Typography>
-        </Box>
-      )}
 
       {/* Action Buttons */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
@@ -978,18 +1011,33 @@ function Select({
         </Button>
 
         {/* Generate Button */}
-        <Button
-          variant="contained"
-          size="large"
-          disabled={
-            generationType !== 'current' ||
-            selectedCoursework.length === 0 ||
-            isGenerating
-          }
-          onClick={onProceedToGenerate}
-        >
-          {intl.formatMessage({ id: 'courseworkGenerator.proceedToGenerate' })}
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button
+            variant="contained"
+            size="large"
+            disabled={
+              generationType !== 'current' ||
+              selectedCoursework.length === 0 ||
+              isGenerating
+            }
+            onClick={onProceedToGenerate}
+          >
+            {intl.formatMessage({ id: 'courseworkGenerator.proceedToGenerate' })}
+          </Button>
+          <Tooltip
+            title={intl.formatMessage({ id: 'courseworkGenerator.pdfFormatNotice' })}
+            placement="top"
+            arrow
+          >
+            <InfoIcon
+              sx={{
+                color: 'info.main',
+                fontSize: 20,
+                cursor: 'help'
+              }}
+            />
+          </Tooltip>
+        </Box>
       </Box>
 
       {/* PDF JSON Structure Dialog */}

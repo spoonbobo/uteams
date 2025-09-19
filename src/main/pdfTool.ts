@@ -281,17 +281,6 @@ function setupPdfReadHandlers() {
         },
         elements: [], // Flat array of all text elements with indices
         pages: {},   // Page-indexed text content
-        aiReference: {
-          format: "highlight_patch_v1",
-          description: "Use element indices to create highlight patches",
-          examplePatch: {
-            action: "highlight",
-            elementId: "page_1_element_5",
-            comment: "This is a key mathematical concept",
-            highlightColor: "yellow",
-            commentType: "analysis"
-          }
-        }
       };
 
       // Extract metadata if requested (simplified for AI)
@@ -421,31 +410,6 @@ function setupPdfReadHandlers() {
         aiReadyFormat: true
       };
 
-      // Add AI processing instructions
-      aiOptimizedStructure.aiInstructions = {
-        howToHighlight: "Use elementId to reference specific text elements for highlighting",
-        supportedActions: ["highlight", "comment", "annotate"],
-        patchFormat: {
-          elementId: "page_X_element_Y",
-          action: "highlight|comment|annotate",
-          data: {
-            comment: "Your analysis comment",
-            highlightColor: "yellow|green|blue|red",
-            importance: "low|medium|high"
-          }
-        },
-        exampleUsage: [
-          {
-            elementId: "page_1_element_0",
-            action: "highlight",
-            data: {
-              comment: "Key mathematical concept",
-              highlightColor: "yellow",
-              importance: "high"
-            }
-          }
-        ]
-      };
 
       return {
         success: true,

@@ -197,7 +197,8 @@ export function HTabsPanel({
         ref={scrollContainerRef}
         sx={{
           flex: 1,
-          overflow: 'auto',
+          overflowX: 'auto',
+          overflowY: 'hidden',
           display: 'flex',
           scrollBehavior: 'smooth',
           // Add padding top to account for sticky tabs
@@ -235,14 +236,6 @@ export function HTabsPanel({
             theme.palette.mode === 'dark'
               ? `${alpha(theme.palette.grey[500], 0.4)} transparent`
               : `${alpha(theme.palette.grey[400], 0.4)} transparent`,
-          // Hide all scrollbars for nested content
-          '& *': {
-            '&::-webkit-scrollbar': {
-              display: 'none', // Hide scrollbar for WebKit browsers
-            },
-            scrollbarWidth: 'none', // Hide scrollbar for Firefox
-            msOverflowStyle: 'none', // Hide scrollbar for IE/Edge
-          },
         }}
       >
         {sections.map((section, index) => {
@@ -259,9 +252,27 @@ export function HTabsPanel({
                 width: '100%',
                 flexShrink: 0,
                 p: 3,
+                height: '100%',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
-              {section.component}
+              <Box
+                sx={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  overflowX: 'hidden',
+                  // Hide vertical scrollbar while allowing scroll
+                  '&::-webkit-scrollbar': {
+                    display: 'none', // Hide scrollbar for WebKit browsers
+                  },
+                  scrollbarWidth: 'none', // Hide scrollbar for Firefox
+                  msOverflowStyle: 'none', // Hide scrollbar for IE/Edge
+                }}
+              >
+                {section.component}
+              </Box>
             </Box>
           );
         })}

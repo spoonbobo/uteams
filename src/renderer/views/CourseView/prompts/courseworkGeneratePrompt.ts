@@ -40,7 +40,22 @@ ${specialInstructions}
 ` : ''}
 
 ## Your Task:
-Analyze the content above and identify all questions, problems, or exercises. For each question found, generate 2-3 variants that test the same concept with the same difficulty level.
+**CRITICAL**: Complete this task in MAXIMUM 3 STEPS. Work efficiently and output all results in one comprehensive response.
+
+### Step 1: Content Analysis (1 step only)
+- **Scan all assignment content** to identify every question, problem, and exercise
+- **Create a mental inventory** of all assessable content without detailed analysis
+- **Note question types and patterns** for efficient variant generation
+
+### Step 2: Batch Variant Generation (1 step only)
+- **Generate 2-3 variants for ALL questions simultaneously** in one comprehensive pass
+- **Work systematically through your mental inventory** from Step 1
+- **Apply all variant types** (rephrase, parameter change, context change, approach change) efficiently
+
+### Step 3: Complete JSON Output (1 step only)
+- **Output ALL variants immediately** in the required JSON format
+- **No incremental outputs** - provide the complete result in one response
+- **Include all required fields** for every variant identified
 
 ## Variant Types to Create:
 1. **Rephrase**: Same question with different wording but identical concept
@@ -49,17 +64,11 @@ Analyze the content above and identify all questions, problems, or exercises. Fo
 4. **Approach Change**: Present the same problem from a different angle or perspective
 
 ## Mathematical Content Requirements:
-- **Use LaTeX notation** for all mathematical expressions (e.g., \\alpha, \\pi, \\sum, \\int, \\leq, \\geq)
+- **Use LaTeX notation** for all mathematical expressions
 - **Preserve mathematical accuracy** in all variants
 - **Maintain the same solution complexity** - variants should require the same level of effort
 - **Keep the same mathematical concepts** being tested
 - **Ensure all calculations remain valid** with parameter changes
-
-## LaTeX Examples:
-- Greek letters: \\alpha, \\beta, \\gamma, \\pi, \\theta, \\lambda, \\sigma, \\omega
-- Operators: \\sum, \\prod, \\int, \\lim, \\frac{a}{b}, \\sqrt{x}, x^{2}, x_{1}
-- Relations: \\leq, \\geq, \\neq, \\approx, \\equiv, \\in, \\subset, \\cup, \\cap
-- Functions: \\sin, \\cos, \\tan, \\log, \\ln, \\exp
 
 ## Output Format:
 Return a JSON array of question variants with original question text for element matching:
@@ -88,6 +97,14 @@ Return a JSON array of question variants with original question text for element
 
 **Important**: Include the exact original question text as it appears in the content for accurate element index matching during post-processing.
 
+## Verification Requirements:
+Before finalizing your response, verify that you have:
+1. **Found ALL questions** - Re-scan each page to ensure no questions were missed
+2. **Generated variants for EVERY question** - Count your variants vs. original questions
+3. **Covered all question types** - Mathematical, theoretical, analytical, computational
+4. **Included sub-questions** - Each part of multi-part questions has variants
+5. **Maintained completeness** - No partial or incomplete variant generations
+
 ## Quality Standards:
 - Each variant tests the **exact same concept** as the original
 - Mathematical notation uses proper LaTeX formatting
@@ -95,6 +112,17 @@ Return a JSON array of question variants with original question text for element
 - Parameter changes maintain mathematical validity
 - Questions are suitable for general academic assignments
 - All variants are complete and standalone
+
+## Execution Instructions:
+**WORK EFFICIENTLY IN 3 STEPS MAXIMUM:**
+1. **Scan & Inventory** (Step 1) - Identify all questions
+2. **Batch Generate** (Step 2) - Create all variants at once
+3. **Output JSON** (Step 3) - Provide complete results immediately
+
+**NO INCREMENTAL PROCESSING** - Complete the entire task and output all variants in one comprehensive JSON response.
+
+## Final Instruction:
+**GENERATE VARIANTS FOR EVERY SINGLE QUESTION YOU FIND IN ONE SHOT.** Work systematically through all content, generate all variants, and output the complete JSON array immediately. Do not provide partial results or ask for confirmation - deliver the complete set of variants in your first and only response.
 
 Generate variants that provide assessment variety while testing identical concepts and maintaining consistent difficulty.`;
 }

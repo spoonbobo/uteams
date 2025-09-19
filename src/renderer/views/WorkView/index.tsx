@@ -39,17 +39,17 @@ const TimeRangeSelector: React.FC<{
         <DateRangeIcon color="primary" />
 
         <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Time Range</InputLabel>
+          <InputLabel>{intl.formatMessage({ id: 'work.timeRange.title' }, { defaultMessage: 'Time Range' })}</InputLabel>
           <Select
             value={timeRange}
-            label="Time Range"
+            label={intl.formatMessage({ id: 'work.timeRange.title' }, { defaultMessage: 'Time Range' })}
             onChange={(e) => onTimeRangeChange(e.target.value as TimeRange)}
           >
-            <MenuItem value="all">All Time</MenuItem>
-            <MenuItem value="today">Today</MenuItem>
-            <MenuItem value="week">Last 7 Days</MenuItem>
-            <MenuItem value="month">This Month</MenuItem>
-            <MenuItem value="custom">Custom Range</MenuItem>
+            <MenuItem value="all">{intl.formatMessage({ id: 'work.timeRange.all' }, { defaultMessage: 'All Time' })}</MenuItem>
+            <MenuItem value="today">{intl.formatMessage({ id: 'work.timeRange.today' }, { defaultMessage: 'Today' })}</MenuItem>
+            <MenuItem value="week">{intl.formatMessage({ id: 'work.timeRange.week' }, { defaultMessage: 'Last 7 Days' })}</MenuItem>
+            <MenuItem value="month">{intl.formatMessage({ id: 'work.timeRange.month' }, { defaultMessage: 'This Month' })}</MenuItem>
+            <MenuItem value="custom">{intl.formatMessage({ id: 'work.timeRange.custom' }, { defaultMessage: 'Custom Range' })}</MenuItem>
           </Select>
         </FormControl>
 
@@ -58,7 +58,7 @@ const TimeRangeSelector: React.FC<{
             <TextField
               size="small"
               type="date"
-              label="Start Date"
+              label={intl.formatMessage({ id: 'work.timeRange.startDate' }, { defaultMessage: 'Start Date' })}
               value={customRange.startDate.split('T')[0]}
               onChange={(e) => onCustomRangeChange({
                 ...customRange,
@@ -69,7 +69,7 @@ const TimeRangeSelector: React.FC<{
             <TextField
               size="small"
               type="date"
-              label="End Date"
+              label={intl.formatMessage({ id: 'work.timeRange.endDate' }, { defaultMessage: 'End Date' })}
               value={customRange.endDate.split('T')[0]}
               onChange={(e) => onCustomRangeChange({
                 ...customRange,
@@ -86,7 +86,7 @@ const TimeRangeSelector: React.FC<{
           onClick={onRefresh}
           disabled={isLoading}
         >
-          Refresh
+          {intl.formatMessage({ id: 'work.refresh' }, { defaultMessage: 'Refresh' })}
         </Button>
       </Stack>
     </Paper>

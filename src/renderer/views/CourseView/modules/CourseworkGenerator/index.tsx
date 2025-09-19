@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Typography, Box, Paper, Card, CardContent } from '@mui/material';
 import { useIntl } from 'react-intl';
 import { HTabsPanel, type TabSection } from '@/components/HTabsPanel';
@@ -26,11 +26,42 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
     pdfLoading,
     pdfError,
     clearPdfPreview,
-    getSelectedAssignments
+    getSelectedAssignments,
+    getCurrentPreviewPdf,
+    setSelectedPdf
   } = useCourseworkGeneratorStore();
 
   // Get selected assignments from store
   const selectedCoursework = getSelectedAssignments(sessionContext.sessionId);
+
+  // Sync PDF preview with current course when component mounts or course changes
+  useEffect(() => {
+    const currentPreview = getCurrentPreviewPdf(sessionContext.sessionId);
+
+    // If there's a current preview for this course, set it
+    if (currentPreview.filePath && currentPreview.filename) {
+      // Only set if it's different from what's currently shown to avoid unnecessary updates
+      if (selectedPdfPath !== currentPreview.filePath) {
+        console.log(`📄 Switching to PDF preview for course ${sessionContext.sessionId}:`, currentPreview.filename);
+        setSelectedPdf(currentPreview.filePath, currentPreview.filename);
+      }
+    } else {
+      // If no preview for this course, clear the global preview
+      if (selectedPdfPath) {
+        console.log(`📄 Clearing PDF preview when switching to course ${sessionContext.sessionId} (no saved preview)`);
+        clearPdfPreview();
+      }
+    }
+    // Use sessionContext.sessionId as key dependency to ensure this runs when switching courses
+  }, [sessionContext.sessionId]);
+
+  // Cleanup effect when component unmounts
+  useEffect(() => {
+    return () => {
+      // Don't clear the preview on unmount - let the course-specific logic handle it
+      console.log(`📄 Coursework Generator unmounting for course ${sessionContext.sessionId}`);
+    };
+  }, [sessionContext.sessionId]);
 
   // Handle tab change
   const handleTabChange = (newValue: number) => {
@@ -52,30 +83,13 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
   // Handle proceed to generate
   const handleProceedToGenerate = () => {
     setSelectedTab(1);
+    // Trigger generation when switching to Generate tab
+    setIsGenerating(true);
   };
 
-  // Handle exam generation
-  const handleGenerateExam = async () => {
-    if (selectedCoursework.length === 0 || !examType.trim()) return;
-
-    setIsGenerating(true);
-    try {
-      // TODO: Implement exam generation logic
-      // console.log('Generating exam with:', {
-      //   coursework: selectedCoursework,
-      //   type: examType,
-      //   instructions: examInstructions,
-      // });
-
-      // Simulate API call
-      await new Promise((resolve) => {
-        setTimeout(resolve, 2000);
-      });
-    } catch {
-      // console.error('Error generating exam:', error);
-    } finally {
-      setIsGenerating(false);
-    }
+  // Handle exam generation completion (called by Generate component)
+  const handleGenerateExam = () => {
+    setIsGenerating(false);
   };
 
   const sections: TabSection[] = [
@@ -98,10 +112,11 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
     },
     {
       id: 'generate',
-      title: intl.formatMessage({ id: 'courseworkGenerator.tabs.generate' }),
+      title: intl.formatMessage({ id: 'courseworkGenerator.tabs.newCoursework' }),
       component: (
         <Generate
           sessionContext={sessionContext}
+          selectedCoursework={selectedCoursework}
           examType={examType}
           examInstructions={examInstructions}
           onGenerateExam={handleGenerateExam}
@@ -131,11 +146,22 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
 
           {selectedPdfPath ? (
             <Box sx={{ flex: 1 }}>
+              <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {(() => {
+                    const currentPreview = getCurrentPreviewPdf(sessionContext.sessionId);
+                    if (currentPreview.assignmentId) {
+                      return `Assignment ${currentPreview.assignmentId}: ${selectedPdfFilename || 'PDF Preview'}`;
+                    }
+                    return selectedPdfFilename || 'PDF Preview';
+                  })()}
+                </Typography>
+              </Box>
               <iframe
                 src={`app-file://${selectedPdfPath}#toolbar=0&navpanes=0&view=FitH`}
                 style={{
                   width: '100%',
-                  height: '100%',
+                  height: 'calc(100% - 32px)', // Account for filename display
                   border: '1px solid #e0e0e0',
                   borderRadius: '4px',
                 }}

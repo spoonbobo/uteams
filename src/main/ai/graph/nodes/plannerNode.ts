@@ -91,25 +91,39 @@ export function createPlannerNode(
       console.log('🎯 [PLANNER] Raw LLM response:', planContent.substring(0, 500));
 
       // Parse the plan
-      const reasoningMatch = planContent.match(/REASONING:\s*(.+?)(?=\nREQUIRES_TOOLS:|$)/s);
+      const reasoningMatch = planContent.match(/REASONING:\s*(.+?)(?=\nSTEP_CONSTRAINT:|$)/s);
+      const stepConstraintMatch = planContent.match(/STEP_CONSTRAINT:\s*(\d+|none)/i);
       const requiresToolsMatch = planContent.match(/REQUIRES_TOOLS:\s*(yes|no)/i);
       const selectedAgentMatch = planContent.match(/SELECTED_AGENT:\s*(\w+(?:_agent)?|none)/i);
       const stepsMatch = planContent.match(/STEPS:\s*([\s\S]+?)(?=$)/s);
 
       const reasoning = reasoningMatch ? reasoningMatch[1].trim() : 'Analyzing request...';
+      const stepConstraint = stepConstraintMatch && stepConstraintMatch[1].toLowerCase() !== 'none'
+        ? parseInt(stepConstraintMatch[1], 10)
+        : null;
       const requiresTools = requiresToolsMatch ? requiresToolsMatch[1].toLowerCase() === 'yes' : false;
       const selectedAgent = selectedAgentMatch && selectedAgentMatch[1].toLowerCase() !== 'none'
         ? selectedAgentMatch[1].replace('_agent', '') + '_agent'
         : 'general_agent'; // Default to general_agent instead of null
+
       const steps = stepsMatch
         ? stepsMatch[1].split('\n').filter(s => s.trim().startsWith('-')).map(s => s.replace(/^-\s*/, '').trim())
         : ['Process user request'];
+
+      // Log step constraint detection (but don't truncate)
+      if (stepConstraint) {
+        console.log(`🎯 [PLANNER] Step constraint detected: ${stepConstraint}, planner created ${steps.length} steps`);
+        if (steps.length > stepConstraint) {
+          console.log(`🎯 [PLANNER] Warning: Plan exceeds requested constraint (${steps.length} > ${stepConstraint})`);
+        }
+      }
 
       const plan = {
         reasoning,
         requiresTools,
         selectedAgent,
         steps,
+        stepConstraint, // Include detected constraint in plan
       };
 
       // Create todos from plan steps
@@ -123,6 +137,7 @@ export function createPlannerNode(
       // Log the plan creation
       console.log('🎯 [PLANNER] Created plan with todos:', {
         reasoning: plan.reasoning,
+        stepConstraint: plan.stepConstraint,
         requiresTools: plan.requiresTools,
         selectedAgent: plan.selectedAgent,
         todosCount: todos.length,

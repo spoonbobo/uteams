@@ -98,25 +98,25 @@ export const TabularView: React.FC<TabularViewProps> = ({
             onClick={onRefresh}
             disabled={isLoading}
           >
-            Refresh
+            {intl.formatMessage({ id: 'work.table.refresh' }, { defaultMessage: 'Refresh' })}
           </Button>
 
           <TextField
             size="small"
-            label="Search"
+            label={intl.formatMessage({ id: 'work.table.search' }, { defaultMessage: 'Search' })}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             sx={{ minWidth: 200 }}
           />
 
           <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Category</InputLabel>
+            <InputLabel>{intl.formatMessage({ id: 'work.table.category' }, { defaultMessage: 'Category' })}</InputLabel>
             <Select
               value={filterCategory}
-              label="Category"
+              label={intl.formatMessage({ id: 'work.table.category' }, { defaultMessage: 'Category' })}
               onChange={(e) => setFilterCategory(e.target.value)}
             >
-              <MenuItem value="all">All Categories</MenuItem>
+              <MenuItem value="all">{intl.formatMessage({ id: 'work.table.allCategories' }, { defaultMessage: 'All Categories' })}</MenuItem>
               {categories.map(category => (
                 <MenuItem key={category} value={category}>
                   {category}
@@ -126,15 +126,15 @@ export const TabularView: React.FC<TabularViewProps> = ({
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Status</InputLabel>
+            <InputLabel>{intl.formatMessage({ id: 'work.table.status' }, { defaultMessage: 'Status' })}</InputLabel>
             <Select
               value={filterStatus}
-              label="Status"
+              label={intl.formatMessage({ id: 'work.table.status' }, { defaultMessage: 'Status' })}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
-              <MenuItem value="all">All Status</MenuItem>
-              <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="completed">Completed</MenuItem>
+              <MenuItem value="all">{intl.formatMessage({ id: 'work.table.allStatus' }, { defaultMessage: 'All Status' })}</MenuItem>
+              <MenuItem value="active">{intl.formatMessage({ id: 'work.active' }, { defaultMessage: 'Active' })}</MenuItem>
+              <MenuItem value="completed">{intl.formatMessage({ id: 'work.completed' }, { defaultMessage: 'Completed' })}</MenuItem>
             </Select>
           </FormControl>
         </Stack>
@@ -146,12 +146,12 @@ export const TabularView: React.FC<TabularViewProps> = ({
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Description</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Started</TableCell>
-                <TableCell>Ended</TableCell>
-                <TableCell>Duration</TableCell>
+                <TableCell>{intl.formatMessage({ id: 'work.table.description' }, { defaultMessage: 'Description' })}</TableCell>
+                <TableCell>{intl.formatMessage({ id: 'work.table.category' }, { defaultMessage: 'Category' })}</TableCell>
+                <TableCell>{intl.formatMessage({ id: 'work.table.status' }, { defaultMessage: 'Status' })}</TableCell>
+                <TableCell>{intl.formatMessage({ id: 'work.table.started' }, { defaultMessage: 'Started' })}</TableCell>
+                <TableCell>{intl.formatMessage({ id: 'work.table.ended' }, { defaultMessage: 'Ended' })}</TableCell>
+                <TableCell>{intl.formatMessage({ id: 'work.table.duration' }, { defaultMessage: 'Duration' })}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -163,7 +163,7 @@ export const TabularView: React.FC<TabularViewProps> = ({
                     </Typography>
                     {work.sessionId && (
                       <Typography variant="caption" color="text.secondary">
-                        Chat Session: {work.sessionId}
+                        {intl.formatMessage({ id: 'work.table.chatSession' }, { defaultMessage: 'Chat Session' })}: {work.sessionId}
                       </Typography>
                     )}
                   </TableCell>
@@ -177,7 +177,7 @@ export const TabularView: React.FC<TabularViewProps> = ({
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={work.endedAt ? 'Completed' : 'Active'}
+                      label={work.endedAt ? intl.formatMessage({ id: 'work.completed' }, { defaultMessage: 'Completed' }) : intl.formatMessage({ id: 'work.active' }, { defaultMessage: 'Active' })}
                       size="small"
                       color={work.endedAt ? 'success' : 'warning'}
                       variant={work.endedAt ? 'filled' : 'outlined'}
