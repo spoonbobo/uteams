@@ -3,7 +3,7 @@ import { devtools, persist } from 'zustand/middleware';
 import { ReactNode } from 'react';
 
 // Context definitions for SPA navigation
-export type AppContext = 'home' | 'course-session' | 'settings';
+export type AppContext = 'home' | 'course-session' | 'settings' | 'work';
 
 // Navigation history entry that includes context details
 export type NavigationEntry = {
@@ -15,13 +15,13 @@ export type NavigationEntry = {
 export type CourseSessionContext = {
   sessionId: string;
   sessionName: string;
-  view: 'ask' | 'grading' | 'overview' | 'companion';
+  view: 'ask' | 'grading' | 'overview' | 'courseworkGenerator' | 'companion';
 };
 
 // Store for individual session states
 export type CourseSessionState = {
   [sessionId: string]: {
-    view: 'ask' | 'grading' | 'overview' | 'companion';
+    view: 'ask' | 'grading' | 'overview' | 'courseworkGenerator' | 'companion';
   };
 };
 
@@ -31,6 +31,10 @@ export type SettingsContext = {
 
 export type HomeContext = {
   view: 'dashboard';
+};
+
+export type WorkContext = {
+  view: 'tracking';
 };
 
 
@@ -55,11 +59,15 @@ export const contextTabsConfig: Record<
     { id: 'overview', label: 'tabs.overview', value: 'overview' },
     { id: 'ask', label: 'tabs.ask', value: 'ask' },
     { id: 'grading', label: 'tabs.grading', value: 'grading' },
+    { id: 'courseworkGenerator', label: 'tabs.courseworkGenerator', value: 'courseworkGenerator' },
     { id: 'companion', label: 'tabs.companion', value: 'companion' },
   ],
   settings: [
     { id: 'general', label: 'tabs.general', value: 'general' },
     { id: 'api', label: 'tabs.api', value: 'api' },
+  ],
+  work: [
+    { id: 'tracking', label: 'tabs.workTracking', value: 'tracking' },
   ],
 };
 
@@ -73,6 +81,7 @@ interface ContextState {
   courseSessionContext: CourseSessionContext | null;
   courseSessionStates: CourseSessionState; // Store each session's state separately
   settingsContext: SettingsContext;
+  workContext: WorkContext;
 
   // Navigation history for back/forward functionality
   navigationHistory: NavigationEntry[];
@@ -86,11 +95,13 @@ interface ContextState {
     view?: CourseSessionContext['view'],
   ) => void;
   navigateToSettings: (section?: SettingsContext['section']) => void;
+  navigateToWork: (view?: WorkContext['view']) => void;
 
   // Context-specific actions
   updateHomeView: (view: HomeContext['view']) => void;
   updateCourseSessionView: (view: CourseSessionContext['view']) => void;
   updateSettingsSection: (section: SettingsContext['section']) => void;
+  updateWorkView: (view: WorkContext['view']) => void;
 
 
   // Navigation utilities
@@ -116,6 +127,7 @@ export const useContextStore = create<ContextState>()(
         courseSessionContext: null,
         courseSessionStates: {}, // Empty object to store session states
         settingsContext: { section: 'general' },
+        workContext: { view: 'tracking' },
 
         navigationHistory: [{ context: 'home' as AppContext }],
         historyIndex: 0,
@@ -208,6 +220,26 @@ export const useContextStore = create<ContextState>()(
           );
         },
 
+        navigateToWork: (view = 'tracking') => {
+          set(
+            (state: ContextState) => {
+              const newHistory = [
+                ...state.navigationHistory.slice(0, state.historyIndex + 1),
+                { context: 'work' as AppContext },
+              ];
+              return {
+                ...state,
+                currentContext: 'work' as AppContext,
+                workContext: { view },
+                navigationHistory: newHistory,
+                historyIndex: newHistory.length - 1,
+              };
+            },
+            false,
+            'navigateToWork',
+          );
+        },
+
 
 
 
@@ -251,6 +283,15 @@ export const useContextStore = create<ContextState>()(
             }),
             false,
             'updateSettingsSection',
+          ),
+
+        updateWorkView: (view) =>
+          set(
+            (state) => ({
+              workContext: { ...state.workContext, view },
+            }),
+            false,
+            'updateWorkView',
           ),
 
 
@@ -380,6 +421,8 @@ export const useContextStore = create<ContextState>()(
               : state.courseSessionContext?.view || 'ask';
             case 'settings':
               return state.settingsContext.section;
+            case 'work':
+              return state.workContext.view;
             default:
               return null;
           }
@@ -409,6 +452,11 @@ export const useContextStore = create<ContextState>()(
                 newValue as SettingsContext['section'],
               );
               break;
+            case 'work':
+              get().updateWorkView(
+                newValue as WorkContext['view'],
+              );
+              break;
 
           }
         },
@@ -424,8 +472,10 @@ export const useContextStore = create<ContextState>()(
               );
             case 'settings':
               return 'Settings';
+            case 'work':
+              return 'Agent Task Tracking';
             default:
-              return 'EzzzBet';
+              return 'uTeams';
           }
         },
 
@@ -445,6 +495,9 @@ export const useContextStore = create<ContextState>()(
             case 'settings':
               breadcrumb.push('Settings');
               break;
+            case 'work':
+              breadcrumb.push('Agent Task Tracking');
+              break;
 
           }
           return breadcrumb;
@@ -458,6 +511,7 @@ export const useContextStore = create<ContextState>()(
               courseSessionContext: null,
               courseSessionStates: {},
               settingsContext: { section: 'general' },
+              workContext: { view: 'tracking' },
               navigationHistory: [{ context: 'home' as AppContext }],
               historyIndex: 0,
             },
@@ -472,6 +526,7 @@ export const useContextStore = create<ContextState>()(
           courseSessionStates: state.courseSessionStates, // ✅ Persist tab states per session
           homeContext: state.homeContext, // ✅ Persist home preferences
           settingsContext: state.settingsContext, // ✅ Persist settings
+          workContext: state.workContext, // ✅ Persist work preferences
           // Don't persist: currentContext, courseSessionContext, navigationHistory, historyIndex
         }),
       },

@@ -3,6 +3,7 @@ import { Typography, Box } from '@mui/material';
 import { AskView } from './modules/Ask';
 import { CourseOverview } from './modules/CourseOverview';
 import { GradingView } from './modules/Grading';
+import { CourseworkGenerator } from './modules/CourseworkGenerator';
 import { useIntl } from 'react-intl';
 import { useMoodleStore } from '@/stores/useMoodleStore';
 import type { CourseSessionContext } from '@/stores/useContextStore';
@@ -213,6 +214,8 @@ export const CourseView: React.FC<CourseViewProps> = ({
         return <AskView sessionContext={sessionContext} />;
       case 'grading':
         return <GradingView sessionContext={sessionContext} />;
+      case 'courseworkGenerator':
+        return <CourseworkGenerator sessionContext={sessionContext} />;
       case 'overview':
         return <CourseOverview sessionContext={sessionContext} />;
       default:

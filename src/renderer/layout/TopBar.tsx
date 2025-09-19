@@ -25,6 +25,7 @@ import {
   Dashboard as DashboardIcon,
   ChildCare as ChildCareIcon,
   GradingOutlined as GradingIcon,
+  AutoAwesome as CourseworkGeneratorIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 import { useContextStore } from '@/stores/useContextStore';
@@ -35,6 +36,7 @@ const getTabIcon = (iconName: string) => {
     dashboard: <DashboardIcon />, // Dashboard icon for My Dashboard
     ask: <ForumRoundedIcon />, // Rounded forum/chat icon for Ask<CourseCode>
     grading: <GradingIcon />, // Grading icon for grading assignments
+    courseworkGenerator: <CourseworkGeneratorIcon />, // AI magic icon for coursework generator
     overview: <AnalyticsIcon />, // Analytics icon for course overview (changed from DashboardIcon)
     companion: <ChildCareIcon />, // Changed to baby angel icon
     general: <SettingsIcon />,

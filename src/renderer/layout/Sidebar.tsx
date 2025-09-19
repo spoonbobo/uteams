@@ -19,6 +19,7 @@ import {
   DarkMode as DarkModeIcon,
   Refresh as RefreshIcon,
   Login as LoginIcon,
+  Assignment as TaskTrackingIcon,
 } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 import { toast } from '@/utils/toast';
@@ -65,6 +66,7 @@ export const Sidebar: React.FC = () => {
     navigateToHome,
     navigateToCourseSession,
     navigateToSettings,
+    navigateToWork,
   } = useContextStore();
 
   return (
@@ -365,6 +367,27 @@ export const Sidebar: React.FC = () => {
       <Box sx={{ p: 1.5 }}>
         {/* Action Buttons */}
         <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+          <Tooltip title={intl.formatMessage({ id: 'sidebar.workTracking' }, { defaultMessage: 'Work Tracking' })}>
+            <IconButton
+              onClick={() => navigateToWork()}
+              size="small"
+              sx={{
+                backgroundColor:
+                  currentContext === 'work'
+                    ? alpha(theme.palette.primary.main, 0.08)
+                    : 'transparent',
+                color:
+                  currentContext === 'work'
+                    ? 'primary.main'
+                    : 'text.secondary',
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                },
+              }}
+            >
+              <TaskTrackingIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Tooltip
             title={intl.formatMessage({
               id:

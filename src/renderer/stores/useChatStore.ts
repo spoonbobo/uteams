@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { ChatMessage } from '../types/message';
 import type { AgentPlan, TodoItem } from '../types/plan';
+import { useWorkStore } from './useWorkStore';
 
 type ChatState = {
   messagesBySession: Record<string, ChatMessage[]>;
@@ -24,7 +25,7 @@ type ChatState = {
 
   loadMessages: (sessionId: string) => Promise<void>;
   addMessage: (sessionId: string, message: Omit<ChatMessage, 'chatId' | 'createdAt'>) => Promise<void>;
-  sendUserMessage: (sessionId: string, text: string, courseId?: string, ocrText?: string, skipUserMessage?: boolean) => Promise<void>;
+  sendUserMessage: (sessionId: string, text: string, courseId?: string, ocrText?: string, skipUserMessage?: boolean, workCategory?: string) => Promise<void>;
   sendCompanionMessage: (sessionId: string, text: string) => Promise<void>;
   deleteMessage: (sessionId: string, id: string) => Promise<void>;
   clearAllMessages: (sessionId: string) => Promise<void>;
@@ -183,11 +184,24 @@ export const useChatStore = create<ChatState>()(
       );
     },
 
-    sendUserMessage: async (sessionId, text, courseId?: string, ocrText?: string, skipUserMessage?: boolean) => {
+    sendUserMessage: async (sessionId, text, courseId?: string, ocrText?: string, skipUserMessage?: boolean, workCategory?: string) => {
       if (!text?.trim()) return;
 
       // Set thinking state immediately when user sends message
       get().setThinking(sessionId, true);
+
+      // Start work tracking for this chat session
+      try {
+        const workStore = useWorkStore.getState();
+        const description = text.length > 100 ? `${text.substring(0, 100)}...` : text;
+        // End any existing work first, then create new work
+        await workStore.endWorkForSession(sessionId);
+        const work = await workStore.createWork(description, workCategory || 'general', sessionId);
+        workStore.setActiveWork(work);
+      } catch (error) {
+        console.error('[chat] Failed to start work tracking:', error);
+        // Don't block the chat if work tracking fails
+      }
 
       // Enhance the prompt with available context
       let enhancedText = text;
@@ -261,6 +275,15 @@ export const useChatStore = create<ChatState>()(
           // Clear plan and todos when done as well (task completed)
           get().clearPlan(sessionId);
           get().clearTodos(sessionId);
+
+          // End work tracking for this session
+          try {
+            const workStore = useWorkStore.getState();
+            void workStore.endWorkForSession(sessionId);
+          } catch (error) {
+            console.error('[chat] Failed to end work tracking:', error);
+          }
+
           try { offChunk?.(); } catch {}
           try { offDone?.(); } catch {}
           try { offError?.(); } catch {}
@@ -282,6 +305,15 @@ export const useChatStore = create<ChatState>()(
           get().clearPlan(sessionId);
           get().clearTodos(sessionId);
           get().endStream(sessionId);
+
+          // End work tracking for this session on error
+          try {
+            const workStore = useWorkStore.getState();
+            void workStore.endWorkForSession(sessionId);
+          } catch (error) {
+            console.error('[chat] Failed to end work tracking on error:', error);
+          }
+
           try { offChunk?.(); } catch {}
           try { offDone?.(); } catch {}
           try { offError?.(); } catch {}
@@ -753,6 +785,14 @@ export const useChatStore = create<ChatState>()(
 
           // Clear thinking messages
           get().clearThinkingMessages(sessionId);
+
+          // End work tracking for aborted session
+          try {
+            const workStore = useWorkStore.getState();
+            void workStore.endWorkForSession(sessionId);
+          } catch (error) {
+            console.error('[chat] Failed to end work tracking on abort:', error);
+          }
         } else {
           console.error(`[Chat] Failed to abort session ${sessionId}:`, result?.error);
         }

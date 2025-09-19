@@ -16,7 +16,8 @@ import { AppLayout } from './layout';
 import { HomeView } from '@/views/HomeView';
 import { SettingsView } from '@/views/SettingsView';
 import { CourseView } from '@/views/CourseView';
-import { CompanionOverlay } from '@/views/CompanionOverlay';
+import { WorkView } from '@/views/WorkView';
+import { CompanionOverlay } from '@/views/CourseView/modules/Companion';
 import { useContextStore } from '@/stores/useContextStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useBackgroundEffect } from '@/utils/background';
@@ -66,7 +67,8 @@ function Dashboard() {
         return <HomeView />;
       case 'settings':
         return <SettingsView />;
-
+      case 'work':
+        return <WorkView />;
       case 'course-session':
         return <CourseView sessionContext={courseSessionContext} />;
 

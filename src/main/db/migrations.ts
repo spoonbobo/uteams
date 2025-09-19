@@ -44,4 +44,21 @@ export const migrations: Migration[] = [
       );
     },
   },
+  {
+    id: '0004_work_tracking',
+    name: 'work tracking for chat sessions',
+    up: [
+      'create table if not exists work (',
+      '  id text primary key,',
+      '  created_at text not null default (datetime(current_timestamp)),',
+      '  ended_at text,',
+      '  description text not null,',
+      '  category text not null default "general",',
+      '  session_id text',
+      ');',
+      'create index if not exists idx_work_session_id on work(session_id);',
+      'create index if not exists idx_work_category on work(category);',
+      'create index if not exists idx_work_created_at on work(created_at);',
+    ].join('\n'),
+  },
 ];

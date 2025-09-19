@@ -34,7 +34,9 @@
     "trends": "Trends",
     "companion": "Companion",
     "grading": "Grading",
-    "graphmlViewer": "GraphML Viewer"
+    "courseworkGenerator": "Coursework Generator",
+    "graphmlViewer": "GraphML Viewer",
+    "workTracking": "Work Tracking"
   },
   "tools": {
     "title": "Tools",
@@ -287,7 +289,58 @@
     "refreshCourses": "Refresh courses",
     "refreshingCourses": "Refreshing courses...",
     "lightMode": "Light Mode",
-    "darkMode": "Dark Mode"
+    "darkMode": "Dark Mode",
+    "workTracking": "Agent Task Tracking"
+  },
+  "work": {
+    "title": "Agent Work",
+    "subtitle": "Track agent tasks and sessions",
+    "newWork": "New Work",
+    "editWork": "Edit Work",
+    "createWork": "Create New Work",
+    "description": "Description",
+    "category": "Category",
+    "status": "Status",
+    "started": "Started",
+    "ended": "Ended",
+    "duration": "Duration",
+    "actions": "Actions",
+    "active": "Active",
+    "completed": "Completed",
+    "general": "General",
+    "research": "Research",
+    "development": "Development",
+    "meeting": "Meeting",
+    "planning": "Planning",
+    "review": "Review",
+    "currentlyWorking": "Currently Working",
+    "stopWork": "Stop Work",
+    "startWork": "Start Work",
+    "editWork": "Edit Work",
+    "deleteWork": "Delete Work",
+    "confirmDelete": "Are you sure you want to delete this work item?",
+    "noWorkItems": "No work items found",
+    "allCategories": "All Categories",
+    "allStatus": "All Status",
+    "search": "Search",
+    "refresh": "Refresh",
+    "create": "Create",
+    "update": "Update",
+    "cancel": "Cancel",
+    "tabs": {
+      "tabular": "Tabular",
+      "graphs": "Graphs",
+      "priceTable": "Price Table"
+    },
+    "graphs": {
+      "title": "Task Analytics",
+      "comingSoon": "Coming soon - Task analytics and visualizations",
+      "noData": "No data available for charts"
+    },
+    "priceTable": {
+      "title": "Price Table",
+      "comingSoon": "Coming soon - Task pricing and cost analysis"
+    }
   },
   "disclaimer": {
     "title": "Terms of Use & Privacy Statement",
@@ -676,6 +729,39 @@
     "selectSubmissionFirst": "Select view autograde detail in submissions",
     "confirmSetupFirst": "Please confirm the grading setup first",
     "completeAIGradingFirst": "Please complete AI grading first"
+  },
+  "courseworkGenerator": {
+    "title": "Coursework Generator",
+    "tabs": {
+      "selectCoursework": "Select Coursework",
+      "generate": "Generate"
+    },
+    "selectCoursework": {
+      "title": "Select Coursework for Generation",
+      "description": "Choose assignments and materials to base your coursework questions on. Select multiple items to create comprehensive content.",
+      "availableAssignments": "Available Assignments",
+      "selectedSummary": "Selected Coursework",
+      "noAssignments": "No assignments available for this course.",
+      "noDescription": "No description available",
+      "proceedToGenerate": "Proceed to Generate"
+    },
+    "dueDate": "Due",
+    "maxGrade": "Max Grade",
+    "proceedToGenerate": "Proceed to Generate",
+    "generate": {
+      "title": "Generate Coursework",
+      "description": "Configure your coursework settings and generate questions based on the selected materials.",
+      "configuration": "Coursework Configuration",
+      "examType": "Coursework Type",
+      "examTypePlaceholder": "e.g., Assignment, Quiz, Practice Exercise, Assessment",
+      "instructions": "Special Instructions",
+      "instructionsPlaceholder": "Any specific requirements or focus areas for the coursework questions...",
+      "basedOn": "Based on Selected Coursework",
+      "generatingProgress": "Generating Your Coursework...",
+      "pleaseWait": "This may take a few moments. We're analyzing your materials and creating relevant coursework questions."
+    },
+    "generateCoursework": "Generate Coursework",
+    "generating": "Generating..."
   },
   "dashboard": {
     "title": "Dashboard",
