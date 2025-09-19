@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import { SidebarCollapse, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from './SidebarCollapse';
+import { Sidebar, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from './Sidebar/';
 import TopBar from './TopBar';
 import MainView from './MainView';
 import { useLayoutStore } from '@/stores/useLayoutStore';
@@ -117,7 +117,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             display: 'flex',
           }}
         >
-          <SidebarCollapse />
+          <Sidebar />
         </Box>
 
         <MainView sidebarWidth={currentSidebarWidth}>
@@ -147,7 +147,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 };
 
 // Export individual components for direct use if needed
-export { Sidebar } from './Sidebar';
-export { SidebarCollapse } from './SidebarCollapse';
+export { Sidebar, SidebarCollapse } from './Sidebar/';
 export { default as TopBar } from './TopBar';
 export { default as MainView } from './MainView';

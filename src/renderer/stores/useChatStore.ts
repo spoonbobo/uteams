@@ -194,9 +194,11 @@ export const useChatStore = create<ChatState>()(
       try {
         const workStore = useWorkStore.getState();
         const description = text.length > 100 ? `${text.substring(0, 100)}...` : text;
+        // Determine work category: if courseId is provided (Ask context), use 'ask', otherwise use provided category or 'general'
+        const category = workCategory || (courseId ? 'ask' : 'general');
         // End any existing work first, then create new work
         await workStore.endWorkForSession(sessionId);
-        const work = await workStore.createWork(description, workCategory || 'general', sessionId);
+        const work = await workStore.createWork(description, category, sessionId);
         workStore.setActiveWork(work);
       } catch (error) {
         console.error('[chat] Failed to start work tracking:', error);

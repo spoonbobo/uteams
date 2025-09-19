@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Drawer,
@@ -9,6 +9,7 @@ import {
   IconButton,
   Divider,
   Tooltip,
+  Badge,
   useTheme,
   alpha,
 } from '@mui/material';
@@ -17,6 +18,8 @@ import {
   Settings as SettingsIcon,
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
+  ChevronRight,
+  ChevronLeft,
   Refresh as RefreshIcon,
   Login as LoginIcon,
   Assignment as TaskTrackingIcon,
@@ -25,11 +28,14 @@ import { useIntl } from 'react-intl';
 import { toast } from '@/utils/toast';
 import { useAppStore } from '@/stores/useAppStore';
 import { useContextStore } from '@/stores/useContextStore';
+import { useLayoutStore } from '@/stores/useLayoutStore';
 import { useMoodleStore } from '@/stores/useMoodleStore';
 import { useAuthenticationState } from '@/stores/useUserStore';
-// Disclaimer moved into Settings General view
 
-const SIDEBAR_WIDTH = 240;
+export const SIDEBAR_WIDTH = 240;
+export const SIDEBAR_COLLAPSED_WIDTH = 64;
+
+interface SidebarProps {}
 
 // Helper function to get the first letter of course name
 const getCourseInitial = (name: string) => {
@@ -45,13 +51,14 @@ const formatCourseDate = (timestamp?: number) => {
   return `${year % 100}/${nextYear % 100}`;
 };
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC<SidebarProps> = () => {
   const intl = useIntl();
   const theme = useTheme();
   const { theme: appTheme, setTheme } = useAppStore();
+  const { sidebarCollapsed, setSidebarCollapsed, hasNewWorkBadge, clearNewWorkBadge } = useLayoutStore();
   const { courses, isLoadingCourses, fetchCourses, isConfigured, isConnected } = useMoodleStore();
   const { isAuthenticated } = useAuthenticationState();
-  // Disclaimer controls are now managed in SettingsView
+  const [isHoveringEdge, setIsHoveringEdge] = useState(false);
 
   // Fetch courses on mount if configured and authenticated
   React.useEffect(() => {
@@ -69,15 +76,19 @@ export const Sidebar: React.FC = () => {
     navigateToWork,
   } = useContextStore();
 
+  // Determine current width based on collapsed state
+  const currentWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
+  const maxCourses = sidebarCollapsed ? 8 : 6;
+
   return (
     <Drawer
       variant="permanent"
       sx={{
-        width: SIDEBAR_WIDTH,
+        width: currentWidth,
         flexShrink: 0,
         height: '100%',
         '& .MuiDrawer-paper': {
-          width: SIDEBAR_WIDTH,
+          width: currentWidth,
           boxSizing: 'border-box',
           backgroundColor: theme.palette.background.paper,
           borderRight: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
@@ -85,21 +96,78 @@ export const Sidebar: React.FC = () => {
             theme.palette.mode === 'dark'
               ? 'none'
               : '0 0 10px rgba(0,0,0,0.02)',
-          height: '100%',
+          overflow: 'visible',
           position: 'static',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
         },
       }}
     >
+      {/* Toggle button on right edge */}
+      <Box
+        sx={{
+          position: 'absolute',
+          right: -12,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: 24,
+          height: 48,
+          backgroundColor: theme.palette.background.paper,
+          border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+          borderLeft: 'none',
+          borderRadius: '0 8px 8px 0',
+          cursor: 'pointer',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: isHoveringEdge ? 1 : 0,
+          transition: 'opacity 0.2s ease',
+          boxShadow: theme.palette.mode === 'dark'
+            ? '0 2px 8px rgba(0,0,0,0.4)'
+            : '0 2px 8px rgba(0,0,0,0.1)',
+          '&:hover': {
+            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+            boxShadow: theme.palette.mode === 'dark'
+              ? '0 4px 12px rgba(0,0,0,0.6)'
+              : '0 4px 12px rgba(0,0,0,0.15)',
+          },
+        }}
+        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onMouseEnter={() => setIsHoveringEdge(true)}
+        onMouseLeave={() => setIsHoveringEdge(false)}
+      >
+        {sidebarCollapsed ? (
+          <ChevronRight fontSize="small" color="primary" />
+        ) : (
+          <ChevronLeft fontSize="small" color="primary" />
+        )}
+      </Box>
+
+      {/* Hover zone to show toggle button */}
+      <Box
+        sx={{
+          position: 'absolute',
+          right: -20,
+          top: 0,
+          bottom: 0,
+          width: 20,
+          zIndex: 9998,
+        }}
+        onMouseEnter={() => setIsHoveringEdge(true)}
+        onMouseLeave={() => setIsHoveringEdge(false)}
+      />
+
       {/* Header Section with Navigation - matches TopBar height */}
       <Box
         sx={{
           height: 64, // Match TopBar height exactly
           display: 'flex',
           alignItems: 'center',
-          px: 1.5,
+          px: !sidebarCollapsed ? 1.5 : 1,
           borderBottom: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+          justifyContent: !sidebarCollapsed ? 'flex-start' : 'center',
         }}
       >
         <ListItemButton
@@ -108,9 +176,10 @@ export const Sidebar: React.FC = () => {
           sx={{
             borderRadius: 1,
             minHeight: 40,
-            px: 2,
+            px: !sidebarCollapsed ? 2 : 1,
             py: 1,
-            flex: 1,
+            flex: !sidebarCollapsed ? 1 : 'none',
+            minWidth: !sidebarCollapsed ? 'auto' : 40,
             backgroundColor:
               currentContext === 'home'
                 ? alpha(theme.palette.primary.main, 0.08)
@@ -118,27 +187,30 @@ export const Sidebar: React.FC = () => {
             '&:hover': {
               backgroundColor: alpha(theme.palette.primary.main, 0.04),
             },
+            justifyContent: !sidebarCollapsed ? 'flex-start' : 'center',
           }}
         >
-          <ListItemIcon sx={{ minWidth: 36 }}>
+          <ListItemIcon sx={{ minWidth: !sidebarCollapsed ? 36 : 'auto', justifyContent: 'center' }}>
             <HomeIcon
               fontSize="small"
               color={currentContext === 'home' ? 'primary' : 'inherit'}
             />
           </ListItemIcon>
-          <ListItemText
-            primary={intl.formatMessage({ id: 'navigation.home' })}
-            primaryTypographyProps={{
-              fontSize: '0.875rem',
-              fontWeight: currentContext === 'home' ? 500 : 400,
-              color:
-                currentContext === 'home' ? 'primary.main' : 'text.primary',
-            }}
-          />
+          {!sidebarCollapsed && (
+            <ListItemText
+              primary={intl.formatMessage({ id: 'navigation.home' })}
+              primaryTypographyProps={{
+                fontSize: '0.875rem',
+                fontWeight: currentContext === 'home' ? 500 : 400,
+                color:
+                  currentContext === 'home' ? 'primary.main' : 'text.primary',
+              }}
+            />
+          )}
         </ListItemButton>
       </Box>
 
-      <Divider sx={{ mx: 1.5 }} />
+      <Divider sx={{ mx: !sidebarCollapsed ? 1.5 : 0.5 }} />
 
       {/* Courses List */}
       <Box
@@ -147,12 +219,12 @@ export const Sidebar: React.FC = () => {
           flex: 1,
           overflowY: 'auto', // Only allow vertical scrolling
           overflowX: 'hidden', // Disable horizontal scrolling completely
-          px: 1.5,
+          px: !sidebarCollapsed ? 1.5 : 0.5,
           py: 1,
           minHeight: 0,
         }}
       >
-        {isAuthenticated && isConnected && (
+        {!sidebarCollapsed && isAuthenticated && isConnected && (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, py: 0.5 }}>
             <Typography
               variant="caption"
@@ -166,39 +238,82 @@ export const Sidebar: React.FC = () => {
               {intl.formatMessage({ id: 'sidebar.myCourses' })}
             </Typography>
             <Tooltip title={intl.formatMessage({ id: 'sidebar.refreshCourses' }) || 'Refresh courses'}>
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  fetchCourses();
-                  toast.info(intl.formatMessage({ id: 'sidebar.refreshingCourses' }) || 'Refreshing courses...');
-                }}
-                disabled={isLoadingCourses}
-                sx={{
-                  width: 20,
-                  height: 20,
-                  color: 'text.secondary',
-                  '&:hover': {
-                    color: 'primary.main',
-                    backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                  },
-                  '&:disabled': {
-                    color: 'text.disabled',
-                  },
-                }}
-              >
-                <RefreshIcon
-                  fontSize="inherit"
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fetchCourses();
+                    toast.info(intl.formatMessage({ id: 'sidebar.refreshingCourses' }) || 'Refreshing courses...');
+                  }}
+                  disabled={isLoadingCourses}
                   sx={{
-                    fontSize: '0.875rem',
-                    animation: isLoadingCourses ? 'spin 1s linear infinite' : 'none',
-                    '@keyframes spin': {
-                      '0%': { transform: 'rotate(0deg)' },
-                      '100%': { transform: 'rotate(360deg)' },
+                    width: 20,
+                    height: 20,
+                    color: 'text.secondary',
+                    '&:hover': {
+                      color: 'primary.main',
+                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                    },
+                    '&:disabled': {
+                      color: 'text.disabled',
                     },
                   }}
-                />
-              </IconButton>
+                >
+                  <RefreshIcon
+                    fontSize="inherit"
+                    sx={{
+                      fontSize: '0.875rem',
+                      animation: isLoadingCourses ? 'spin 1s linear infinite' : 'none',
+                      '@keyframes spin': {
+                        '0%': { transform: 'rotate(0deg)' },
+                        '100%': { transform: 'rotate(360deg)' },
+                      },
+                    }}
+                  />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+        )}
+
+        {sidebarCollapsed && isAuthenticated && isConnected && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', px: 0.5, py: 0.5 }}>
+            <Tooltip title={intl.formatMessage({ id: 'sidebar.refreshCourses' }) || 'Refresh courses'}>
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fetchCourses();
+                    toast.info(intl.formatMessage({ id: 'sidebar.refreshingCourses' }) || 'Refreshing courses...');
+                  }}
+                  disabled={isLoadingCourses}
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    color: 'text.secondary',
+                    '&:hover': {
+                      color: 'primary.main',
+                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                    },
+                    '&:disabled': {
+                      color: 'text.disabled',
+                    },
+                  }}
+                >
+                  <RefreshIcon
+                    fontSize="small"
+                    sx={{
+                      animation: isLoadingCourses ? 'spin 1s linear infinite' : 'none',
+                      '@keyframes spin': {
+                        '0%': { transform: 'rotate(0deg)' },
+                        '100%': { transform: 'rotate(360deg)' },
+                      },
+                    }}
+                  />
+                </IconButton>
+              </span>
             </Tooltip>
           </Box>
         )}
@@ -234,7 +349,7 @@ export const Sidebar: React.FC = () => {
             </Box>
           )}
 
-          {isAuthenticated && isConnected && !isLoadingCourses && courses.slice(0, 6).map((course) => {
+          {isAuthenticated && isConnected && !isLoadingCourses && courses.slice(0, maxCourses).map((course) => {
             const isActive =
               currentContext === 'course-session' &&
               courseSessionContext?.sessionId === (course.shortname || course.id);
@@ -263,13 +378,14 @@ export const Sidebar: React.FC = () => {
                 }
                 placement="right"
                 arrow
+                disableHoverListener={!sidebarCollapsed}
               >
                 <Box
                   onClick={() =>
                     navigateToCourseSession(course.shortname || course.id, course.fullname)
                   }
                   sx={{
-                    p: 1.5,
+                    p: !sidebarCollapsed ? 1.5 : 1,
                     mb: 0.5,
                     borderRadius: 1,
                     cursor: 'pointer',
@@ -282,34 +398,37 @@ export const Sidebar: React.FC = () => {
                         ? alpha(theme.palette.primary.main, 0.12)
                         : alpha(theme.palette.primary.main, 0.04),
                     },
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: !sidebarCollapsed ? 'flex-start' : 'center',
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box
+                  <Box
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mr: !sidebarCollapsed ? 1.5 : 0,
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
                       sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 1.5,
-                        border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: 'primary.main',
+                        lineHeight: 1,
                       }}
                     >
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          color: 'primary.main',
-                          lineHeight: 1,
-                        }}
-                      >
                         {getCourseInitial(course.fullname)}
-                      </Typography>
-                    </Box>
+                    </Typography>
+                  </Box>
+                  {!sidebarCollapsed && (
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Box
                         sx={{
@@ -345,14 +464,14 @@ export const Sidebar: React.FC = () => {
                         </Typography>
                       </Box>
                     </Box>
-                  </Box>
+                  )}
                 </Box>
               </Tooltip>
             );
           })}
         </Box>
 
-        {isAuthenticated && isConnected && !isLoadingCourses && courses.length === 0 && (
+        {isAuthenticated && isConnected && !isLoadingCourses && courses.length === 0 && !sidebarCollapsed && (
           <Box sx={{ textAlign: 'center', py: 3 }}>
             <Typography variant="caption" color="text.secondary">
               {intl.formatMessage({ id: 'sidebar.noCourses' }, { defaultMessage: 'No courses available' })}
@@ -361,32 +480,75 @@ export const Sidebar: React.FC = () => {
         )}
       </Box>
 
-      <Divider sx={{ mx: 1.5 }} />
+      <Divider sx={{ mx: !sidebarCollapsed ? 1.5 : 0.5 }} />
 
-      {/* Theme toggle and actions (no user) */}
-      <Box sx={{ p: 1.5 }}>
+      {/* Theme toggle and actions */}
+      <Box sx={{ p: !sidebarCollapsed ? 1.5 : 0.5 }}>
         {/* Action Buttons */}
-        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+        <Box sx={{
+          display: 'flex',
+          gap: 0.5,
+          alignItems: 'center',
+          justifyContent: !sidebarCollapsed ? 'flex-start' : 'center',
+          flexWrap: !sidebarCollapsed ? 'wrap' : 'nowrap',
+          flexDirection: !sidebarCollapsed ? 'row' : 'column',
+        }}>
           <Tooltip title={intl.formatMessage({ id: 'sidebar.workTracking' }, { defaultMessage: 'Work Tracking' })}>
-            <IconButton
-              onClick={() => navigateToWork()}
-              size="small"
+            <Badge
+              color="error"
+              variant="dot"
+              invisible={!hasNewWorkBadge}
               sx={{
-                backgroundColor:
-                  currentContext === 'work'
-                    ? alpha(theme.palette.primary.main, 0.08)
-                    : 'transparent',
-                color:
-                  currentContext === 'work'
-                    ? 'primary.main'
-                    : 'text.secondary',
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                '& .MuiBadge-dot': {
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: theme.palette.error.main,
+                  border: `2px solid ${theme.palette.background.paper}`,
+                  animation: hasNewWorkBadge ? 'pulse 2s infinite' : 'none',
+                  '@keyframes pulse': {
+                    '0%': {
+                      transform: 'scale(1)',
+                      opacity: 1,
+                    },
+                    '50%': {
+                      transform: 'scale(1.2)',
+                      opacity: 0.8,
+                    },
+                    '100%': {
+                      transform: 'scale(1)',
+                      opacity: 1,
+                    },
+                  },
                 },
               }}
             >
-              <TaskTrackingIcon fontSize="small" />
-            </IconButton>
+              <IconButton
+                onClick={() => {
+                  // Clear the badge when clicked
+                  if (hasNewWorkBadge) {
+                    clearNewWorkBadge();
+                  }
+                  navigateToWork();
+                }}
+                size="small"
+                sx={{
+                  backgroundColor:
+                    currentContext === 'work'
+                      ? alpha(theme.palette.primary.main, 0.08)
+                      : 'transparent',
+                  color:
+                    currentContext === 'work'
+                      ? 'primary.main'
+                      : 'text.secondary',
+                  '&:hover': {
+                    backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                  },
+                }}
+              >
+                <TaskTrackingIcon fontSize="small" />
+              </IconButton>
+            </Badge>
           </Tooltip>
           <Tooltip
             title={intl.formatMessage({
@@ -464,11 +626,8 @@ export const Sidebar: React.FC = () => {
           >
             <SettingsIcon fontSize="small" />
           </IconButton>
-          {/* Disclaimer link moved to Settings */}
         </Box>
       </Box>
     </Drawer>
   );
 };
-
-export { SIDEBAR_WIDTH };

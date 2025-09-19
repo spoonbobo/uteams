@@ -32,6 +32,7 @@ import { setupDocxHandlers } from './msftdocx';
 import { setupAlertHandlers } from './alert';
 import { setupOcrHandlers } from './ocr';
 import { setupPdfHandlers } from './pdfTool';
+import { setupOrtHandlers, cleanupORT } from './ort';
 
 // Debug: Log environment variable loading
 console.log('🔧 Environment variables loaded:');
@@ -169,6 +170,13 @@ const createWindow = async () => {
     console.error('Failed to register PDF handlers early', e);
   }
 
+  try {
+    setupOrtHandlers();
+    console.log('✅ ORT handlers registered early');
+  } catch (e) {
+    console.error('Failed to register ORT handlers early', e);
+  }
+
   mainWindow.loadURL(resolveHtmlPath('index.html'));
 
   // Inform renderer about app info on ready
@@ -220,6 +228,9 @@ app.on('window-all-closed', async () => {
 
   await cleanupAgents();
 
+  // Clean up ORT models
+  await cleanupORT();
+
   // Respect the OSX convention of having the application in memory even
   // after all windows have been closed
   if (process.platform !== 'darwin') {
@@ -236,6 +247,9 @@ app.on('before-quit', async (event) => {
   // Clean up database connections
   await cleanupDatabaseConnections();
 
+  // Clean up ORT models
+  await cleanupORT();
+
   // Now allow the app to quit
   app.exit(0);
 });
@@ -248,6 +262,9 @@ const cleanupAndExit = async () => {
 
   // Clean up database connections
   await cleanupDatabaseConnections();
+
+  // Clean up ORT models
+  await cleanupORT();
 
   // Exit the process
   process.exit(0);

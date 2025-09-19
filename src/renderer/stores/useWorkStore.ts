@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { Work } from '../types/work';
+import { useLayoutStore } from './useLayoutStore';
 
 export type TimeRange = 'all' | 'today' | 'week' | 'month' | 'custom';
 
@@ -92,6 +93,10 @@ export const useWorkStore = create<WorkState>()(
           category,
           sessionId,
         });
+
+        // Trigger new work badge notification
+        useLayoutStore.getState().setNewWorkBadge(true);
+
         return work;
       } catch (e) {
         console.error('[work] Failed to create work:', e);
@@ -160,6 +165,10 @@ export const useWorkStore = create<WorkState>()(
 
       const work = await get().createWork(description, category, sessionId);
       set({ activeWork: work }, false, 'work:active:set');
+
+      // Badge is already triggered by createWork, but ensure it's set
+      useLayoutStore.getState().setNewWorkBadge(true);
+
       return work;
     },
 

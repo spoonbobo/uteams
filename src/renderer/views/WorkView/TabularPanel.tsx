@@ -146,7 +146,7 @@ export const TabularView: React.FC<TabularViewProps> = ({
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>{intl.formatMessage({ id: 'work.table.description' }, { defaultMessage: 'Description' })}</TableCell>
+                <TableCell sx={{ width: '300px', maxWidth: '300px' }}>{intl.formatMessage({ id: 'work.table.description' }, { defaultMessage: 'Description' })}</TableCell>
                 <TableCell>{intl.formatMessage({ id: 'work.table.category' }, { defaultMessage: 'Category' })}</TableCell>
                 <TableCell>{intl.formatMessage({ id: 'work.table.status' }, { defaultMessage: 'Status' })}</TableCell>
                 <TableCell>{intl.formatMessage({ id: 'work.table.started' }, { defaultMessage: 'Started' })}</TableCell>
@@ -157,12 +157,37 @@ export const TabularView: React.FC<TabularViewProps> = ({
             <TableBody>
               {paginatedWorks.map((work) => (
                 <TableRow key={work.id} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={500}>
+                  <TableCell sx={{ width: '300px', maxWidth: '300px' }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight={500}
+                      sx={{
+                        wordWrap: 'break-word',
+                        overflowWrap: 'break-word',
+                        hyphens: 'auto',
+                        lineHeight: 1.4,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 1,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={work.description} // Show full text on hover
+                    >
                       {work.description}
                     </Typography>
                     {work.sessionId && (
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          wordWrap: 'break-word',
+                          overflowWrap: 'break-word',
+                          display: 'block',
+                          mt: 0.5,
+                        }}
+                        title={`${intl.formatMessage({ id: 'work.table.chatSession' }, { defaultMessage: 'Chat Session' })}: ${work.sessionId}`}
+                      >
                         {intl.formatMessage({ id: 'work.table.chatSession' }, { defaultMessage: 'Chat Session' })}: {work.sessionId}
                       </Typography>
                     )}

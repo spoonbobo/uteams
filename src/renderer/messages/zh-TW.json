@@ -330,16 +330,54 @@
     "tabs": {
       "tabular": "表格",
       "graphs": "圖表",
-      "priceTable": "價格表"
+      "spendingForecast": "支出預測"
     },
     "graphs": {
-      "title": "任務分析",
-      "comingSoon": "即將推出 - 任務分析和視覺化",
+      "title": "工作分析",
+      "comingSoon": "即將推出 - 工作分析和視覺化",
       "noData": "沒有可用於圖表的數據"
     },
-    "priceTable": {
-      "title": "價格表",
-      "comingSoon": "即將推出 - 任務定價和成本分析"
+    "spendingForecast": {
+      "title": "支出預測",
+      "subtitle": "成本分析和支出趨勢",
+      "totalWorks": "總工作項目",
+      "totalCost": "總成本",
+      "averageCostPerWork": "每項工作平均成本",
+      "costByCategory": "按類別分類的成本",
+      "spendingTrend": "支出趨勢",
+      "dailySpending": "每日支出",
+      "weeklySpending": "每週支出",
+      "monthlySpending": "每月支出",
+      "pricing": {
+        "ask": "詢問查詢",
+        "grading": "評分任務",
+        "general": "一般任務",
+        "perUnit": "每單位"
+      },
+      "pricingStructure": {
+        "title": "價格結構",
+        "category": "類別",
+        "description": "描述",
+        "pricePerUnit": "單位價格",
+        "worksInDataset": "數據集中的工作",
+        "totalCost": "總成本"
+      },
+      "forecast": {
+        "generateButton": "生成預測",
+        "generating": "預測中...",
+        "generated": "預測已生成",
+        "error": "預測生成失敗",
+        "noData": "需要至少 1 個數據點進行預測",
+        "historical": "歷史支出",
+        "predicted": "預測",
+        "predictedLabel": "（預測）"
+      },
+      "stats": {
+        "thisMonth": "本月",
+        "lastMonth": "上月",
+        "growth": "增長",
+        "noData": "沒有可用的支出數據"
+      }
     },
     "timeRange": {
       "title": "時間範圍",

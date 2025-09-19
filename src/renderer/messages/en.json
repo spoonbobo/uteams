@@ -330,16 +330,54 @@
     "tabs": {
       "tabular": "Tabular",
       "graphs": "Graphs",
-      "priceTable": "Price Table"
+      "spendingForecast": "Spending Forecast"
     },
     "graphs": {
-      "title": "Task Analytics",
-      "comingSoon": "Coming soon - Task analytics and visualizations",
+      "title": "Work Analytics",
+      "comingSoon": "Coming soon - Work analytics and visualizations",
       "noData": "No data available for charts"
     },
-    "priceTable": {
-      "title": "Price Table",
-      "comingSoon": "Coming soon - Task pricing and cost analysis"
+    "spendingForecast": {
+      "title": "Spending Forecast",
+      "subtitle": "Cost analysis and spending trends",
+      "totalWorks": "Total Work Items",
+      "totalCost": "Total Cost",
+      "averageCostPerWork": "Average Cost per Work",
+      "costByCategory": "Cost by Category",
+      "spendingTrend": "Spending Trend",
+      "dailySpending": "Daily Spending",
+      "weeklySpending": "Weekly Spending",
+      "monthlySpending": "Monthly Spending",
+      "pricing": {
+        "ask": "Ask Query",
+        "grading": "Grading Task",
+        "general": "General Task",
+        "perUnit": "per unit"
+      },
+      "pricingStructure": {
+        "title": "Pricing Structure",
+        "category": "Category",
+        "description": "Description",
+        "pricePerUnit": "Price per Unit",
+        "worksInDataset": "Works in Dataset",
+        "totalCost": "Total Cost"
+      },
+      "forecast": {
+        "generateButton": "Generate Forecast",
+        "generating": "Forecasting...",
+        "generated": "Forecast Generated",
+        "error": "Failed to generate forecast",
+        "noData": "Need at least 1 data point for forecasting",
+        "historical": "Historical Spending",
+        "predicted": "Forecast",
+        "predictedLabel": "(Predicted)"
+      },
+      "stats": {
+        "thisMonth": "This Month",
+        "lastMonth": "Last Month",
+        "growth": "Growth",
+        "noData": "No spending data available"
+      }
     },
     "timeRange": {
       "title": "Time Range",

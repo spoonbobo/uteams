@@ -227,6 +227,29 @@ const electronHandler = {
     // Clean up temporary screenshot files
     cleanup: (filePath: string) => ipcRenderer.invoke('ocr:cleanup', filePath),
   },
+  ort: {
+    // Initialize ORT runtime
+    initialize: () => ipcRenderer.invoke('ort:initialize'),
+
+    // Load a model from file path
+    loadModel: (modelPath: string) => ipcRenderer.invoke('ort:load-model', modelPath),
+
+    // Run inference on a loaded model
+    inference: (modelPath: string, inputData: Record<string, number[] | number[][]>) =>
+      ipcRenderer.invoke('ort:inference', modelPath, inputData),
+
+    // Time series forecasting
+    forecastTimeSeries: (
+      timeSeriesData: Array<{ date: string; amount: number }>,
+      forecastDays?: number
+    ) => ipcRenderer.invoke('ort:forecast-timeseries', timeSeriesData, forecastDays),
+
+    // Get model information
+    getModelInfo: (modelPath: string) => ipcRenderer.invoke('ort:model-info', modelPath),
+
+    // Cleanup models
+    cleanup: () => ipcRenderer.invoke('ort:cleanup'),
+  },
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

@@ -21,6 +21,7 @@ import type { Work } from '@/types/work';
 import { HTabsPanel, HTabPanel, type TabSection } from '@/components/HTabsPanel';
 import { GraphView } from './GraphPanel';
 import { TabularView } from './TabularPanel';
+import SpendingForecastView from './SpendingForecast';
 
 // Time Range Selector Component
 const TimeRangeSelector: React.FC<{
@@ -93,21 +94,6 @@ const TimeRangeSelector: React.FC<{
   );
 };
 
-// Price Table view component (placeholder)
-const PriceTableView: React.FC = () => {
-  const intl = useIntl();
-
-  return (
-    <Box sx={{ p: 4, textAlign: 'center' }}>
-      <Typography variant="h5" color="text.secondary" gutterBottom>
-        {intl.formatMessage({ id: 'work.priceTable.title' }, { defaultMessage: 'Price Table' })}
-      </Typography>
-      <Typography variant="body1" color="text.secondary">
-        {intl.formatMessage({ id: 'work.priceTable.comingSoon' }, { defaultMessage: 'Coming soon - Task pricing and cost analysis' })}
-      </Typography>
-    </Box>
-  );
-};
 
 export const WorkView: React.FC = () => {
   const intl = useIntl();
@@ -180,14 +166,14 @@ export const WorkView: React.FC = () => {
       ),
     },
     {
-      id: 'priceTable',
-      title: intl.formatMessage({ id: 'work.tabs.priceTable' }, { defaultMessage: 'Price Table' }),
+      id: 'spendingForecast',
+      title: intl.formatMessage({ id: 'work.tabs.spendingForecast' }, { defaultMessage: 'Spending Forecast' }),
       component: (
         <HTabPanel
-          title={intl.formatMessage({ id: 'work.tabs.priceTable' }, { defaultMessage: 'Price Table' })}
+          title={intl.formatMessage({ id: 'work.tabs.spendingForecast' }, { defaultMessage: 'Spending Forecast' })}
           controlsConfig={{}}
         >
-          <PriceTableView />
+          <SpendingForecastView filteredWorks={filteredWorks} />
         </HTabPanel>
       ),
     },

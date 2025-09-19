@@ -167,7 +167,7 @@ export const GraphView: React.FC<GraphViewProps> = ({ filteredWorks }) => {
   // Chart options
   const categoryPieOption = {
     title: {
-      text: 'Tasks by Category',
+      text: 'Works by Category',
       left: 'center',
       textStyle: { color: theme.palette.text.primary },
     },
@@ -200,7 +200,7 @@ export const GraphView: React.FC<GraphViewProps> = ({ filteredWorks }) => {
 
   const dailyBarOption = {
     title: {
-      text: 'Daily Task Count (Last 14 Days)',
+      text: 'Daily Work Count (Last 14 Days)',
       textStyle: { color: theme.palette.text.primary },
     },
     tooltip: {
@@ -218,7 +218,7 @@ export const GraphView: React.FC<GraphViewProps> = ({ filteredWorks }) => {
     },
     series: [
       {
-        name: 'Tasks',
+        name: 'Works',
         type: 'bar',
         data: chartData.dailyBarData.map(d => d.count),
         itemStyle: {
@@ -237,7 +237,7 @@ export const GraphView: React.FC<GraphViewProps> = ({ filteredWorks }) => {
 
   const durationScatterOption = {
     title: {
-      text: 'Task Duration Distribution',
+      text: 'Work Duration Distribution',
       textStyle: { color: theme.palette.text.primary },
     },
     tooltip: {
@@ -249,7 +249,7 @@ export const GraphView: React.FC<GraphViewProps> = ({ filteredWorks }) => {
     },
     xAxis: {
       type: 'value',
-      name: 'Task Index',
+      name: 'Work Index',
       nameTextStyle: { color: theme.palette.text.secondary },
       axisLabel: { color: theme.palette.text.secondary },
     },
@@ -281,7 +281,7 @@ export const GraphView: React.FC<GraphViewProps> = ({ filteredWorks }) => {
 
   const statusDonutOption = {
     title: {
-      text: 'Task Status Distribution',
+      text: 'Work Status Distribution',
       left: 'center',
       textStyle: { color: theme.palette.text.primary },
     },
@@ -351,7 +351,7 @@ export const GraphView: React.FC<GraphViewProps> = ({ filteredWorks }) => {
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
-        {intl.formatMessage({ id: 'work.graphs.title' }, { defaultMessage: 'Task Analytics' })}
+        {intl.formatMessage({ id: 'work.graphs.title' }, { defaultMessage: 'Work Analytics' })}
       </Typography>
 
       {/* Row 1: Category Distribution */}
@@ -361,16 +361,16 @@ export const GraphView: React.FC<GraphViewProps> = ({ filteredWorks }) => {
         option={categoryPieOption}
       />
 
-      {/* Row 2: Daily Task Count */}
+      {/* Row 2: Daily Work Count */}
       <ChartContainer
-        title="Daily Task Count"
+        title="Daily Work Count"
         chartId="dailyBarChart"
         option={dailyBarOption}
       />
 
-      {/* Row 3: Task Duration Distribution */}
+      {/* Row 3: Work Duration Distribution */}
       <ChartContainer
-        title="Task Duration Analysis"
+        title="Work Duration Analysis"
         chartId="durationScatterChart"
         option={durationScatterOption}
       />

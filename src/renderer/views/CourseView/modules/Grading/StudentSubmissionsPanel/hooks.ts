@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGradingStore } from '@/stores/useGradingStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { createGradingPrompt } from '../../../prompts/gradingPrompt';
 import type { SubmissionFile, CollapsedCategories, SubmitGradeDialogData } from './types';
 import type { StudentSubmissionData } from '@/types/grading';
@@ -314,6 +315,8 @@ export const useGradingActions = (selectedAssignment: string) => {
     setActiveGradingStudent
   } = useGradingStore();
 
+  const { sendUserMessage } = useChatStore();
+
   const handleStartGrading = async (studentId: string, studentFiles: Record<string, SubmissionFile[]>, loadStudentFiles: (id: string) => Promise<SubmissionFile[]>) => {
     if (!selectedAssignment) return;
 
@@ -574,81 +577,19 @@ export const useGradingActions = (selectedAssignment: string) => {
         };
 
 
-        ipc?.invoke?.('chat:agent:run', {
-          sessionId,
-          prompt: gradingPrompt
-        }).then((response: any) => {
-          console.log('📬 IPC Response for session:', sessionId, {
-            success: response?.success,
-            hasResultSummary: !!response?.resultSummary,
-            onDoneReceived,
-            resultReceived
-          });
-
-          if (response?.success && response?.resultSummary && !resultReceived) {
-            // Check if resultSummary is actually a string with JSON content
-            if (typeof response.resultSummary === 'string') {
-              try {
-                const jsonMatch = response.resultSummary.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                  const parsed = JSON.parse(jsonMatch[0]);
-                  console.log('📋 Immediate grading result for student:', studentId, parsed);
-                  saveDetailedGradingRecord(selectedAssignment, studentId, parsed);
-                  resultReceived = true;
-
-                  // If onDone was already called and we didn't have results then, finish now
-                  if (onDoneReceived) {
-                    console.log('📋 onDone was already called, finishing now with IPC results');
-                    // Process stream once more (in case there were tokens) then finish
-                    try { processGradingStream(sessionId, selectedAssignment, studentId); } catch {}
-                    finishGrading(studentId);
-                    cleanup();
-                    resolve();
-                  }
-                  // Otherwise, onDone will handle finishing when it arrives
-                } else {
-                  console.warn('⚠️ IPC resultSummary exists but no JSON found:', response.resultSummary);
-                  setGradingError(studentId, 'AI returned text feedback instead of structured grading data. The response format may need adjustment.', 'format');
-                  // If onDone was called, we need to finish anyway
-                  if (onDoneReceived) {
-                    console.warn('⚠️ Finishing with error as onDone was called');
-                    cleanup();
-                    resolve();
-                  }
-                }
-              } catch (parseError) {
-                console.error('❌ Failed to parse immediate response:', parseError, 'Content:', response.resultSummary);
-                setGradingError(studentId, `Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`, 'parsing');
-                // If onDone was called, we need to finish anyway
-                if (onDoneReceived) {
-                  console.warn('⚠️ Finishing with error due to parse error');
-                  cleanup();
-                  resolve();
-                }
-              }
-            } else {
-              console.warn('⚠️ IPC resultSummary is not a string:', typeof response.resultSummary, response.resultSummary);
-              // If onDone was called, we need to finish anyway
-              if (onDoneReceived) {
-                console.warn('⚠️ Finishing without results as resultSummary is not parseable');
-                finishGrading(studentId);
-                cleanup();
-                resolve();
-              }
-            }
-          } else if (onDoneReceived && !resultReceived) {
-            // onDone was called but we still don't have results
-            console.warn('⚠️ IPC response received after onDone but no results available');
-            finishGrading(studentId);
+        // Use chat store's sendUserMessage for work logging integration
+        sendUserMessage(sessionId, gradingPrompt, selectedAssignment, undefined, true, 'grading')
+          .then(() => {
+            console.log('✅ Grading started successfully for session:', sessionId);
+            // The actual grading response will come through the IPC event handlers (onToken, onDone, etc.)
+            // No need to handle immediate response since sendUserMessage doesn't return one
+          })
+          .catch((error: any) => {
+            console.error('❌ Failed to start grading via chat store:', error);
+            setGradingError(studentId, `Failed to start grading: ${error.message}`, 'unknown');
             cleanup();
-            resolve();
-          }
-        }).catch((error: any) => {
-          console.error('❌ IPC invoke error for session:', sessionId, error);
-          setGradingError(studentId);
-          cleanup();
-          reject(error);
-        });
+            reject(error);
+          });
       });
 
     } catch (error: any) {
