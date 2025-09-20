@@ -25,6 +25,9 @@ export type Channels =
   | 'moodle:clear-config'
   | 'moodle:get-preset-url'
   | 'alert:toast'
+  | 'translate:text'
+  | 'translate:detect-language'
+  | 'translate:status'
   | 'fullscreen-changed'
   | 'fullscreen-changing';
 

@@ -208,6 +208,21 @@ export const CourseView: React.FC<CourseViewProps> = ({
     );
   }
 
+  const getModuleTitle = () => {
+    switch (sessionContext.view) {
+      case 'ask':
+        return intl.formatMessage({ id: 'ask.title', defaultMessage: 'Ask' });
+      case 'grading':
+        return intl.formatMessage({ id: 'grading.title', defaultMessage: 'Grading' });
+      case 'courseworkGenerator':
+        return intl.formatMessage({ id: 'courseworkGenerator.title', defaultMessage: 'Coursework Generator' });
+      case 'overview':
+        return intl.formatMessage({ id: 'courseOverview.title', defaultMessage: 'Course Overview' });
+      default:
+        return intl.formatMessage({ id: 'ask.title', defaultMessage: 'Ask' });
+    }
+  };
+
   const renderContent = () => {
     switch (sessionContext.view) {
       case 'ask':
@@ -233,7 +248,36 @@ export const CourseView: React.FC<CourseViewProps> = ({
         backgroundColor: 'inherit',
       }}
     >
-      {renderContent()}
+      {/* Standardized module title */}
+      <Box sx={{ mb: 3 }}>
+        <Typography
+          variant="h5"
+          component="span"
+          sx={{
+            fontWeight: 500,
+            color: 'text.primary'
+          }}
+        >
+          {getModuleTitle()}
+        </Typography>
+        <Typography
+          variant="body1"
+          component="span"
+          sx={{
+            ml: 1,
+            fontWeight: 400,
+            color: 'text.secondary',
+            fontSize: '0.875rem'
+          }}
+        >
+          • {sessionContext.sessionName}
+        </Typography>
+      </Box>
+
+      {/* Module content */}
+      <Box>
+        {renderContent()}
+      </Box>
     </Box>
   );
 };

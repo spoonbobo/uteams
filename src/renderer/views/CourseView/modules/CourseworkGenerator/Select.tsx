@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Typography,
   Box,
@@ -28,24 +28,15 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import InfoIcon from '@mui/icons-material/Info';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 
 interface SelectProps {
   sessionContext: CourseSessionContext;
-  examType: string;
-  onExamTypeChange: (type: string) => void;
-  examInstructions: string;
-  onExamInstructionsChange: (instructions: string) => void;
   onProceedToGenerate: () => void;
   isGenerating: boolean;
 }
 
 function Select({
   sessionContext,
-  examType,
-  onExamTypeChange,
-  examInstructions,
-  onExamInstructionsChange,
   onProceedToGenerate,
   isGenerating,
 }: SelectProps) {
@@ -58,15 +49,10 @@ function Select({
   const sessionId = sessionContext.sessionId;
   const courseContent = getCourseContent(sessionId);
 
-  // Use store for PDF preview state and assignment selection
+  // Use store for assignment selection
   const {
     getSelectedAssignments,
     toggleAssignment,
-    setSelectedPdf,
-    selectedPdfPath,
-    setAssignmentPdf,
-    setCurrentPreviewPdf,
-    getAssignmentPdfs,
   } = useCourseworkGeneratorStore();
 
   // Get current course selections from store
@@ -88,7 +74,7 @@ function Select({
   };
 
   // Fetch attachments for a specific assignment
-  const fetchAssignmentAttachments = useCallback(async (assignmentId: string) => {
+  const fetchAssignmentAttachments = async (assignmentId: string) => {
     if (assignmentAttachments[assignmentId] || loadingAttachments[assignmentId]) {
       return; // Already loaded or loading
     }
@@ -123,104 +109,16 @@ function Select({
     } finally {
       setLoadingAttachments(prev => ({ ...prev, [assignmentId]: false }));
     }
-  }, [sessionId, assignmentAttachments, loadingAttachments]);
+  };
 
-  // Handle PDF preview selection
-  const handlePdfPreview = useCallback(async (attachment: any, assignmentId: string) => {
-    if (!attachment.fileurl || !attachment.filename) {
-      console.error('PDF attachment missing required fields');
-      return;
-    }
-
-    try {
-      // Get Moodle config for API key
-      const { config } = useMoodleStore.getState();
-      if (!config.apiKey) {
-        throw new Error('No Moodle API key available');
-      }
-
-      // Check if we already have this PDF downloaded
-      const existingPdfs = getAssignmentPdfs(sessionId, assignmentId);
-      const existingPdf = existingPdfs[attachment.filename];
-
-      if (existingPdf) {
-        console.log('📄 Using cached PDF:', attachment.filename);
-        // Set the PDF in the store to show in preview
-        setSelectedPdf(existingPdf.filePath, existingPdf.filename);
-        // Set as current preview
-        setCurrentPreviewPdf(sessionId, assignmentId, attachment.filename);
-        return;
-      }
-
-      // Prepare download URL with token
-      let downloadUrl = attachment.fileurl;
-      if (downloadUrl && !downloadUrl.includes('token=')) {
-        const separator = downloadUrl.includes('?') ? '&' : '?';
-        downloadUrl = `${downloadUrl}${separator}token=${config.apiKey}`;
-      }
-
-      // Create unique filename for temp storage
-      const uniqueFilename = `pdf_preview_${sessionId}_${assignmentId}_${attachment.filename}`;
-
-      console.log('📄 Downloading PDF for preview:', attachment.filename);
-
-      // Download PDF to temp directory
-      const downloadResult = await window.electron.ipcRenderer.invoke('fileio:download-file', {
-        url: downloadUrl,
-        filename: uniqueFilename,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; MoodleApp)',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-
-      if (!downloadResult.success) {
-        throw new Error(downloadResult.error || 'Failed to download PDF');
-      }
-
-      console.log('✅ PDF downloaded successfully:', downloadResult.filePath);
-
-      // Store the PDF in the granular store
-      setAssignmentPdf(sessionId, assignmentId, attachment.filename, downloadResult.filePath);
-
-      // Set as current preview
-      setCurrentPreviewPdf(sessionId, assignmentId, attachment.filename);
-
-      // Set the PDF in the store to show in preview
-      setSelectedPdf(downloadResult.filePath, attachment.filename);
-
-    } catch (error: any) {
-      console.error('❌ Error downloading PDF for preview:', error);
-      alert(`Failed to load PDF preview: ${error.message}`);
-    }
-  }, [sessionId, getAssignmentPdfs, setSelectedPdf, setCurrentPreviewPdf, setAssignmentPdf]);
 
   // Fetch attachments when assignments are selected
   useEffect(() => {
     selectedCoursework.forEach(assignmentId => {
       fetchAssignmentAttachments(assignmentId);
     });
-  }, [selectedCoursework, fetchAssignmentAttachments]);
+  }, [selectedCoursework]);
 
-  // Auto-preview first PDF when attachments are loaded
-  useEffect(() => {
-    if (selectedCoursework.length === 0 || selectedPdfPath) {
-      return; // Don't auto-preview if no assignments selected or already have a PDF
-    }
-
-    // Find first PDF attachment from selected assignments
-    for (const assignmentId of selectedCoursework) {
-      const attachments = assignmentAttachments[assignmentId];
-      if (attachments && attachments.length > 0) {
-        const firstPdf = attachments.find(att => isPdfFile(att.filename, att.mimetype));
-        if (firstPdf && firstPdf.fileurl) {
-          handlePdfPreview(firstPdf, assignmentId);
-          break; // Only preview the first PDF found
-        }
-      }
-    }
-  }, [selectedCoursework, assignmentAttachments, selectedPdfPath, handlePdfPreview]);
 
   return (
     <HTabPanel
@@ -495,28 +393,6 @@ function Select({
                           )}
                         </Box>
 
-                        {/* PDF Preview Buttons */}
-                        {pdfCount > 0 && !isLoading && (
-                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-                            {pdfAttachments.map((pdf, index) => (
-                              <Button
-                                key={index}
-                                size="small"
-                                variant="outlined"
-                                startIcon={<VisibilityIcon />}
-                                onClick={() => handlePdfPreview(pdf, assignmentId)}
-                                sx={{
-                                  textTransform: 'none',
-                                  fontSize: '0.75rem'
-                                }}
-                              >
-                                {pdf.filename.length > 20
-                                  ? `${pdf.filename.substring(0, 20)}...pdf`
-                                  : pdf.filename}
-                              </Button>
-                            ))}
-                          </Box>
-                        )}
                       </Box>
                     </Paper>
                   );

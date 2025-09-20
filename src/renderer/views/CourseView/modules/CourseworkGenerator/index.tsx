@@ -15,8 +15,6 @@ interface CourseworkGeneratorProps {
 function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
   const intl = useIntl();
   const [selectedTab, setSelectedTab] = useState(0);
-  const [examType, setExamType] = useState('');
-  const [examInstructions, setExamInstructions] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
   // PDF preview state from store
@@ -73,15 +71,7 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
 
   // Coursework selection is now handled by the store in the Select component
 
-  // Handle exam type change
-  const handleExamTypeChange = (type: string) => {
-    setExamType(type);
-  };
 
-  // Handle exam instructions change
-  const handleExamInstructionsChange = (instructions: string) => {
-    setExamInstructions(instructions);
-  };
 
   // Handle proceed to generate
   const handleProceedToGenerate = () => {
@@ -93,8 +83,8 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
   const hasBackgroundGeneration = isGenerationInProgress(sessionContext.sessionId);
   const isActiveGeneration = activeGenerationCourse === sessionContext.sessionId;
 
-  // Handle exam generation completion (called by Generate component)
-  const handleGenerateExam = () => {
+  // Handle generation completion (called by Generate component)
+  const handleGenerationComplete = () => {
     setIsGenerating(false);
   };
 
@@ -190,10 +180,6 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
       component: (
         <Select
           sessionContext={sessionContext}
-          examType={examType}
-          onExamTypeChange={handleExamTypeChange}
-          examInstructions={examInstructions}
-          onExamInstructionsChange={handleExamInstructionsChange}
           onProceedToGenerate={handleProceedToGenerate}
           isGenerating={isGenerating}
         />
@@ -222,9 +208,7 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
             <Generate
               sessionContext={sessionContext}
               selectedCoursework={selectedCoursework}
-              examType={examType}
-              examInstructions={examInstructions}
-              onGenerateExam={handleGenerateExam}
+              onGenerationComplete={handleGenerationComplete}
               isGenerating={isGenerating || hasBackgroundGeneration}
             />
           </Box>
@@ -241,14 +225,6 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
       display: 'flex',
       flexDirection: 'column'
     }}>
-      {/* Header */}
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 500 }}>
-          {intl.formatMessage({ id: 'courseworkGenerator.title' })} •{' '}
-          {sessionContext.sessionName}
-        </Typography>
-      </Box>
-
       {/* HTabsPanel with full control */}
       <Box sx={{ flex: 1, minHeight: 0 }}>
         <HTabsPanel

@@ -18,7 +18,7 @@ import {
 import { useIntl } from 'react-intl';
 import { useWorkStore, type TimeRange, type CustomTimeRange } from '@/stores/useWorkStore';
 import type { Work } from '@/types/work';
-import { HTabsPanel, HTabPanel, type TabSection } from '@/components/HTabsPanel';
+import { HTabsPanel, type TabSection } from '@/components/HTabsPanel';
 import { GraphView } from './GraphPanel';
 import { TabularView } from './TabularPanel';
 import SpendingForecastView from './SpendingForecast';
@@ -141,40 +141,25 @@ export const WorkView: React.FC = () => {
       id: 'tabular',
       title: intl.formatMessage({ id: 'work.tabs.tabular' }, { defaultMessage: 'Tabular' }),
       component: (
-        <HTabPanel
-          title={intl.formatMessage({ id: 'work.tabs.tabular' }, { defaultMessage: 'Tabular' })}
-          controlsConfig={{}}
-        >
-          <TabularView
-            filteredWorks={filteredWorks}
-            isLoading={isLoading}
-            onRefresh={handleRefresh}
-          />
-        </HTabPanel>
+        <TabularView
+          filteredWorks={filteredWorks}
+          isLoading={isLoading}
+          onRefresh={handleRefresh}
+        />
       ),
     },
     {
       id: 'graphs',
       title: intl.formatMessage({ id: 'work.tabs.graphs' }, { defaultMessage: 'Graphs' }),
       component: (
-        <HTabPanel
-          title={intl.formatMessage({ id: 'work.tabs.graphs' }, { defaultMessage: 'Graphs' })}
-          controlsConfig={{}}
-        >
-          <GraphView filteredWorks={filteredWorks} />
-        </HTabPanel>
+        <GraphView filteredWorks={filteredWorks} />
       ),
     },
     {
       id: 'spendingForecast',
       title: intl.formatMessage({ id: 'work.tabs.spendingForecast' }, { defaultMessage: 'Spending Forecast' }),
       component: (
-        <HTabPanel
-          title={intl.formatMessage({ id: 'work.tabs.spendingForecast' }, { defaultMessage: 'Spending Forecast' })}
-          controlsConfig={{}}
-        >
-          <SpendingForecastView filteredWorks={filteredWorks} />
-        </HTabPanel>
+        <SpendingForecastView filteredWorks={filteredWorks} />
       ),
     },
   ];

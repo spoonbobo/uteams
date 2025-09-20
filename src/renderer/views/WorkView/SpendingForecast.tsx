@@ -89,11 +89,13 @@ const groupWorksByDate = (works: Work[]): Record<string, Work[]> => {
 // ECharts-based spending trend chart
 function SpendingTrendChart({
   data,
+  accumulatedData,
   forecastData,
   onForecast,
   isForecasting,
 }: {
   data: Array<{ date: string; amount: number }>;
+  accumulatedData: Array<{ date: string; amount: number }>;
   forecastData: Array<{ date: string; amount: number; isForecast: boolean }> | null;
   onForecast: () => void;
   isForecasting: boolean;
@@ -118,14 +120,39 @@ function SpendingTrendChart({
 
       // Use forecast data if available, otherwise use original data
       const displayData = forecastData || data;
+
       const historicalData = displayData.filter(d => !('isForecast' in d) || !d.isForecast);
       const forecastPoints = displayData.filter(d => 'isForecast' in d && d.isForecast);
+
+      // Calculate accumulated spending for forecast data if needed
+      let displayAccumulated = accumulatedData;
+      let forecastAccumulated: Array<{ date: string; amount: number }> = [];
+
+      if (forecastData && forecastPoints.length > 0) {
+        // Calculate accumulated forecast by continuing from the last historical accumulated value
+        const lastAccumulated = accumulatedData[accumulatedData.length - 1]?.amount || 0;
+        let runningForecastTotal = lastAccumulated;
+
+        forecastAccumulated = forecastPoints.map(point => {
+          runningForecastTotal += point.amount;
+          return {
+            date: point.date,
+            amount: runningForecastTotal,
+          };
+        });
+
+        // Combine historical and forecast accumulated data
+        displayAccumulated = [...accumulatedData, ...forecastAccumulated];
+      }
+
+      const historicalAccumulated = accumulatedData;
+      const forecastAccumulatedData = forecastAccumulated;
 
       const allDates = displayData.map((d) => new Date(d.date).toLocaleDateString());
 
       const series: any[] = [
         {
-          name: 'Historical Spending',
+          name: 'Daily Spending',
           type: 'line',
           data: historicalData.map((d) => d.amount),
           smooth: true,
@@ -152,6 +179,21 @@ function SpendingTrendChart({
             },
           },
         },
+        {
+          name: 'Accumulated Spending',
+          type: 'line',
+          data: historicalAccumulated.map((d) => d.amount),
+          smooth: true,
+          symbol: 'triangle',
+          symbolSize: 6,
+          itemStyle: {
+            color: theme.palette.secondary.main,
+          },
+          lineStyle: {
+            color: theme.palette.secondary.main,
+            width: 2,
+          },
+        },
       ];
 
       // Add forecast series if we have forecast data
@@ -168,8 +210,19 @@ function SpendingTrendChart({
           return null;
         });
 
+        const forecastAccumulatedSeriesData = displayAccumulated.map((d, index) => {
+          if (index >= historicalAccumulated.length - 1) {
+            return d.amount;
+          }
+          // Add connection point from last historical data
+          if (index === historicalAccumulated.length - 1) {
+            return d.amount;
+          }
+          return null;
+        });
+
         series.push({
-          name: 'Forecast',
+          name: 'Daily Forecast',
           type: 'line',
           data: forecastSeriesData,
           smooth: true,
@@ -180,6 +233,24 @@ function SpendingTrendChart({
           },
           lineStyle: {
             color: theme.palette.warning.main,
+            width: 2,
+            type: 'dashed',
+          },
+          connectNulls: true,
+        });
+
+        series.push({
+          name: 'Accumulated Forecast',
+          type: 'line',
+          data: forecastAccumulatedSeriesData,
+          smooth: true,
+          symbol: 'diamond',
+          symbolSize: 8,
+          itemStyle: {
+            color: theme.palette.error.main,
+          },
+          lineStyle: {
+            color: theme.palette.error.main,
             width: 2,
             type: 'dashed',
           },
@@ -477,19 +548,30 @@ export default function SpendingForecastView({
 
     // Generate time series data (daily spending)
     const worksByDate = groupWorksByDate(filteredWorks);
-    const timeSeriesData = Object.entries(worksByDate)
+    const dailySpending = Object.entries(worksByDate)
       .map(([date, works]) => ({
         date,
         amount: works.reduce((sum, work) => sum + calculateWorkCost(work), 0),
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
+    // Calculate accumulated spending
+    let runningTotal = 0;
+    const accumulatedSpending = dailySpending.map(item => {
+      runningTotal += item.amount;
+      return {
+        date: item.date,
+        amount: runningTotal,
+      };
+    });
+
     return {
       totalWorks,
       totalCost,
       averageCostPerWork,
       costByCategory,
-      timeSeriesData,
+      timeSeriesData: dailySpending,
+      accumulatedSpending,
     };
   }, [filteredWorks]);
 
@@ -612,7 +694,7 @@ export default function SpendingForecastView({
 
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -631,7 +713,7 @@ export default function SpendingForecastView({
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -650,7 +732,7 @@ export default function SpendingForecastView({
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -669,21 +751,6 @@ export default function SpendingForecastView({
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <CategoryIcon color="warning" sx={{ mr: 1 }} />
-                <Typography variant="h6" color="warning.main">
-                  {Object.keys(stats.costByCategory).length}
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                Categories Used
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
       </Grid>
 
       <Grid container spacing={3}>
@@ -698,6 +765,7 @@ export default function SpendingForecastView({
             </Typography>
             <SpendingTrendChart
               data={stats.timeSeriesData}
+              accumulatedData={stats.accumulatedSpending}
               forecastData={forecastData}
               onForecast={handleForecast}
               isForecasting={isForecasting}

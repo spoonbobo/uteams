@@ -39,6 +39,10 @@ console.log('[ENV] OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '***SET***' : 
 console.log('[ENV] OPENAI_BASE_URL:', process.env.OPENAI_BASE_URL || 'NOT SET');
 console.log('[ENV] OPENAI_MODEL:', process.env.OPENAI_MODEL || 'NOT SET');
 console.log('[ENV] OPENAI_MODEL_TEMPERATURE:', process.env.OPENAI_MODEL_TEMPERATURE || 'NOT SET');
+console.log('[ENV] OPENAI_FAST_API_KEY:', process.env.OPENAI_FAST_API_KEY ? '***SET***' : 'NOT SET');
+console.log('[ENV] OPENAI_FAST_BASE_URL:', process.env.OPENAI_FAST_BASE_URL || 'NOT SET');
+console.log('[ENV] OPENAI_FAST_MODEL:', process.env.OPENAI_FAST_MODEL || 'NOT SET');
+console.log('[ENV] OPENAI_FAST_MODEL_TEMPERATURE:', process.env.OPENAI_FAST_MODEL_TEMPERATURE || 'NOT SET');
 console.log('[ENV] TAVILY_API_KEY:', process.env.TAVILY_API_KEY ? '***SET***' : 'NOT SET');
 
 

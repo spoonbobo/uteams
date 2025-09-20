@@ -99,10 +99,6 @@ export const AskView: React.FC<AskViewProps> = ({
         backgroundColor: 'inherit',
       }}
     >
-      <Typography variant="h4" gutterBottom>
-        Ask {courseCode} • {sessionContext.sessionName}
-      </Typography>
-
       {/* Main content area with improved layout */}
       <Box
         sx={{

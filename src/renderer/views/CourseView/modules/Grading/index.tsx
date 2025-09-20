@@ -350,13 +350,6 @@ export const GradingView: React.FC<GradingViewProps> = ({ sessionContext }) => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 500 }}>
-          {intl.formatMessage({ id: 'grading.title' })} • {sessionContext.sessionName}
-        </Typography>
-      </Box>
-
       {/* Horizontal Tabs Panel */}
       <HTabsPanel
         sections={sections}

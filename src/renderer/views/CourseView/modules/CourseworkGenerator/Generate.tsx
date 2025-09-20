@@ -17,9 +17,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 interface GenerateProps {
   sessionContext: CourseSessionContext;
   selectedCoursework: string[];
-  examType: string;
-  examInstructions: string;
-  onGenerateExam: () => void;
+  onGenerationComplete: () => void;
   isGenerating: boolean;
 }
 
@@ -92,9 +90,7 @@ const extractTextFromParsedPdf = (parsedPdfData: any): string => {
 function Generate({
   sessionContext,
   selectedCoursework,
-  examType,
-  examInstructions,
-  onGenerateExam,
+  onGenerationComplete,
   isGenerating,
 }: GenerateProps) {
   const intl = useIntl();
@@ -102,7 +98,6 @@ function Generate({
   const [generationError, setLocalGenerationError] = useState<string | null>(null);
   const [resultSummary, setResultSummary] = useState<string>('');
   const [streamBuffer, setStreamBuffer] = useState<string>('');
-  const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
 
   // Highlight-related state
   const [highlightLoading, setHighlightLoading] = useState(false);
@@ -120,8 +115,8 @@ function Generate({
     getAllParsedContent,
     saveGenerationRecord,
     updateGenerationRecord,
-    getLatestGenerationRecord,
-    clearGenerationRecords,
+    getGenerationRecord,
+    clearGenerationRecord,
     selectedPdfPath,
     setSelectedPdf,
     // Generation progress methods
@@ -153,7 +148,7 @@ function Generate({
   const plan = planBySession?.[sessionId];
 
   // Check for existing generation record
-  const existingRecord = getLatestGenerationRecord(sessionContext.sessionId);
+  const existingRecord = getGenerationRecord(sessionContext.sessionId);
 
   // Function to parse PDF data for highlighting
   const parsePdfForHighlighting = async (filePath: string) => {
@@ -371,11 +366,10 @@ function Generate({
     setLocalGenerationError(null);
     setResultSummary('');
     setStreamBuffer('');
-    setCurrentGenerationId(null);
     setHighlightedPdfPath(null); // Clear highlighted PDF path
 
-    // Clear stored records
-    clearGenerationRecords(sessionContext.sessionId);
+    // Clear stored record
+    clearGenerationRecord(sessionContext.sessionId);
   };
 
   // Handle coursework generation
@@ -412,16 +406,13 @@ function Generate({
       clearTodos(sessionId);
 
       // Save generation record when starting
-      const recordId = saveGenerationRecord({
+      saveGenerationRecord({
         sessionId,
         courseId: sessionContext.sessionId,
         selectedAssignments: selectedCoursework,
-        examType,
-        examInstructions,
-        resultSummary: '',
+        resultSummary: '', // Will be updated when generation completes
         status: 'completed' // Will be updated based on result
       });
-      setCurrentGenerationId(recordId);
 
       // Get selected assignments data
       const selectedAssignments = selectedCoursework
@@ -489,7 +480,7 @@ ${assignment.intro || 'No content available'}
       // Generate the prompt
       const prompt = generateQuestionVariantsFromCurrent({
         pageContents,
-        specialInstructions: examInstructions
+        specialInstructions: '' // No special instructions for now
       });
 
       console.log('🤖 Sending coursework generation prompt to agent...', {
@@ -508,8 +499,6 @@ ${assignment.intro || 'No content available'}
             courseId: sessionContext.sessionId,
             courseName: sessionContext.sessionName,
             selectedCoursework,
-            examType,
-            examInstructions,
             pageContentsCount: pageContents.length,
             promptLength: prompt.length,
             parsedContentCount: parsedContent.length
@@ -540,8 +529,8 @@ ${assignment.intro || 'No content available'}
       setLocalGenerationError(errorMessage);
       setStoreGenerationError(sessionContext.sessionId, errorMessage);
       // Reset the parent isGenerating state on error
-      if (onGenerateExam) {
-        setTimeout(() => onGenerateExam(), 100);
+      if (onGenerationComplete) {
+        setTimeout(() => onGenerationComplete(), 100);
       }
     }
   };
@@ -558,8 +547,8 @@ ${assignment.intro || 'No content available'}
       setStreamBuffer('');
 
       // Reset the parent isGenerating state on abort
-      if (onGenerateExam) {
-        setTimeout(() => onGenerateExam(), 100);
+      if (onGenerationComplete) {
+        setTimeout(() => onGenerationComplete(), 100);
       }
     } catch (error) {
       console.error('Failed to abort generation:', error);
@@ -568,8 +557,8 @@ ${assignment.intro || 'No content available'}
       clearTodos(sessionId);
 
       // Reset the parent isGenerating state even if abort fails
-      if (onGenerateExam) {
-        setTimeout(() => onGenerateExam(), 100);
+      if (onGenerationComplete) {
+        setTimeout(() => onGenerationComplete(), 100);
       }
     }
   };
@@ -588,21 +577,38 @@ ${assignment.intro || 'No content available'}
 
     const handleStreamEnd = (event: any, data: any) => {
       const eventData = data || event;
+      console.log('🏁 Stream end event received:', {
+        sessionId: eventData?.sessionId,
+        expectedSessionId: sessionId,
+        hasResultSummary: !!eventData?.resultSummary,
+        resultSummaryLength: eventData?.resultSummary?.length || 0,
+        eventKeys: Object.keys(eventData || {})
+      });
+
       if (eventData?.sessionId === sessionId) {
         // Finish generation tracking in store
         finishGeneration(sessionContext.sessionId);
 
-        // Extract the result if available
-        if (eventData.resultSummary) {
-          setResultSummary(eventData.resultSummary);
+        // Extract the result if available - try multiple possible fields
+        const resultSummary = eventData.resultSummary || eventData.result || eventData.response || '';
+
+        if (resultSummary && resultSummary.length > 0) {
+          console.log('✅ Setting result summary:', resultSummary.substring(0, 100) + '...');
+          setResultSummary(resultSummary);
 
           // Update the generation record with the result
-          if (currentGenerationId) {
-            updateGenerationRecord(sessionContext.sessionId, currentGenerationId, {
-              resultSummary: eventData.resultSummary,
-              status: 'completed'
-            });
-          }
+          console.log('📝 Updating generation record with result');
+          updateGenerationRecord(sessionContext.sessionId, {
+            resultSummary: resultSummary,
+            status: 'completed'
+          });
+        } else {
+          console.warn('⚠️ No result summary found in stream end event:', eventData);
+
+          // Still update the record as completed even without result summary
+          updateGenerationRecord(sessionContext.sessionId, {
+            status: 'completed'
+          });
         }
 
         // Clear plan and todos when generation is complete
@@ -610,8 +616,8 @@ ${assignment.intro || 'No content available'}
         clearTodos(sessionId);
 
         // Reset the parent isGenerating state
-        if (onGenerateExam) {
-          setTimeout(() => onGenerateExam(), 100);
+        if (onGenerationComplete) {
+          setTimeout(() => onGenerationComplete(), 100);
         }
       }
     };
@@ -624,20 +630,18 @@ ${assignment.intro || 'No content available'}
         setStoreGenerationError(sessionContext.sessionId, errorMessage);
 
         // Update the generation record with error status
-        if (currentGenerationId) {
-          updateGenerationRecord(sessionContext.sessionId, currentGenerationId, {
-            status: 'failed',
-            error: errorMessage
-          });
-        }
+        updateGenerationRecord(sessionContext.sessionId, {
+          status: 'failed',
+          error: errorMessage
+        });
 
         // Clear plan and todos on error
         clearPlan(sessionId);
         clearTodos(sessionId);
 
         // Reset the parent isGenerating state on error
-        if (onGenerateExam) {
-          setTimeout(() => onGenerateExam(), 100);
+        if (onGenerationComplete) {
+          setTimeout(() => onGenerationComplete(), 100);
         }
       }
     };
@@ -691,13 +695,29 @@ ${assignment.intro || 'No content available'}
       console.error('Error setting up IPC listeners:', error);
       return () => {};
     }
-  }, [sessionId, onGenerateExam, setPlan, setTodos, updateTodoByIndex, clearPlan, clearTodos]);
+  }, [sessionId, onGenerationComplete, setPlan, setTodos, updateTodoByIndex, clearPlan, clearTodos]);
 
   // Load existing generation results when component mounts
   useEffect(() => {
-    if (existingRecord && existingRecord.resultSummary) {
-      setResultSummary(existingRecord.resultSummary);
-      setCurrentGenerationId(existingRecord.id);
+    console.log('🔄 Loading existing record:', {
+      hasRecord: !!existingRecord,
+      hasResultSummary: !!existingRecord?.resultSummary,
+      resultSummaryLength: existingRecord?.resultSummary?.length || 0,
+      status: existingRecord?.status
+    });
+
+    if (existingRecord) {
+      // Set result summary if available
+      if (existingRecord.resultSummary) {
+        console.log('✅ Loading existing result summary:', existingRecord.resultSummary.substring(0, 100) + '...');
+        setResultSummary(existingRecord.resultSummary);
+      } else {
+        console.log('⚠️ Existing record has no result summary');
+        setResultSummary('');
+      }
+    } else {
+      console.log('ℹ️ No existing record found');
+      setResultSummary('');
     }
   }, [existingRecord]);
 
@@ -851,11 +871,6 @@ ${assignment.intro || 'No content available'}
                 <Typography variant="body2" color="text.secondary">
                   Status: {existingRecord.status}
                 </Typography>
-                {existingRecord.examType && (
-                  <Typography variant="body2" color="text.secondary">
-                    Type: {existingRecord.examType}
-                  </Typography>
-                )}
               </Box>
 
               {existingRecord.error ? (

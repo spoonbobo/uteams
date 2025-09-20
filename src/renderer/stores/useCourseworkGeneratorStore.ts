@@ -17,8 +17,6 @@ interface GenerationRecord {
   sessionId: string;
   courseId: string;
   selectedAssignments: string[];
-  examType: string;
-  examInstructions: string;
   generatedAt: number;
   resultSummary: string;
   parsedResult?: any;
@@ -29,7 +27,7 @@ interface GenerationRecord {
 interface CourseAssignmentSelection {
   selectedAssignments: string[];
   assignmentData: Record<string, AssignmentData>; // assignmentId -> AssignmentData
-  generationRecords: GenerationRecord[]; // Store generation history
+  generationRecord?: GenerationRecord; // Store single generation record
 }
 
 interface CourseworkGeneratorState {
@@ -70,10 +68,9 @@ interface CourseworkGeneratorState {
 
   // Generation record actions
   saveGenerationRecord: (record: Omit<GenerationRecord, 'id' | 'generatedAt'>) => string;
-  getGenerationRecords: (courseId: string) => GenerationRecord[];
-  getLatestGenerationRecord: (courseId: string) => GenerationRecord | null;
-  updateGenerationRecord: (courseId: string, recordId: string, updates: Partial<GenerationRecord>) => void;
-  clearGenerationRecords: (courseId: string) => void;
+  getGenerationRecord: (courseId: string) => GenerationRecord | null;
+  updateGenerationRecord: (courseId: string, updates: Partial<GenerationRecord>) => void;
+  clearGenerationRecord: (courseId: string) => void;
   clearAllGenerationRecords: () => void;
 
   // Generation progress actions (similar to grading store)
@@ -132,7 +129,7 @@ export const useCourseworkGeneratorStore = create<CourseworkGeneratorState>()(
             ...state.courseSelections[courseId],
             selectedAssignments: assignments,
             assignmentData: state.courseSelections[courseId]?.assignmentData || {},
-            generationRecords: state.courseSelections[courseId]?.generationRecords || []
+            generationRecord: state.courseSelections[courseId]?.generationRecord
           }
         }
       })),
@@ -153,9 +150,9 @@ export const useCourseworkGeneratorStore = create<CourseworkGeneratorState>()(
             ...state.courseSelections,
             [courseId]: {
               ...state.courseSelections[courseId],
-              selectedAssignments: newSelections,
-              assignmentData: state.courseSelections[courseId]?.assignmentData || {},
-              generationRecords: state.courseSelections[courseId]?.generationRecords || []
+            selectedAssignments: newSelections,
+            assignmentData: state.courseSelections[courseId]?.assignmentData || {},
+            generationRecord: state.courseSelections[courseId]?.generationRecord
             }
           }
         };
@@ -302,10 +299,7 @@ export const useCourseworkGeneratorStore = create<CourseworkGeneratorState>()(
               ...state.courseSelections[record.courseId],
               selectedAssignments: state.courseSelections[record.courseId]?.selectedAssignments || [],
               assignmentData: state.courseSelections[record.courseId]?.assignmentData || {},
-              generationRecords: [
-                ...(state.courseSelections[record.courseId]?.generationRecords || []),
-                fullRecord
-              ]
+              generationRecord: fullRecord
             }
           }
         }));
@@ -313,43 +307,56 @@ export const useCourseworkGeneratorStore = create<CourseworkGeneratorState>()(
         return recordId;
       },
 
-      getGenerationRecords: (courseId) => {
+      getGenerationRecord: (courseId) => {
         const state = get();
-        return state.courseSelections[courseId]?.generationRecords || [];
+        return state.courseSelections[courseId]?.generationRecord || null;
       },
 
-      getLatestGenerationRecord: (courseId) => {
-        const records = get().getGenerationRecords(courseId);
-        return records.length > 0 ? records[records.length - 1] : null;
-      },
+      updateGenerationRecord: (courseId, updates) => set((state) => {
+        console.log('📝 [Store] Updating generation record:', {
+          courseId,
+          updates,
+          hasRecord: !!state.courseSelections[courseId]?.generationRecord
+        });
 
-      updateGenerationRecord: (courseId, recordId, updates) => set((state) => {
         const courseData = state.courseSelections[courseId];
-        if (!courseData?.generationRecords) return state;
+        if (!courseData?.generationRecord) {
+          console.warn('⚠️ [Store] No generation record found for course:', courseId);
+          return state;
+        }
 
-        const updatedRecords = courseData.generationRecords.map(record =>
-          record.id === recordId ? { ...record, ...updates } : record
-        );
+        const updatedRecord = { ...courseData.generationRecord, ...updates };
+        console.log('✅ [Store] Updated record:', {
+          before: courseData.generationRecord,
+          after: updatedRecord
+        });
 
-        return {
+        const newState = {
           courseSelections: {
             ...state.courseSelections,
             [courseId]: {
               ...courseData,
-              generationRecords: updatedRecords
+              generationRecord: updatedRecord
             }
           }
         };
+
+        console.log('📝 [Store] New state after update:', {
+          courseId,
+          updatedRecord
+        });
+
+        return newState;
       }),
 
-      clearGenerationRecords: (courseId) => set((state) => ({
+      clearGenerationRecord: (courseId) => set((state) => ({
         courseSelections: {
           ...state.courseSelections,
           [courseId]: {
             ...state.courseSelections[courseId],
             selectedAssignments: state.courseSelections[courseId]?.selectedAssignments || [],
             assignmentData: state.courseSelections[courseId]?.assignmentData || {},
-            generationRecords: []
+            generationRecord: undefined
           }
         }
       })),
@@ -358,7 +365,7 @@ export const useCourseworkGeneratorStore = create<CourseworkGeneratorState>()(
         const updatedSelections = Object.entries(state.courseSelections).reduce((acc, [courseId, courseData]) => {
           acc[courseId] = {
             ...courseData,
-            generationRecords: []
+            generationRecord: undefined
           };
           return acc;
         }, {} as Record<string, CourseAssignmentSelection>);
@@ -444,10 +451,10 @@ export const useCourseworkGeneratorStore = create<CourseworkGeneratorState>()(
       setGenerationError: (courseId: string, errorMessage?: string) => {
         console.log(`[CourseworkStore] ❌ Generation error for course: ${courseId}`, errorMessage ? `Error: ${errorMessage}` : '');
 
-        // Update the latest generation record with error status
-        const latestRecord = get().getLatestGenerationRecord(courseId);
-        if (latestRecord) {
-          get().updateGenerationRecord(courseId, latestRecord.id, {
+        // Update the generation record with error status
+        const currentRecord = get().getGenerationRecord(courseId);
+        if (currentRecord) {
+          get().updateGenerationRecord(courseId, {
             status: 'failed',
             error: errorMessage || 'Unknown generation error occurred'
           });
@@ -469,10 +476,10 @@ export const useCourseworkGeneratorStore = create<CourseworkGeneratorState>()(
       abortGeneration: (courseId: string) => {
         console.log(`[CourseworkStore] 🛑 Aborting generation for course: ${courseId}`);
 
-        // Update the latest generation record with aborted status
-        const latestRecord = get().getLatestGenerationRecord(courseId);
-        if (latestRecord) {
-          get().updateGenerationRecord(courseId, latestRecord.id, {
+        // Update the generation record with aborted status
+        const currentRecord = get().getGenerationRecord(courseId);
+        if (currentRecord) {
+          get().updateGenerationRecord(courseId, {
             status: 'aborted'
           });
         }

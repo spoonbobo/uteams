@@ -208,13 +208,6 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
         backgroundColor: 'inherit',
       }}
     >
-      {/* Header */}
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 500 }}>
-          {courseCode} {intl.formatMessage({ id: 'courseOverview.title' })} • {sessionContext.sessionName}
-        </Typography>
-      </Box>
-
       {/* Horizontal Tabs Panel */}
       <HTabsPanel
         sections={sections}

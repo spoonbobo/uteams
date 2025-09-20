@@ -10,24 +10,13 @@ import {
   useTheme,
   Tooltip,
   Button,
-  Chip,
-  LinearProgress,
-  Collapse,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
   CircularProgress,
 } from '@mui/material';
-import { Send as SendIcon, Close as CloseIcon, Stop as StopIcon } from '@mui/icons-material';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { Send as SendIcon, Close as CloseIcon, Stop as StopIcon, Translate as TranslateIcon } from '@mui/icons-material';
 import { useIntl } from 'react-intl';
 import { useChatStore } from '../stores/useChatStore';
 import { useOcrStore } from '../stores/useOcrStore';
+import { useAppStore } from '../stores/useAppStore';
 
 interface ChatWidgetProps {
   sessionId: string;
@@ -409,12 +398,49 @@ const MessageItem = React.memo<{
   theme: any;
   isStreaming?: boolean;
 }>(({ message, sessionId, deleteMessage, theme, isStreaming = false }) => {
+  const { locale } = useAppStore();
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedText, setTranslatedText] = useState<string | null>(null);
+  const [showTranslation, setShowTranslation] = useState(false);
+
   const createdTime = useMemo(() => new Date(message.createdAt).toLocaleString(), [message.createdAt]);
   const isUser = message.sender === 'user';
 
   const handleDelete = useCallback(() => {
     deleteMessage(sessionId, message.id);
   }, [deleteMessage, sessionId, message.id]);
+
+  const handleTranslate = useCallback(async () => {
+    if (isTranslating || !message.text.trim()) return;
+
+    setIsTranslating(true);
+    try {
+      // Determine target language based on locale
+      const targetLanguage = locale === 'zh-TW' ? 'Traditional Chinese' : 'English';
+
+      const result = await window.electron.ipcRenderer.invoke('translate:text', {
+        text: message.text,
+        targetLanguage: targetLanguage
+      });
+
+      if (result.success && result.result) {
+        setTranslatedText(result.result);
+        setShowTranslation(true);
+      } else {
+        console.error('Translation failed:', result.error);
+        // You could add a toast notification here
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      // You could add a toast notification here
+    } finally {
+      setIsTranslating(false);
+    }
+  }, [isTranslating, message.text, locale]);
+
+  const toggleTranslation = useCallback(() => {
+    setShowTranslation(!showTranslation);
+  }, [showTranslation]);
 
   return (
     <Tooltip title={createdTime} arrow placement="top">
@@ -438,49 +464,101 @@ const MessageItem = React.memo<{
           ml: isUser ? 'auto' : 0,
           cursor: 'default',
           position: 'relative',
-          '&:hover .chat-delete': { opacity: 1, visibility: 'visible' },
+          '&:hover .chat-actions': { opacity: 1, visibility: 'visible' },
         }}
       >
-        <IconButton
-          className="chat-delete"
-          size="small"
-          onClick={handleDelete}
+        <Box
+          className="chat-actions"
           sx={{
             position: 'absolute',
             top: -8,
             right: -8,
-            width: 20,
-            height: 20,
-            color: theme.palette.text.disabled,
-            '&:hover': { color: theme.palette.error.main },
-            backgroundColor: 'transparent',
+            display: 'flex',
+            gap: 0.5,
             opacity: 0,
             visibility: 'hidden',
             transition: 'opacity 0.15s ease',
           }}
         >
-          <CloseIcon sx={{ fontSize: '0.9rem' }} />
-        </IconButton>
-        <Typography
-          variant="body2"
-          sx={{
-            mb: 0,
-            fontSize: '0.75rem',
-            // Add subtle animation for streaming messages
-            ...(isStreaming && {
-              '&::after': {
-                content: '"▌"',
-                animation: 'blink 1s infinite',
-                '@keyframes blink': {
-                  '0%, 50%': { opacity: 1 },
-                  '51%, 100%': { opacity: 0 },
-                },
+          <IconButton
+            size="small"
+            onClick={translatedText ? toggleTranslation : handleTranslate}
+            disabled={isTranslating}
+            sx={{
+              width: 20,
+              height: 20,
+              color: showTranslation
+                ? theme.palette.primary.main
+                : theme.palette.text.disabled,
+              '&:hover': {
+                color: theme.palette.primary.main,
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
               },
-            }),
-          }}
-        >
-          {message.text}
-        </Typography>
+              backgroundColor: 'transparent',
+            }}
+          >
+            {isTranslating ? (
+              <CircularProgress size={12} thickness={6} />
+            ) : (
+              <TranslateIcon sx={{ fontSize: '0.9rem' }} />
+            )}
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={handleDelete}
+            sx={{
+              width: 20,
+              height: 20,
+              color: theme.palette.text.disabled,
+              '&:hover': {
+                color: theme.palette.error.main,
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              },
+              backgroundColor: 'transparent',
+            }}
+          >
+            <CloseIcon sx={{ fontSize: '0.9rem' }} />
+          </IconButton>
+        </Box>
+        <Box>
+          <Typography
+            variant="body2"
+            sx={{
+              mb: 0,
+              fontSize: '0.75rem',
+              // Add subtle animation for streaming messages
+              ...(isStreaming && {
+                '&::after': {
+                  content: '"▌"',
+                  animation: 'blink 1s infinite',
+                  '@keyframes blink': {
+                    '0%, 50%': { opacity: 1 },
+                    '51%, 100%': { opacity: 0 },
+                  },
+                },
+              }),
+            }}
+          >
+            {showTranslation && translatedText ? translatedText : message.text}
+          </Typography>
+
+          {/* Show original text when translation is displayed */}
+          {showTranslation && translatedText && (
+            <Typography
+              variant="body2"
+              sx={{
+                mt: 1,
+                fontSize: '0.65rem',
+                opacity: 0.7,
+                fontStyle: 'italic',
+                borderTop: `1px solid ${theme.palette.divider}`,
+                pt: 0.5,
+              }}
+            >
+              Original: {message.text}
+            </Typography>
+          )}
+        </Box>
       </Box>
     </Tooltip>
   );
