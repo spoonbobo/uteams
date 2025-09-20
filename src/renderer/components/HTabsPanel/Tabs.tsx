@@ -19,10 +19,10 @@ export interface TabSection {
 
 interface HTabsPanelProps {
   sections: TabSection[];
-  selectedTab?: number;
-  onTabChange?: (index: number) => void;
-  children?: ReactNode;
-  sx?: SxProps<Theme>;
+  selectedTab?: number; // eslint-disable-line react/require-default-props
+  onTabChange?: (index: number) => void; // eslint-disable-line react/require-default-props
+  children?: ReactNode; // eslint-disable-line react/require-default-props
+  sx?: SxProps<Theme>; // eslint-disable-line react/require-default-props
 }
 
 export function HTabsPanel({
@@ -343,10 +343,3 @@ export function HTabsPanel({
     </Box>
   );
 }
-
-HTabsPanel.defaultProps = {
-  selectedTab: undefined,
-  onTabChange: undefined,
-  children: undefined,
-  sx: undefined,
-};

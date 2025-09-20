@@ -50,8 +50,8 @@ export interface PanelControlConfig {
 
 interface HTabPanelProps {
   title: string;
-  showControls?: boolean;
-  controlsConfig?: PanelControlConfig;
+  showControls?: boolean; // eslint-disable-line react/require-default-props
+  controlsConfig?: PanelControlConfig; // eslint-disable-line react/require-default-props
   children: ReactNode;
 }
 
@@ -209,8 +209,3 @@ export function HTabPanel({
     </Box>
   );
 }
-
-HTabPanel.defaultProps = {
-  showControls: true,
-  controlsConfig: undefined,
-};
