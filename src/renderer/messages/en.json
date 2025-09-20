@@ -846,7 +846,19 @@
     "generateCoursework": "Generate Coursework",
     "generating": "Generating...",
     "proceedToGenerate": "Proceed to Generate",
-    "pdfFormatNotice": "Please note: If generating PDF coursework, we only provide new coursework through DOCX format."
+    "pdfFormatNotice": "Please note: If generating PDF coursework, we only provide new coursework through DOCX format.",
+    "upload": {
+      "title": "Upload Custom Document",
+      "uploadPdf": "Upload PDF Document",
+      "addPdfFile": "Drag and drop a PDF file here, or click to browse",
+      "choosePdfFile": "Choose PDF File",
+      "uploading": "Uploading...",
+      "pdfDescription": "Upload a PDF document to generate coursework questions based on its content",
+      "pdfOnly": "Please select a PDF file only",
+      "failed": "Failed to upload file",
+      "remove": "Remove",
+      "ready": "Ready for generation"
+    }
   },
   "dashboard": {
     "title": "Dashboard",

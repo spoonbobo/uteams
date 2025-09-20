@@ -841,7 +841,19 @@
     "generateCoursework": "產生課業",
     "generating": "產生中...",
     "proceedToGenerate": "進入產生",
-    "pdfFormatNotice": "請注意：如果產生 PDF 課業，我們只提供 DOCX 格式的新課業。"
+    "pdfFormatNotice": "請注意：如果產生 PDF 課業，我們只提供 DOCX 格式的新課業。",
+    "upload": {
+      "title": "上傳自訂文件",
+      "uploadPdf": "上傳 PDF 文件",
+      "addPdfFile": "拖放 PDF 文件到此處，或點擊瀏覽",
+      "choosePdfFile": "選擇 PDF 文件",
+      "uploading": "上傳中...",
+      "pdfDescription": "上傳 PDF 文件以根據其內容產生課業問題",
+      "pdfOnly": "請僅選擇 PDF 文件",
+      "failed": "文件上傳失敗",
+      "remove": "移除",
+      "ready": "準備產生"
+    }
   },
   "dashboard": {
     "title": "儀表板",

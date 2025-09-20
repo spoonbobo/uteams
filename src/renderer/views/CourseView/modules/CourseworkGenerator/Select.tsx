@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Typography,
   Box,
@@ -13,7 +13,11 @@ import {
   FormLabel,
   CircularProgress,
   IconButton,
-  Tooltip
+  Tooltip,
+  Card,
+  CardContent,
+  Alert,
+  Link
 } from '@mui/material';
 import { useIntl } from 'react-intl';
 import { HTabPanel } from '@/components/HTabsPanel';
@@ -24,10 +28,12 @@ import SchoolIcon from '@mui/icons-material/School';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import AddIcon from '@mui/icons-material/Add';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import DescriptionIcon from '@mui/icons-material/Description';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import InfoIcon from '@mui/icons-material/Info';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DeleteIcon from '@mui/icons-material/Delete';
+import DescriptionIcon from '@mui/icons-material/Description';
 
 interface SelectProps {
   sessionContext: CourseSessionContext;
@@ -46,6 +52,12 @@ function Select({
   const [assignmentAttachments, setAssignmentAttachments] = useState<Record<string, any[]>>({});
   const [loadingAttachments, setLoadingAttachments] = useState<Record<string, boolean>>({});
 
+  // PDF upload states
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const sessionId = sessionContext.sessionId;
   const courseContent = getCourseContent(sessionId);
 
@@ -53,10 +65,17 @@ function Select({
   const {
     getSelectedAssignments,
     toggleAssignment,
+    setAssignmentPdf,
+    clearCourseData,
   } = useCourseworkGeneratorStore();
 
   // Get current course selections from store
   const selectedCoursework = getSelectedAssignments(sessionId);
+
+  // For upload mode, treat uploaded file as a selected assignment
+  const effectiveSelectedCoursework = generationType === 'upload' && uploadedFile
+    ? ['uploaded-document']
+    : selectedCoursework;
 
   // Handle assignment toggle
   const onCourseworkToggle = (assignmentId: string) => {
@@ -64,7 +83,17 @@ function Select({
   };
 
   const handleGenerationTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setGenerationType(event.target.value);
+    const newType = event.target.value;
+    setGenerationType(newType);
+
+    // Clear uploaded file when switching away from upload mode
+    if (newType !== 'upload') {
+      setUploadedFile(null);
+      setUploadError(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   // Check if a file is a PDF
@@ -111,6 +140,73 @@ function Select({
     }
   };
 
+
+  // PDF upload handlers
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!isPdfFile(file.name, file.type)) {
+      setUploadError(intl.formatMessage({ id: 'courseworkGenerator.upload.pdfOnly' }));
+      return;
+    }
+
+    // Clear any previous errors
+    setUploadError(null);
+    setIsUploading(true);
+
+    try {
+      // Save the file temporarily using fileio
+      const buffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(buffer);
+      const numberArray = Array.from(uint8Array);
+
+      const result = await window.electron.ipcRenderer.invoke('fileio:save-temp-file', {
+        filename: `uploaded_${Date.now()}_${file.name}`,
+        data: numberArray
+      });
+
+      if (result.success) {
+        setUploadedFile(file);
+
+        // Store the uploaded file in the coursework generator store as a special assignment
+        const uploadedAssignmentId = 'uploaded-document';
+        setAssignmentPdf(sessionId, uploadedAssignmentId, file.name, result.filePath);
+
+        console.log('[CourseworkGenerator] PDF uploaded successfully:', result.filePath);
+      } else {
+        setUploadError(result.error || intl.formatMessage({ id: 'courseworkGenerator.upload.failed' }));
+      }
+    } catch (error) {
+      console.error('[CourseworkGenerator] Error uploading PDF:', error);
+      setUploadError(intl.formatMessage({ id: 'courseworkGenerator.upload.failed' }));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleClearUpload = () => {
+    setUploadedFile(null);
+    setUploadError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    // Clear the uploaded document from the store
+    // Note: We don't have a direct method to remove a single file, so we could implement one
+    // For now, we'll rely on the fact that the generation logic will check for the uploaded file
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   // Fetch attachments when assignments are selected
   useEffect(() => {
@@ -269,6 +365,115 @@ function Select({
             </FormControl>
           </Box>
 
+          {/* PDF Upload Section - Only show when upload is selected */}
+          {generationType === 'upload' && (
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
+                {intl.formatMessage({ id: 'courseworkGenerator.upload.title' })}
+              </Typography>
+
+              {!uploadedFile ? (
+                <Card
+                  sx={{
+                    border: '2px dashed',
+                    borderColor: 'divider',
+                    backgroundColor: 'background.default',
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      accept=".pdf,application/pdf"
+                      style={{ display: 'none' }}
+                    />
+
+                    <CloudUploadIcon
+                      sx={{
+                        fontSize: 40,
+                        color: 'text.secondary',
+                        mb: 1
+                      }}
+                    />
+
+                    <Typography variant="subtitle2" gutterBottom>
+                      {intl.formatMessage({ id: 'courseworkGenerator.upload.uploadPdf' })}
+                    </Typography>
+
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {intl.formatMessage({ id: 'courseworkGenerator.upload.addPdfFile' })}
+                    </Typography>
+
+                    <Button
+                      variant="outlined"
+                      startIcon={<CloudUploadIcon />}
+                      onClick={handleUploadClick}
+                      disabled={isUploading}
+                      size="small"
+                    >
+                      {isUploading
+                        ? intl.formatMessage({ id: 'courseworkGenerator.upload.uploading' })
+                        : intl.formatMessage({ id: 'courseworkGenerator.upload.choosePdfFile' })
+                      }
+                    </Button>
+
+                    {isUploading && (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                        <CircularProgress size={20} />
+                      </Box>
+                    )}
+
+                    <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
+                      {intl.formatMessage({ id: 'courseworkGenerator.upload.pdfDescription' })}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <PictureAsPdfIcon color="error" />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                          {uploadedFile.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatFileSize(uploadedFile.size)}
+                        </Typography>
+                      </Box>
+                      <Button
+                        size="small"
+                        startIcon={<DeleteIcon />}
+                        onClick={handleClearUpload}
+                        color="error"
+                        disabled={isUploading}
+                      >
+                        {intl.formatMessage({ id: 'courseworkGenerator.upload.remove' })}
+                      </Button>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Chip
+                        size="small"
+                        icon={<PictureAsPdfIcon />}
+                        label={intl.formatMessage({ id: 'courseworkGenerator.upload.ready' })}
+                        color="success"
+                        variant="outlined"
+                      />
+                    </Box>
+                  </CardContent>
+                </Card>
+              )}
+
+              {uploadError && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {uploadError}
+                </Alert>
+              )}
+            </Box>
+          )}
+
           {/* Available Assignments - Only show when current assignments is selected */}
           {generationType === 'current' && (
             <Box sx={{ mb: 4 }}>
@@ -416,8 +621,10 @@ function Select({
             variant="contained"
             disabled={
               (generationType === 'current' && selectedCoursework.length === 0) ||
+              (generationType === 'upload' && !uploadedFile) ||
               generationType === 'new' ||
-              isGenerating
+              isGenerating ||
+              isUploading
             }
             onClick={onProceedToGenerate}
             size="large"
