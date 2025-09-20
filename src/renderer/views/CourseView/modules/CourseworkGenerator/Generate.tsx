@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Box, Button, Paper, Alert } from '@mui/material';
+import { Typography, Box, Button, Paper, Alert, CircularProgress, Tooltip } from '@mui/material';
 import { useIntl } from 'react-intl';
 import { HTabPanel } from '@/components/HTabsPanel';
 import type { CourseSessionContext } from '@/stores/useContextStore';
@@ -10,6 +10,9 @@ import { PlanWidget } from '@/components/PlanWidget';
 import { generateQuestionVariantsFromCurrent } from '../../prompts/courseworkGeneratePrompt';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import StopIcon from '@mui/icons-material/Stop';
+import HighlightIcon from '@mui/icons-material/Highlight';
+import InfoIcon from '@mui/icons-material/Info';
+import DownloadIcon from '@mui/icons-material/Download';
 
 interface GenerateProps {
   sessionContext: CourseSessionContext;
@@ -96,11 +99,18 @@ function Generate({
 }: GenerateProps) {
   const intl = useIntl();
   const { getCourseContent } = useMoodleStore();
-  const [generationInProgress, setGenerationInProgress] = useState(false);
-  const [generationError, setGenerationError] = useState<string | null>(null);
-  const [rawResponse, setRawResponse] = useState<string>('');
+  const [generationError, setLocalGenerationError] = useState<string | null>(null);
+  const [resultSummary, setResultSummary] = useState<string>('');
   const [streamBuffer, setStreamBuffer] = useState<string>('');
   const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
+
+  // Highlight-related state
+  const [highlightLoading, setHighlightLoading] = useState(false);
+  const [currentPdfData, setCurrentPdfData] = useState<any>(null);
+
+  // Download-related state
+  const [downloadLoading, setDownloadLoading] = useState(false);
+  const [highlightedPdfPath, setHighlightedPdfPath] = useState<string | null>(null);
 
   const sessionId = `coursework-generation-${sessionContext.sessionId}`;
   const courseContent = getCourseContent(sessionContext.sessionId);
@@ -111,8 +121,21 @@ function Generate({
     saveGenerationRecord,
     updateGenerationRecord,
     getLatestGenerationRecord,
-    clearGenerationRecords
+    clearGenerationRecords,
+    selectedPdfPath,
+    setSelectedPdf,
+    // Generation progress methods
+    startGeneration,
+    finishGeneration,
+    setGenerationError: setStoreGenerationError,
+    abortGeneration,
+    isGenerationInProgress,
+    activeGenerationCourse
   } = useCourseworkGeneratorStore();
+
+  // Get generation progress from store instead of local state
+  const generationInProgress = isGenerationInProgress(sessionContext.sessionId);
+  const isActiveGeneration = activeGenerationCourse === sessionContext.sessionId;
 
   // Get chat store functions for agent communication
   const {
@@ -132,6 +155,201 @@ function Generate({
   // Check for existing generation record
   const existingRecord = getLatestGenerationRecord(sessionContext.sessionId);
 
+  // Function to parse PDF data for highlighting
+  const parsePdfForHighlighting = async (filePath: string) => {
+    try {
+      const parseResult = await window.electron.ipcRenderer.invoke('pdf:parse-to-json', {
+        filePath,
+        includeText: true,
+        includeMetadata: true,
+        includeStructure: false
+      });
+
+      if (parseResult.success) {
+        setCurrentPdfData(parseResult.data);
+        console.log('✅ PDF parsed for highlighting:', parseResult.data);
+      } else {
+        console.warn('Could not parse PDF for highlighting:', parseResult.error);
+      }
+    } catch (parseError) {
+      console.warn('Could not parse PDF for highlighting:', parseError);
+    }
+  };
+
+  // Handle real-time highlighting of current PDF
+  const handleHighlightCurrentPdf = async () => {
+    if (!selectedPdfPath) {
+      alert('No PDF currently loaded for highlighting');
+      return;
+    }
+
+    setHighlightLoading(true);
+
+    try {
+      // Always ensure we have fresh PDF data
+      let pdfData = currentPdfData;
+
+      if (!pdfData) {
+        console.log('🔍 PDF data not available, attempting to parse...');
+
+        try {
+          const parseResult = await window.electron.ipcRenderer.invoke('pdf:parse-to-json', {
+            filePath: selectedPdfPath,
+            includeText: true,
+            includeMetadata: true,
+            includeStructure: false
+          });
+
+          if (parseResult.success) {
+            pdfData = parseResult.data;
+            setCurrentPdfData(pdfData);
+            console.log('✅ PDF parsed for highlighting:', pdfData);
+          } else {
+            throw new Error(parseResult.error || 'Failed to parse PDF');
+          }
+        } catch (parseError: any) {
+          console.error('❌ Could not parse PDF for highlighting:', parseError);
+          alert(`Could not parse PDF data for highlighting: ${parseError.message || 'Unknown error'}`);
+          return;
+        }
+      }
+
+      if (!pdfData) {
+        alert('Could not parse PDF data for highlighting. The file may no longer exist or be corrupted.');
+        return;
+      }
+
+      console.log('🎯 Applying intelligent highlights to current PDF...');
+
+      // Generate AI-style patches for key content
+      const aiPatches: any[] = [];
+
+      // Find mathematical and important content to highlight
+      pdfData.elements?.forEach((element: any, index: number) => {
+        const shouldHighlight =
+          element.content.type === 'math_symbol' ||
+          element.content.type === 'formula' ||
+          element.content.type === 'greek_letter' ||
+          element.content.type === 'theorem' ||
+          element.content.type === 'solution' ||
+          (element.content.type === 'number' && element.content.text.includes('.')) ||
+          element.content.type === 'variable';
+
+        if (shouldHighlight && aiPatches.length < 8) { // Limit to 8 highlights
+          aiPatches.push({
+            elementId: element.elementId,
+            action: 'annotate',
+            data: {
+              comment: getSmartComment(element),
+              highlightColor: getHighlightColor(element.content.type),
+              importance: element.content.type.includes('formula') ? 'high' : 'medium'
+            }
+          });
+        }
+      });
+
+      if (aiPatches.length === 0) {
+        alert('No suitable content found for highlighting in this PDF');
+        return;
+      }
+
+      // Apply the highlights using our AI patches handler
+      const highlightResult = await window.electron.ipcRenderer.invoke('pdf:apply-ai-patches', {
+        filePath: selectedPdfPath,
+        outputPath: selectedPdfPath.replace('.pdf', '_highlighted.pdf'),
+        pdfStructure: pdfData,
+        patches: aiPatches
+      });
+
+      if (!highlightResult.success) {
+        throw new Error(highlightResult.error || 'Failed to apply highlights');
+      }
+
+      console.log('✅ Highlights applied successfully:', highlightResult.data);
+
+      // Update the preview to show the highlighted version
+      setSelectedPdf(highlightResult.data.outputPath, `Highlighted - ${pdfData.document.metadata?.title || 'PDF'}`);
+
+      // Save the highlighted PDF path for download
+      setHighlightedPdfPath(highlightResult.data.outputPath);
+
+      alert(`✅ Applied ${highlightResult.data.patchesApplied} highlights to PDF!\n\nHighlighted version now showing in preview.`);
+
+    } catch (error: any) {
+      console.error('❌ Error highlighting PDF:', error);
+      alert(`Error applying highlights: ${error.message}`);
+    } finally {
+      setHighlightLoading(false);
+    }
+  };
+
+  // Helper function to get smart comments based on element type
+  const getSmartComment = (element: any): string => {
+    switch (element.content.type) {
+      case 'math_symbol': return 'Mathematical symbol';
+      case 'formula': return 'Key formula';
+      case 'greek_letter': return 'Greek letter';
+      case 'theorem': return 'Important theorem';
+      case 'solution': return 'Solution method';
+      case 'variable': return 'Variable';
+      case 'number': return 'Numerical value';
+      default: return 'Important content';
+    }
+  };
+
+  // Helper function to get highlight color based on content type
+  const getHighlightColor = (type: string): 'yellow' | 'green' | 'blue' | 'red' => {
+    if (type.includes('formula') || type.includes('theorem')) return 'red';
+    if (type.includes('math') || type.includes('greek')) return 'yellow';
+    if (type.includes('solution')) return 'green';
+    return 'blue';
+  };
+
+  // Handle downloading the current PDF (highlighted or original)
+  const handleDownloadCurrentPdf = async () => {
+    // Use highlighted PDF if available, otherwise use the currently selected PDF
+    const pdfToDownload = highlightedPdfPath || selectedPdfPath;
+
+    if (!pdfToDownload) {
+      alert('No PDF available for download. Please select a PDF first.');
+      return;
+    }
+
+    setDownloadLoading(true);
+
+    try {
+      console.log('📥 Starting PDF download:', pdfToDownload);
+
+      // Generate a suggested filename based on the PDF being downloaded
+      const originalFileName = selectedPdfPath ? selectedPdfPath.split(/[/\\]/).pop()?.replace('.pdf', '') || 'document' : 'document';
+      const isHighlighted = pdfToDownload === highlightedPdfPath;
+      const suggestedFileName = isHighlighted ? `${originalFileName}_highlighted.pdf` : `${originalFileName}.pdf`;
+
+      // Call the download IPC handler
+      const downloadResult = await window.electron.ipcRenderer.invoke('pdf:download', {
+        filePath: pdfToDownload,
+        suggestedFileName
+      });
+
+      if (!downloadResult.success) {
+        if (downloadResult.error === 'Download canceled by user') {
+          console.log('📥 Download canceled by user');
+          return; // Don't show error for user cancellation
+        }
+        throw new Error(downloadResult.error || 'Failed to download PDF');
+      }
+
+      console.log('✅ PDF downloaded successfully:', downloadResult.data);
+      alert(`✅ PDF downloaded successfully!\n\nSaved to: ${downloadResult.data.downloadPath}`);
+
+    } catch (error: any) {
+      console.error('❌ Error downloading PDF:', error);
+      alert(`Error downloading PDF: ${error.message}`);
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
+
   // Handle clearing generation results
   const handleClearResults = async () => {
     try {
@@ -150,11 +368,11 @@ function Generate({
     clearTodos(sessionId);
 
     // Clear local state
-    setGenerationInProgress(false);
-    setGenerationError(null);
-    setRawResponse('');
+    setLocalGenerationError(null);
+    setResultSummary('');
     setStreamBuffer('');
     setCurrentGenerationId(null);
+    setHighlightedPdfPath(null); // Clear highlighted PDF path
 
     // Clear stored records
     clearGenerationRecords(sessionContext.sessionId);
@@ -163,13 +381,14 @@ function Generate({
   // Handle coursework generation
   const handleGenerateCoursework = async () => {
     if (selectedCoursework.length === 0) {
-      setGenerationError(intl.formatMessage({ id: 'courseworkGenerator.generate.noAssignmentsSelected' }, { defaultMessage: 'No assignments selected' }));
+      setLocalGenerationError(intl.formatMessage({ id: 'courseworkGenerator.generate.noAssignmentsSelected' }, { defaultMessage: 'No assignments selected' }));
       return;
     }
 
-    setGenerationInProgress(true);
-    setGenerationError(null);
-    setRawResponse('');
+    // Start generation tracking in store
+    startGeneration(sessionContext.sessionId);
+    setLocalGenerationError(null);
+    setResultSummary('');
     setStreamBuffer('');
 
     try {
@@ -199,7 +418,7 @@ function Generate({
         selectedAssignments: selectedCoursework,
         examType,
         examInstructions,
-        rawResponse: '',
+        resultSummary: '',
         status: 'completed' // Will be updated based on result
       });
       setCurrentGenerationId(recordId);
@@ -280,6 +499,32 @@ ${assignment.intro || 'No content available'}
         prompt: prompt.substring(0, 200) + '...'
       });
 
+      // Save prompt to AppData for debugging
+      try {
+        const debugResult = await window.electron.ipcRenderer.invoke('fileio:save-prompt-debug', {
+          sessionId,
+          prompt,
+          metadata: {
+            courseId: sessionContext.sessionId,
+            courseName: sessionContext.sessionName,
+            selectedCoursework,
+            examType,
+            examInstructions,
+            pageContentsCount: pageContents.length,
+            promptLength: prompt.length,
+            parsedContentCount: parsedContent.length
+          }
+        });
+
+        if (debugResult.success) {
+          console.log('💾 Prompt saved for debugging:', debugResult.filePath);
+        } else {
+          console.warn('⚠️ Failed to save prompt for debugging:', debugResult.error);
+        }
+      } catch (debugError) {
+        console.warn('⚠️ Error saving prompt for debugging:', debugError);
+      }
+
       // Send to agent using the correct IPC method
       await window.electron.ipcRenderer.invoke('chat:agent:run', {
         sessionId,
@@ -291,8 +536,9 @@ ${assignment.intro || 'No content available'}
 
     } catch (error: any) {
       console.error('❌ Error starting coursework generation:', error);
-      setGenerationError(error.message || intl.formatMessage({ id: 'courseworkGenerator.generate.error' }, { defaultMessage: 'Failed to start coursework generation' }));
-      setGenerationInProgress(false);
+      const errorMessage = error.message || intl.formatMessage({ id: 'courseworkGenerator.generate.error' }, { defaultMessage: 'Failed to start coursework generation' });
+      setLocalGenerationError(errorMessage);
+      setStoreGenerationError(sessionContext.sessionId, errorMessage);
       // Reset the parent isGenerating state on error
       if (onGenerateExam) {
         setTimeout(() => onGenerateExam(), 100);
@@ -303,23 +549,13 @@ ${assignment.intro || 'No content available'}
   // Handle abort generation
   const handleAbortGeneration = async () => {
     try {
-      await window.electron.ipcRenderer.invoke('chat:agent:abort', {
-        sessionId,
-        reason: 'User stopped generation'
-      });
+      // Use store's abort method which handles IPC and state cleanup
+      abortGeneration(sessionContext.sessionId);
 
       clearPlan(sessionId);
       clearTodos(sessionId);
-      setGenerationInProgress(false);
-      setRawResponse('');
+      setResultSummary('');
       setStreamBuffer('');
-
-      // Update the generation record with aborted status
-      if (currentGenerationId) {
-        updateGenerationRecord(sessionContext.sessionId, currentGenerationId, {
-          status: 'aborted'
-        });
-      }
 
       // Reset the parent isGenerating state on abort
       if (onGenerateExam) {
@@ -330,14 +566,6 @@ ${assignment.intro || 'No content available'}
       // Clear plan and todos even if abort fails
       clearPlan(sessionId);
       clearTodos(sessionId);
-
-      // Update record even if abort fails
-      if (currentGenerationId) {
-        updateGenerationRecord(sessionContext.sessionId, currentGenerationId, {
-          status: 'aborted',
-          error: 'Failed to abort properly'
-        });
-      }
 
       // Reset the parent isGenerating state even if abort fails
       if (onGenerateExam) {
@@ -352,63 +580,48 @@ ${assignment.intro || 'No content available'}
     if (!ipc) return;
 
     const handleStreamToken = (event: any, data: any) => {
-      // Handle case where data might be undefined or have different structure
       const eventData = data || event;
-      console.log('[CourseworkGenerator] Token event received:', { eventSessionId: eventData?.sessionId, currentSessionId: sessionId, hasToken: !!eventData?.token });
       if (eventData?.sessionId === sessionId) {
-        setStreamBuffer(prev => {
-          const newBuffer = prev + (eventData.token || '');
-
-          // Try to extract final JSON response
-          const jsonMatch = newBuffer.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            setRawResponse(jsonMatch[0]);
-          }
-
-          return newBuffer;
-        });
+        setStreamBuffer(prev => prev + (eventData.token || ''));
       }
     };
 
     const handleStreamEnd = (event: any, data: any) => {
-      // Handle case where data might be undefined or have different structure
       const eventData = data || event;
       if (eventData?.sessionId === sessionId) {
-        setGenerationInProgress(false);
-        console.log('✅ Coursework generation completed');
+        // Finish generation tracking in store
+        finishGeneration(sessionContext.sessionId);
 
         // Extract the result if available
         if (eventData.resultSummary) {
-          setRawResponse(eventData.resultSummary);
+          setResultSummary(eventData.resultSummary);
 
           // Update the generation record with the result
           if (currentGenerationId) {
             updateGenerationRecord(sessionContext.sessionId, currentGenerationId, {
-              rawResponse: eventData.resultSummary,
+              resultSummary: eventData.resultSummary,
               status: 'completed'
             });
           }
         }
 
-        // Clear plan and todos when generation is complete (like in GradingResults)
+        // Clear plan and todos when generation is complete
         clearPlan(sessionId);
         clearTodos(sessionId);
 
         // Reset the parent isGenerating state
         if (onGenerateExam) {
-          // Call the parent's completion handler
           setTimeout(() => onGenerateExam(), 100);
         }
       }
     };
 
     const handleStreamError = (event: any, data: any) => {
-      // Handle case where data might be undefined or have different structure
       const eventData = data || event;
       if (eventData?.sessionId === sessionId) {
         const errorMessage = eventData.error || 'Generation failed';
-        setGenerationError(errorMessage);
-        setGenerationInProgress(false);
+        setLocalGenerationError(errorMessage);
+        setStoreGenerationError(sessionContext.sessionId, errorMessage);
 
         // Update the generation record with error status
         if (currentGenerationId) {
@@ -418,7 +631,7 @@ ${assignment.intro || 'No content available'}
           });
         }
 
-        // Clear plan and todos on error (like in GradingResults)
+        // Clear plan and todos on error
         clearPlan(sessionId);
         clearTodos(sessionId);
 
@@ -432,9 +645,7 @@ ${assignment.intro || 'No content available'}
     // Handle plan updates
     const handlePlan = (event: any, data: any) => {
       const eventData = data || event;
-      console.log('[CourseworkGenerator] Plan event received:', { eventSessionId: eventData?.sessionId, currentSessionId: sessionId });
       if (eventData?.sessionId === sessionId) {
-        console.log('[CourseworkGenerator] Plan received for session:', sessionId, eventData.plan);
         setPlan(sessionId, eventData.plan);
       }
     };
@@ -442,9 +653,7 @@ ${assignment.intro || 'No content available'}
     // Handle todos updates
     const handleTodos = (event: any, data: any) => {
       const eventData = data || event;
-      console.log('[CourseworkGenerator] Todos event received:', { eventSessionId: eventData?.sessionId, currentSessionId: sessionId });
       if (eventData?.sessionId === sessionId) {
-        console.log('[CourseworkGenerator] Todos received for session:', sessionId, eventData.todos);
         setTodos(sessionId, eventData.todos);
       }
     };
@@ -453,7 +662,6 @@ ${assignment.intro || 'No content available'}
     const handleTodoUpdate = (event: any, data: any) => {
       const eventData = data || event;
       if (eventData?.sessionId === sessionId) {
-        console.log('[CourseworkGenerator] Todo update for session:', sessionId, eventData.todoIndex);
         updateTodoByIndex(sessionId, eventData.todoIndex, eventData.completed);
       }
     };
@@ -487,30 +695,117 @@ ${assignment.intro || 'No content available'}
 
   // Load existing generation results when component mounts
   useEffect(() => {
-    if (existingRecord && existingRecord.rawResponse) {
-      setRawResponse(existingRecord.rawResponse);
+    if (existingRecord && existingRecord.resultSummary) {
+      setResultSummary(existingRecord.resultSummary);
       setCurrentGenerationId(existingRecord.id);
     }
   }, [existingRecord]);
 
-  // Trigger generation when the component receives the onGenerateExam call
+  // Auto-parse PDF data when selectedPdfPath changes
   useEffect(() => {
-    if (isGenerating && !generationInProgress) {
-      console.log('[CourseworkGenerator] Triggering generation:', {
-        isGenerating,
-        generationInProgress,
-        existingRecord: !!existingRecord,
-        sessionId
-      });
-      handleGenerateCoursework();
+    if (selectedPdfPath && !currentPdfData) {
+      console.log('🔄 Auto-parsing PDF data for:', selectedPdfPath);
+      parsePdfForHighlighting(selectedPdfPath);
     }
-  }, [isGenerating]);
+  }, [selectedPdfPath, currentPdfData]);
+
+  // Removed automatic generation trigger - user must manually click Generate button
 
   return (
-    <HTabPanel
-      title={intl.formatMessage({ id: 'courseworkGenerator.generate.title' })}
-    >
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+    <Box sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      minHeight: 0 // Important for flex children
+    }}>
+      {/* Header Section - Fixed */}
+      <Box sx={{ flexShrink: 0 }}>
+        {/* Title */}
+        <Typography variant="h5" sx={{ fontWeight: 500, mb: 2 }}>
+          {intl.formatMessage({ id: 'courseworkGenerator.generate.title' })}
+        </Typography>
+
+        {/* Action Buttons Row - Plainer UI */}
+        <Box sx={{
+          display: 'flex',
+          gap: 1.5,
+          mb: 3,
+          pb: 2,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
+          {/* Highlight PDF Button */}
+          <Button
+            variant="text"
+            size="small"
+            disabled={!selectedPdfPath || highlightLoading}
+            onClick={handleHighlightCurrentPdf}
+            startIcon={highlightLoading ? <CircularProgress size={16} /> : <HighlightIcon />}
+            sx={{ minWidth: 'auto', px: 2 }}
+          >
+            {highlightLoading ? 'Highlighting...' : 'Highlight'}
+          </Button>
+
+          {/* Download PDF Button */}
+          <Button
+            variant="text"
+            size="small"
+            disabled={!selectedPdfPath || downloadLoading}
+            onClick={handleDownloadCurrentPdf}
+            startIcon={downloadLoading ? <CircularProgress size={16} /> : <DownloadIcon />}
+            title={highlightedPdfPath ? 'Download highlighted PDF' : 'Download current PDF'}
+            sx={{ minWidth: 'auto', px: 2 }}
+          >
+            {downloadLoading ? 'Downloading...' : 'Download'}
+          </Button>
+
+          {/* Clear Results Button - Only show when there's an existing record */}
+          {existingRecord && !generationInProgress && (
+            <Button
+              variant="text"
+              size="small"
+              color="error"
+              onClick={handleClearResults}
+              sx={{ minWidth: 'auto', px: 2 }}
+            >
+              Clear Results
+            </Button>
+          )}
+
+          {/* Generate Button */}
+          <Button
+            variant="contained"
+            size="small"
+            disabled={
+              selectedCoursework.length === 0 ||
+              generationInProgress
+            }
+            onClick={handleGenerateCoursework}
+            startIcon={generationInProgress ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
+            sx={{ ml: 'auto', px: 3 }}
+          >
+            {generationInProgress ? 'Generating...' : 'Generate'}
+          </Button>
+
+          {/* Info Icon */}
+          <Tooltip
+            title={intl.formatMessage({ id: 'courseworkGenerator.pdfFormatNotice' })}
+            placement="top"
+            arrow
+          >
+            <InfoIcon
+              sx={{
+                color: 'info.main',
+                fontSize: 18,
+                cursor: 'help',
+                ml: 0.5
+              }}
+            />
+          </Tooltip>
+        </Box>
+
         {/* Generation Status */}
         {generationInProgress && (
           <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
@@ -534,79 +829,71 @@ ${assignment.intro || 'No content available'}
             {generationError}
           </Alert>
         )}
+      </Box>
 
-        {/* Plan Widget or Existing Results */}
-        <Box sx={{ flex: 1, minHeight: 400 }}>
-          {existingRecord && !generationInProgress ? (
-            /* Show existing generation result */
-            <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Content Section - Flexible */}
+      <Box sx={{
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        {existingRecord && !generationInProgress ? (
+          /* Show existing generation result */
+          <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+
+            <Paper variant="outlined" sx={{ flex: 1, p: 2, overflow: 'auto' }}>
               <Box sx={{ mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 500, mb: 2 }}>
-                  Previous Generation Result
+                <Typography variant="body2" color="text.secondary">
+                  Generated: {new Date(existingRecord.generatedAt).toLocaleString()}
                 </Typography>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  size="small"
-                  onClick={handleClearResults}
-                  sx={{ mb: 2 }}
-                >
-                  Clear Generation Record
-                </Button>
-              </Box>
-
-              <Paper variant="outlined" sx={{ flex: 1, p: 2, overflow: 'auto' }}>
-                <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Status: {existingRecord.status}
+                </Typography>
+                {existingRecord.examType && (
                   <Typography variant="body2" color="text.secondary">
-                    Generated: {new Date(existingRecord.generatedAt).toLocaleString()}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Status: {existingRecord.status}
-                  </Typography>
-                  {existingRecord.examType && (
-                    <Typography variant="body2" color="text.secondary">
-                      Type: {existingRecord.examType}
-                    </Typography>
-                  )}
-                </Box>
-
-                {existingRecord.error ? (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    {existingRecord.error}
-                  </Alert>
-                ) : (
-                  <Typography variant="body2" component="pre" sx={{
-                    fontFamily: 'monospace',
-                    fontSize: '0.75rem',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word'
-                  }}>
-                    {existingRecord.rawResponse || 'No response available'}
+                    Type: {existingRecord.examType}
                   </Typography>
                 )}
-              </Paper>
-            </Box>
-          ) : !plan && !generationInProgress ? (
-            /* Show default message when no plan and not generating */
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: 200,
-              color: 'text.secondary'
-            }}>
-              <Typography variant="h6">
-                {intl.formatMessage({ id: 'courseworkGenerator.generate.noplan' }, { defaultMessage: 'Generate to get new coursework' })}
-              </Typography>
-            </Box>
-          ) : (
-            /* Show PlanWidget during generation */
-            <PlanWidget sessionId={sessionId} />
-          )}
-        </Box>
+              </Box>
 
+              {existingRecord.error ? (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {existingRecord.error}
+                </Alert>
+              ) : (
+                <Typography variant="body2" component="pre" sx={{
+                  fontFamily: 'monospace',
+                  fontSize: '0.75rem',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word'
+                }}>
+                  {existingRecord.resultSummary}
+                </Typography>
+              )}
+            </Paper>
+          </Box>
+        ) : !plan && !generationInProgress ? (
+          /* Show default message when no plan and not generating */
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 200,
+            color: 'text.secondary'
+          }}>
+            <Typography variant="h6">
+              {intl.formatMessage({ id: 'courseworkGenerator.generate.noplan' }, { defaultMessage: 'Generate to get new coursework' })}
+            </Typography>
+          </Box>
+        ) : (
+          /* Show PlanWidget during generation */
+          <PlanWidget sessionId={sessionId} />
+        )}
       </Box>
-    </HTabPanel>
+
+    </Box>
   );
 }
 

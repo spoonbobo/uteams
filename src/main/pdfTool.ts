@@ -1041,5 +1041,60 @@ function setupPdfUtilityHandlers() {
       };
     }
   });
+
+  // Download PDF file to user's chosen location
+  ipcMain.handle('pdf:download', async (event, args: {
+    filePath: string;
+    suggestedFileName?: string;
+  }) => {
+    try {
+      if (!fs.existsSync(args.filePath)) {
+        return {
+          success: false,
+          error: 'PDF file not found'
+        };
+      }
+
+      // Import dialog dynamically to avoid issues
+      const { dialog } = await import('electron');
+
+      // Show save dialog
+      const result = await dialog.showSaveDialog({
+        title: 'Download PDF',
+        defaultPath: args.suggestedFileName || 'document.pdf',
+        filters: [
+          { name: 'PDF Files', extensions: ['pdf'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      });
+
+      if (result.canceled || !result.filePath) {
+        return {
+          success: false,
+          error: 'Download canceled by user'
+        };
+      }
+
+      // Copy the file to the chosen location
+      const sourceBuffer = fs.readFileSync(args.filePath);
+      fs.writeFileSync(result.filePath, sourceBuffer);
+
+      return {
+        success: true,
+        data: {
+          sourcePath: args.filePath,
+          downloadPath: result.filePath,
+          fileSize: sourceBuffer.length,
+          fileName: path.basename(result.filePath)
+        }
+      };
+    } catch (error: any) {
+      console.error('[PDF Tool] Error downloading PDF:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to download PDF'
+      };
+    }
+  });
 }
 

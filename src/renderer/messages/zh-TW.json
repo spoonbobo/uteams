@@ -808,7 +808,10 @@
       "current": "基於現有作業",
       "currentDescription": "根據此課程的現有作業和材料產生課業",
       "new": "創建新課業",
-      "newDescription": "產生全新的課業問題和材料"
+      "newDescription": "產生全新的課業問題和材料",
+      "upload": "上傳自訂文件",
+      "uploadDescription": "根據您上傳的文件產生課業",
+      "uploadWarning": "產生自訂作業可能不符合您的課程需求"
     },
     "comingSoon": "即將推出",
     "noDescription": "沒有可用的描述",
@@ -837,7 +840,7 @@
     },
     "generateCoursework": "產生課業",
     "generating": "產生中...",
-    "proceedToGenerate": "產生",
+    "proceedToGenerate": "進入產生",
     "pdfFormatNotice": "請注意：如果產生 PDF 課業，我們只提供 DOCX 格式的新課業。"
   },
   "dashboard": {

@@ -12,13 +12,9 @@ import {
   Tab,
   Paper,
   Chip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
 } from '@mui/material';
 import {
   Close as CloseIcon,
-  ExpandMore as ExpandMoreIcon,
   ContentCopy as CopyIcon,
 } from '@mui/icons-material';
 
@@ -49,33 +45,10 @@ function PDFJsonDialog({
     try {
       await navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2));
       // Could show a toast notification here
-      console.log('JSON copied to clipboard');
-    } catch (err) {
-      console.error('Failed to copy JSON:', err);
+    } catch {
+      // Handle clipboard error silently
     }
   };
-
-  const renderJsonSection = (data: any, title: string) => (
-    <Paper sx={{ p: 2, mb: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        {title}
-      </Typography>
-      <Box
-        component="pre"
-        sx={{
-          bgcolor: 'grey.100',
-          p: 2,
-          borderRadius: 1,
-          overflow: 'auto',
-          maxHeight: 300,
-          fontSize: '0.75rem',
-          fontFamily: 'monospace',
-        }}
-      >
-        {JSON.stringify(data, null, 2)}
-      </Box>
-    </Paper>
-  );
 
   return (
     <Dialog
@@ -107,7 +80,11 @@ function PDFJsonDialog({
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton onClick={handleCopyJson} size="small" disabled={!jsonData}>
+          <IconButton
+            onClick={handleCopyJson}
+            size="small"
+            disabled={!jsonData}
+          >
             <CopyIcon />
           </IconButton>
           <IconButton onClick={onClose} size="small">
@@ -138,7 +115,11 @@ function PDFJsonDialog({
 
         {jsonData && !loading && !error && (
           <Box sx={{ height: '100%' }}>
-            <Tabs value={selectedTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs
+              value={selectedTab}
+              onChange={handleTabChange}
+              sx={{ borderBottom: 1, borderColor: 'divider' }}
+            >
               <Tab label="Summary" />
               <Tab label="Elements" />
               <Tab label="Pages" />
@@ -153,8 +134,19 @@ function PDFJsonDialog({
                     Document Summary
                   </Typography>
 
-                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 2, mb: 3 }}>
-                    <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns:
+                        'repeat(auto-fit, minmax(160px, 1fr))',
+                      gap: 2,
+                      mb: 3,
+                    }}
+                  >
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 2, textAlign: 'center' }}
+                    >
                       <Typography variant="h4" color="primary">
                         {jsonData.summary.totalPages}
                       </Typography>
@@ -162,7 +154,10 @@ function PDFJsonDialog({
                         Pages
                       </Typography>
                     </Paper>
-                    <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 2, textAlign: 'center' }}
+                    >
                       <Typography variant="h4" color="primary">
                         {jsonData.summary.totalElements}
                       </Typography>
@@ -170,7 +165,10 @@ function PDFJsonDialog({
                         Elements
                       </Typography>
                     </Paper>
-                    <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 2, textAlign: 'center' }}
+                    >
                       <Typography variant="h4" color="primary">
                         {jsonData.summary.totalWordCount}
                       </Typography>
@@ -178,8 +176,18 @@ function PDFJsonDialog({
                         Words
                       </Typography>
                     </Paper>
-                    <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
-                      <Typography variant="h4" color={jsonData.summary.aiReadyFormat ? 'success.main' : 'warning.main'}>
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 2, textAlign: 'center' }}
+                    >
+                      <Typography
+                        variant="h4"
+                        color={
+                          jsonData.summary.aiReadyFormat
+                            ? 'success.main'
+                            : 'warning.main'
+                        }
+                      >
                         {jsonData.summary.aiReadyFormat ? '✓' : '✗'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -191,15 +199,19 @@ function PDFJsonDialog({
                   <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
                     Content Types
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                    {Object.entries(jsonData.summary.elementTypes || {}).map(([type, count]: [string, any]) => (
-                      <Chip
-                        key={type}
-                        label={`${type.replace('_', ' ')}: ${count}`}
-                        variant="outlined"
-                        sx={{ textTransform: 'capitalize' }}
-                      />
-                    ))}
+                  <Box
+                    sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}
+                  >
+                    {Object.entries(jsonData.summary.elementTypes || {}).map(
+                      ([type, count]: [string, any]) => (
+                        <Chip
+                          key={type}
+                          label={`${type.replace('_', ' ')}: ${count}`}
+                          variant="outlined"
+                          sx={{ textTransform: 'capitalize' }}
+                        />
+                      ),
+                    )}
                   </Box>
                 </Box>
               )}
@@ -211,14 +223,36 @@ function PDFJsonDialog({
                     Text Elements
                   </Typography>
 
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    {jsonData.elements.length} elements with unique IDs for AI processing
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 3 }}
+                  >
+                    {jsonData.elements.length} elements with unique IDs for AI
+                    processing
                   </Typography>
 
                   {jsonData.elements.slice(0, 15).map((element: any) => (
-                    <Paper variant="outlined" key={element.elementId} sx={{ mb: 2, p: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Typography variant="subtitle2" sx={{ fontFamily: 'monospace', color: 'primary.main' }}>
+                    <Paper
+                      variant="outlined"
+                      key={element.elementId}
+                      sx={{ mb: 2, p: 2 }}
+                    >
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          mb: 1,
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            fontFamily: 'monospace',
+                            color: 'primary.main',
+                          }}
+                        >
                           {element.elementId}
                         </Typography>
                         <Chip
@@ -226,16 +260,24 @@ function PDFJsonDialog({
                           label={element.content.type.replace('_', ' ')}
                           sx={{ textTransform: 'capitalize' }}
                         />
-                        <Chip size="small" label={`Page ${element.pageNumber}`} variant="outlined" />
+                        <Chip
+                          size="small"
+                          label={`Page ${element.pageNumber}`}
+                          variant="outlined"
+                        />
                       </Box>
 
-                      <Typography variant="body2" sx={{ mb: 1, fontStyle: 'italic' }}>
-                        "{element.content.text}"
+                      <Typography
+                        variant="body2"
+                        sx={{ mb: 1, fontStyle: 'italic' }}
+                      >
+                        &quot;{element.content.text}&quot;
                       </Typography>
 
                       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                         <Typography variant="caption" color="text.secondary">
-                          Position: ({element.position.x.toFixed(0)}, {element.position.y.toFixed(0)})
+                          Position: ({element.position.x.toFixed(0)},{' '}
+                          {element.position.y.toFixed(0)})
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           Font: {element.style.fontName}
@@ -251,7 +293,11 @@ function PDFJsonDialog({
                   ))}
 
                   {jsonData.elements.length > 15 && (
-                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 2 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ textAlign: 'center', mt: 2 }}
+                    >
                       Showing first 15 of {jsonData.elements.length} elements
                     </Typography>
                   )}
@@ -265,48 +311,63 @@ function PDFJsonDialog({
                     Page Content
                   </Typography>
 
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 3 }}
+                  >
                     Full page content for AI analysis and context understanding
                   </Typography>
 
-                  {Object.entries(jsonData.pages).map(([pageKey, pageData]: [string, any]) => (
-                    <Paper variant="outlined" key={pageKey} sx={{ mb: 2 }}>
-                      <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
-                        <Typography variant="h6">
-                          {pageKey.replace('page_', 'Page ')}
-                  </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                          <Chip size="small" label={`${pageData.elementCount} elements`} />
-                          <Chip size="small" label={`${pageData.dimensions?.width.toFixed(0)} x ${pageData.dimensions?.height.toFixed(0)}`} variant="outlined" />
-                          {pageData.error && <Chip size="small" label="Error" color="error" />}
-                        </Box>
-                      </Box>
-
-                      {pageData.fullText && (
-                        <Box sx={{ p: 2 }}>
-                          <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                            Page Content:
-                        </Typography>
-                        <Box
-                          sx={{
-                              bgcolor: 'background.default',
-                            p: 2,
-                            borderRadius: 1,
-                              maxHeight: 250,
-                            overflow: 'auto',
-                              whiteSpace: 'pre-wrap',
-                              fontSize: '0.875rem',
-                              lineHeight: 1.5,
-                              border: '1px solid',
-                              borderColor: 'divider'
-                            }}
-                          >
-                            {pageData.fullText}
+                  {Object.entries(jsonData.pages).map(
+                    ([pageKey, pageData]: [string, any]) => (
+                      <Paper variant="outlined" key={pageKey} sx={{ mb: 2 }}>
+                        <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
+                          <Typography variant="h6">
+                            {pageKey.replace('page_', 'Page ')}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                            <Chip
+                              size="small"
+                              label={`${pageData.elementCount} elements`}
+                            />
+                            <Chip
+                              size="small"
+                              label={`${pageData.dimensions?.width.toFixed(0)} x ${pageData.dimensions?.height.toFixed(0)}`}
+                              variant="outlined"
+                            />
+                            {pageData.error && (
+                              <Chip size="small" label="Error" color="error" />
+                            )}
                           </Box>
                         </Box>
-                      )}
-                    </Paper>
-                  ))}
+
+                        {pageData.fullText && (
+                          <Box sx={{ p: 2 }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                              Page Content:
+                            </Typography>
+                            <Box
+                              sx={{
+                                bgcolor: 'background.default',
+                                p: 2,
+                                borderRadius: 1,
+                                maxHeight: 250,
+                                overflow: 'auto',
+                                whiteSpace: 'pre-wrap',
+                                fontSize: '0.875rem',
+                                lineHeight: 1.5,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                              }}
+                            >
+                              {pageData.fullText}
+                            </Box>
+                          </Box>
+                        )}
+                      </Paper>
+                    ),
+                  )}
                 </Box>
               )}
 
@@ -317,8 +378,13 @@ function PDFJsonDialog({
                     AI Integration Guide
                   </Typography>
 
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Instructions for AI systems to process this PDF and generate highlight patches
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 3 }}
+                  >
+                    Instructions for AI systems to process this PDF and generate
+                    highlight patches
                   </Typography>
 
                   <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
@@ -329,7 +395,8 @@ function PDFJsonDialog({
                       1. Analyze page content (Pages tab) to understand context
                     </Typography>
                     <Typography variant="body1" sx={{ mb: 1 }}>
-                      2. Generate highlight patches using element IDs from Elements tab
+                      2. Generate highlight patches using element IDs from
+                      Elements tab
                     </Typography>
                     <Typography variant="body1">
                       3. Apply patches using the pdf:apply-ai-patches handler
@@ -338,27 +405,27 @@ function PDFJsonDialog({
 
                   <Typography variant="h6" gutterBottom>
                     Patch Format
-                        </Typography>
-                        <Box
+                  </Typography>
+                  <Box
                     component="pre"
-                          sx={{
+                    sx={{
                       bgcolor: 'background.default',
-                            p: 2,
-                            borderRadius: 1,
-                            overflow: 'auto',
+                      p: 2,
+                      borderRadius: 1,
+                      overflow: 'auto',
                       fontSize: '0.875rem',
-                            fontFamily: 'monospace',
+                      fontFamily: 'monospace',
                       border: '1px solid',
                       borderColor: 'divider',
-                      mb: 2
+                      mb: 2,
                     }}
                   >
                     {JSON.stringify(jsonData.aiReference.examplePatch, null, 2)}
-                </Box>
+                  </Box>
 
                   <Typography variant="h6" gutterBottom>
                     Complete API Reference
-                    </Typography>
+                  </Typography>
                   <Box
                     component="pre"
                     sx={{

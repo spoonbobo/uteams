@@ -120,7 +120,7 @@ const buildLightTheme = (isZh: boolean, colorPalette: ColorPalette) => {
       },
       background: {
         default: '#f8fafc',
-        paper: `${paletteColor.main}08`, // Very light tint of the palette color
+        paper: `${paletteColor.main}15`, // Less transparent tint of the palette color
       },
       text: {
         primary: '#334155', // Lighter than the previous #0f172a for better readability
@@ -191,7 +191,7 @@ const buildDarkTheme = (isZh: boolean, colorPalette: ColorPalette) => {
       },
       background: {
         default: '#0f172a',
-        paper: `${paletteColor.dark}15`, // Dark tint of the palette color
+        paper: `${paletteColor.dark}25`, // Less transparent dark tint of the palette color
       },
       text: {
         primary: '#f8fafc',

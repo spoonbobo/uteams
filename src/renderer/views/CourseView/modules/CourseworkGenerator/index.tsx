@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Typography, Box, Paper, Card, CardContent } from '@mui/material';
 import { useIntl } from 'react-intl';
 import { HTabsPanel, type TabSection } from '@/components/HTabsPanel';
@@ -28,7 +28,10 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
     clearPdfPreview,
     getSelectedAssignments,
     getCurrentPreviewPdf,
-    setSelectedPdf
+    setSelectedPdf,
+    // Generation progress state
+    isGenerationInProgress,
+    activeGenerationCourse
   } = useCourseworkGeneratorStore();
 
   // Get selected assignments from store
@@ -83,103 +86,68 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
   // Handle proceed to generate
   const handleProceedToGenerate = () => {
     setSelectedTab(1);
-    // Trigger generation when switching to Generate tab
-    setIsGenerating(true);
+    // Just switch to Generate tab - don't auto-trigger generation
   };
+
+  // Check if this course has active background generation
+  const hasBackgroundGeneration = isGenerationInProgress(sessionContext.sessionId);
+  const isActiveGeneration = activeGenerationCourse === sessionContext.sessionId;
 
   // Handle exam generation completion (called by Generate component)
   const handleGenerateExam = () => {
     setIsGenerating(false);
   };
 
-  const sections: TabSection[] = [
-    {
-      id: 'select-coursework',
-      title: intl.formatMessage({
-        id: 'courseworkGenerator.tabs.selectCoursework',
-      }),
-      component: (
-        <Select
-          sessionContext={sessionContext}
-          examType={examType}
-          onExamTypeChange={handleExamTypeChange}
-          examInstructions={examInstructions}
-          onExamInstructionsChange={handleExamInstructionsChange}
-          onProceedToGenerate={handleProceedToGenerate}
-          isGenerating={isGenerating}
-        />
-      ),
-    },
-    {
-      id: 'generate',
-      title: intl.formatMessage({ id: 'courseworkGenerator.tabs.newCoursework' }),
-      component: (
-        <Generate
-          sessionContext={sessionContext}
-          selectedCoursework={selectedCoursework}
-          examType={examType}
-          examInstructions={examInstructions}
-          onGenerateExam={handleGenerateExam}
-          isGenerating={isGenerating}
-        />
-      ),
-    },
-  ];
+  // Memoized PDF Preview Component (shared between tabs)
+  const PDFPreviewComponent = useMemo(() => {
+    const currentPreview = getCurrentPreviewPdf(sessionContext.sessionId);
+    const displayName = currentPreview.assignmentId
+      ? `Assignment ${currentPreview.assignmentId}: ${selectedPdfFilename || 'PDF Preview'}`
+      : selectedPdfFilename || 'PDF Preview';
 
-  return (
-    <Box sx={{
-      p: 3,
-      backgroundColor: 'inherit',
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column' // Enable flex layout for HTabsPanel compatibility
-    }}>
-      {/* Header */}
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 500 }}>
-          {intl.formatMessage({ id: 'courseworkGenerator.title' })} •{' '}
-          {sessionContext.sessionName}
-        </Typography>
-      </Box>
-
-      {/* Split Layout: PDF Preview (50%) + Content (50%) - HTabsPanel Compatible */}
+    return (
       <Box sx={{
+        width: '50%',
         display: 'flex',
-        gap: 2,
-        flex: 1,
-        minHeight: 0, // Allow natural flexbox shrinking for HTabsPanel compatibility
-        maxHeight: '75vh' // Reasonable maximum height instead of viewport calculation
+        flexDirection: 'column',
+        height: '100%',
+        minHeight: 500, // Ensure minimum height for the entire PDF preview
+        overflow: 'hidden'
       }}>
-        {/* Left Side: PDF Preview */}
-        <Box sx={{ width: '50%', display: 'flex', flexDirection: 'column' }}>
-          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+        <Box sx={{ flexShrink: 0, mb: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 500, mb: 1 }}>
             PDF Preview
           </Typography>
+          {selectedPdfPath && (
+            <Typography variant="body2" color="text.secondary" sx={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {displayName}
+            </Typography>
+          )}
+        </Box>
 
+        <Box sx={{
+          flex: 1,
+          minHeight: 400, // Ensure minimum height
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
           {selectedPdfPath ? (
-            <Box sx={{ flex: 1 }}>
-              <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body2" color="text.secondary">
-                  {(() => {
-                    const currentPreview = getCurrentPreviewPdf(sessionContext.sessionId);
-                    if (currentPreview.assignmentId) {
-                      return `Assignment ${currentPreview.assignmentId}: ${selectedPdfFilename || 'PDF Preview'}`;
-                    }
-                    return selectedPdfFilename || 'PDF Preview';
-                  })()}
-                </Typography>
-              </Box>
-              <iframe
-                src={`app-file://${selectedPdfPath}#toolbar=0&navpanes=0&view=FitH`}
-                style={{
-                  width: '100%',
-                  height: 'calc(100% - 32px)', // Account for filename display
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '4px',
-                }}
-                title={selectedPdfFilename || 'PDF Preview'}
-              />
-            </Box>
+            <iframe
+              src={`app-file://${selectedPdfPath}#toolbar=0&navpanes=0&view=FitH`}
+              style={{
+                width: '100%',
+                height: '100%',
+                minHeight: '800px',
+                border: '1px solid #e0e0e0',
+                borderRadius: '4px',
+                flex: 1
+              }}
+              title={selectedPdfFilename || 'PDF Preview'}
+            />
           ) : (
             <Card
               variant="outlined"
@@ -209,15 +177,85 @@ function CourseworkGenerator({ sessionContext }: CourseworkGeneratorProps) {
             </Card>
           )}
         </Box>
+      </Box>
+    );
+  }, [selectedPdfPath, selectedPdfFilename, sessionContext.sessionId, getCurrentPreviewPdf]);
 
-        {/* Right Side: Tabs Content */}
-        <Box sx={{ width: '50%' }}>
-          <HTabsPanel
-            sections={sections}
-            selectedTab={selectedTab}
-            onTabChange={handleTabChange}
-          />
+  const sections: TabSection[] = [
+    {
+      id: 'select-coursework',
+      title: intl.formatMessage({
+        id: 'courseworkGenerator.tabs.selectCoursework',
+      }),
+      component: (
+        <Select
+          sessionContext={sessionContext}
+          examType={examType}
+          onExamTypeChange={handleExamTypeChange}
+          examInstructions={examInstructions}
+          onExamInstructionsChange={handleExamInstructionsChange}
+          onProceedToGenerate={handleProceedToGenerate}
+          isGenerating={isGenerating}
+        />
+      ),
+    },
+    {
+      id: 'generate',
+      title: intl.formatMessage({ id: 'courseworkGenerator.tabs.newCoursework' }),
+      component: (
+        <Box sx={{
+          display: 'flex',
+          gap: 2,
+          height: '100%',
+          minHeight: 0,
+          overflow: 'hidden'
+        }}>
+          {PDFPreviewComponent}
+          <Box sx={{
+            width: '50%',
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            height: '100%',
+            overflow: 'hidden'
+          }}>
+            <Generate
+              sessionContext={sessionContext}
+              selectedCoursework={selectedCoursework}
+              examType={examType}
+              examInstructions={examInstructions}
+              onGenerateExam={handleGenerateExam}
+              isGenerating={isGenerating || hasBackgroundGeneration}
+            />
+          </Box>
         </Box>
+      ),
+    },
+  ];
+
+  return (
+    <Box sx={{
+      p: 3,
+      backgroundColor: 'inherit',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      {/* Header */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 500 }}>
+          {intl.formatMessage({ id: 'courseworkGenerator.title' })} •{' '}
+          {sessionContext.sessionName}
+        </Typography>
+      </Box>
+
+      {/* HTabsPanel with full control */}
+      <Box sx={{ flex: 1, minHeight: 0 }}>
+        <HTabsPanel
+          sections={sections}
+          selectedTab={selectedTab}
+          onTabChange={handleTabChange}
+        />
       </Box>
     </Box>
   );

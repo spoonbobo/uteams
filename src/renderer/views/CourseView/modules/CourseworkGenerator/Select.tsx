@@ -14,9 +14,10 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DataObjectIcon from '@mui/icons-material/DataObject';
-import HighlightIcon from '@mui/icons-material/Highlight';
 import InfoIcon from '@mui/icons-material/Info';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import PDFJsonDialog from '@/components/PDFPreview/PDFJsonDialog';
+import PDFDialog from '@/components/PDFPreview/PDFDialog';
 
 interface SelectProps {
   sessionContext: CourseSessionContext;
@@ -47,8 +48,14 @@ function Select({
   const [jsonLoading, setJsonLoading] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [selectedJsonFilename, setSelectedJsonFilename] = useState<string>('');
-  const [highlightLoading, setHighlightLoading] = useState(false);
-  const [currentPdfData, setCurrentPdfData] = useState<any>(null);
+
+  // PDF Preview Dialog state
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [previewPdfData, setPreviewPdfData] = useState<{
+    filePath: string;
+    filename: string;
+    studentName?: string;
+  } | null>(null);
 
   const sessionId = sessionContext.sessionId;
   const courseContent = getCourseContent(sessionId);
@@ -130,11 +137,6 @@ function Select({
         // Set as current preview
         setCurrentPreviewPdf(sessionId, assignmentId, attachment.filename);
 
-        // Try to parse for highlighting if not already done
-        if (!currentPdfData) {
-          await parsePdfForHighlighting(existingPdf.filePath);
-        }
-
         setPdfLoading(false);
         return;
       }
@@ -177,21 +179,6 @@ function Select({
       // Set the PDF in the store to show in left panel
       setSelectedPdf(downloadResult.filePath, attachment.filename);
 
-      // Also parse the PDF structure for potential highlighting
-      try {
-        const parseResult = await window.electron.ipcRenderer.invoke('pdf:parse-to-json', {
-          filePath: downloadResult.filePath,
-          includeText: true,
-          includeMetadata: true,
-          includeStructure: false
-        });
-
-        if (parseResult.success) {
-          setCurrentPdfData(parseResult.data);
-        }
-      } catch (parseError) {
-        console.warn('Could not parse PDF for highlighting:', parseError);
-      }
 
     } catch (error: any) {
       console.error('❌ Error downloading PDF for preview:', error);
@@ -286,111 +273,68 @@ function Select({
     setJsonError(null);
   };
 
-
-  // Handle real-time highlighting of current PDF
-  const handleHighlightCurrentPdf = async () => {
-    if (!selectedPdfPath) {
-      alert('No PDF currently loaded for highlighting');
+  // Handle PDF preview in dialog
+  const handlePdfPreviewDialog = async (attachment: any, assignmentId: string) => {
+    if (!attachment.fileurl || !attachment.filename) {
+      console.error('PDF attachment missing required fields');
       return;
     }
 
-    // If we don't have PDF data yet, try to parse it first
-    if (!currentPdfData) {
-      console.log('🔍 PDF data not available, attempting to parse...');
-      await parsePdfForHighlighting(selectedPdfPath);
-
-      // Check again after parsing
-      if (!currentPdfData) {
-        alert('Could not parse PDF data for highlighting. The file may no longer exist or be corrupted.');
-        return;
-      }
-    }
-
-    setHighlightLoading(true);
-
     try {
-      console.log('🎯 Applying intelligent highlights to current PDF...');
+      // Get Moodle config for API key
+      const { config } = useMoodleStore.getState();
+      if (!config.apiKey) {
+        throw new Error('No Moodle API key available');
+      }
 
-      // Generate AI-style patches for key content
-      const aiPatches: any[] = [];
+      // Prepare download URL with token
+      let downloadUrl = attachment.fileurl;
+      if (downloadUrl && !downloadUrl.includes('token=')) {
+        const separator = downloadUrl.includes('?') ? '&' : '?';
+        downloadUrl = `${downloadUrl}${separator}token=${config.apiKey}`;
+      }
 
-      // Find mathematical and important content to highlight
-      currentPdfData.elements?.forEach((element: any, index: number) => {
-        const shouldHighlight =
-          element.content.type === 'math_symbol' ||
-          element.content.type === 'formula' ||
-          element.content.type === 'greek_letter' ||
-          element.content.type === 'theorem' ||
-          element.content.type === 'solution' ||
-          (element.content.type === 'number' && element.content.text.includes('.')) ||
-          element.content.type === 'variable';
+      // Create unique filename for temp storage
+      const uniqueFilename = `pdf_preview_${sessionId}_${attachment.filename}`;
 
-        if (shouldHighlight && aiPatches.length < 8) { // Limit to 8 highlights
-          aiPatches.push({
-            elementId: element.elementId,
-            action: 'annotate',
-            data: {
-              comment: getSmartComment(element),
-              highlightColor: getHighlightColor(element.content.type),
-              importance: element.content.type.includes('formula') ? 'high' : 'medium'
-            }
-          });
+      console.log('📄 Downloading PDF for preview dialog:', attachment.filename);
+
+      // Download PDF to temp directory
+      const downloadResult = await window.electron.ipcRenderer.invoke('fileio:download-file', {
+        url: downloadUrl,
+        filename: uniqueFilename,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; MoodleApp)',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
 
-      if (aiPatches.length === 0) {
-        alert('No suitable content found for highlighting in this PDF');
-        return;
+      if (!downloadResult.success) {
+        throw new Error(downloadResult.error || 'Failed to download PDF');
       }
 
-      // Apply the highlights using our AI patches handler
-      const highlightResult = await window.electron.ipcRenderer.invoke('pdf:apply-ai-patches', {
-        filePath: selectedPdfPath,
-        outputPath: selectedPdfPath.replace('.pdf', '_highlighted.pdf'),
-        pdfStructure: currentPdfData,
-        patches: aiPatches
+      // Set preview data and open dialog
+      setPreviewPdfData({
+        filePath: downloadResult.filePath,
+        filename: attachment.filename,
+        studentName: `Assignment ${assignmentId}`
       });
-
-      if (!highlightResult.success) {
-        throw new Error(highlightResult.error || 'Failed to apply highlights');
-      }
-
-      console.log('✅ Highlights applied successfully:', highlightResult.data);
-
-      // Update the preview to show the highlighted version
-      setSelectedPdf(highlightResult.data.outputPath, `Highlighted - ${currentPdfData.document.metadata?.title || 'PDF'}`);
-
-      alert(`✅ Applied ${highlightResult.data.patchesApplied} highlights to PDF!\n\nHighlighted version now showing in preview.`);
+      setPdfDialogOpen(true);
 
     } catch (error: any) {
-      console.error('❌ Error highlighting PDF:', error);
-      alert(`Error applying highlights: ${error.message}`);
-    } finally {
-      setHighlightLoading(false);
+      console.error('❌ Error downloading PDF for preview dialog:', error);
+      // Show error toast or alert
+      alert(`Error loading PDF preview: ${error.message}`);
     }
   };
 
-  // Helper function to get smart comments based on element type
-  const getSmartComment = (element: any): string => {
-    switch (element.content.type) {
-      case 'math_symbol': return 'Mathematical symbol';
-      case 'formula': return 'Key formula';
-      case 'greek_letter': return 'Greek letter';
-      case 'theorem': return 'Important theorem';
-      case 'solution': return 'Solution method';
-      case 'variable': return 'Variable';
-      case 'number': return 'Numerical value';
-      default: return 'Important content';
-    }
+  const handleClosePdfDialog = () => {
+    setPdfDialogOpen(false);
+    setPreviewPdfData(null);
   };
 
-  // Helper function to get highlight color based on content type
-  const getHighlightColor = (type: string): 'yellow' | 'green' | 'blue' | 'red' => {
-    if (type.includes('formula') || type.includes('theorem')) return 'red';
-    if (type.includes('math') || type.includes('greek')) return 'yellow';
-    if (type.includes('solution')) return 'green';
-    return 'blue';
-  };
+
 
   // Fetch attachments for a specific assignment
   const fetchAssignmentAttachments = async (assignmentId: string) => {
@@ -437,26 +381,6 @@ function Select({
     });
   }, [selectedCoursework]);
 
-  // Function to parse PDF data for highlighting
-  const parsePdfForHighlighting = async (filePath: string) => {
-    try {
-      const parseResult = await window.electron.ipcRenderer.invoke('pdf:parse-to-json', {
-        filePath,
-        includeText: true,
-        includeMetadata: true,
-        includeStructure: false
-      });
-
-      if (parseResult.success) {
-        setCurrentPdfData(parseResult.data);
-        console.log('✅ PDF parsed for highlighting:', parseResult.data);
-      } else {
-        console.warn('Could not parse PDF for highlighting:', parseResult.error);
-      }
-    } catch (parseError) {
-      console.warn('Could not parse PDF for highlighting:', parseError);
-    }
-  };
 
   // Restore previously selected PDF on component mount or course change
   useEffect(() => {
@@ -464,9 +388,6 @@ function Select({
     if (currentPreview.filePath && currentPreview.filename) {
       console.log(`📄 Restoring PDF preview for course ${sessionId}:`, currentPreview.filename);
       setSelectedPdf(currentPreview.filePath, currentPreview.filename);
-
-      // Also parse the PDF for highlighting if the file still exists
-      parsePdfForHighlighting(currentPreview.filePath);
     } else {
       console.log(`📄 No saved PDF preview for course ${sessionId}`);
     }
@@ -477,7 +398,6 @@ function Select({
     if (selectedCoursework.length === 0) {
       // Clear preview when no assignments selected
       clearPdfPreview();
-      setCurrentPdfData(null); // Also clear PDF data for highlighting
       return;
     }
 
@@ -501,20 +421,34 @@ function Select({
     <HTabPanel
       title={intl.formatMessage({ id: 'courseworkGenerator.selectCoursework.title' })}
     >
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-          {intl.formatMessage({ id: 'courseworkGenerator.selectCoursework.description' })}
-        </Typography>
-      </Box>
+      <Box sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        pb: 2 // Add bottom padding to prevent button cutoff
+      }}>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+            {intl.formatMessage({ id: 'courseworkGenerator.selectCoursework.description' })}
+          </Typography>
+        </Box>
 
-      {/* Generation Type Selection */}
-      <Box sx={{ mb: 4 }}>
-        <FormControl component="fieldset">
-          <FormLabel component="legend" sx={{ mb: 2, fontWeight: 500 }}>
-            <Typography variant="h6">
-              {intl.formatMessage({ id: 'courseworkGenerator.generationType.title' })}
-            </Typography>
-          </FormLabel>
+        {/* Scrollable Content Area */}
+        <Box sx={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          pr: 1, // Add some right padding for scrollbar
+          mr: -1 // Negative margin to compensate
+        }}>
+          {/* Generation Type Selection */}
+          <Box sx={{ mb: 4 }}>
+            <FormControl component="fieldset">
+              <FormLabel component="legend" sx={{ mb: 2, fontWeight: 500 }}>
+                <Typography variant="h6">
+                  {intl.formatMessage({ id: 'courseworkGenerator.generationType.title' })}
+                </Typography>
+              </FormLabel>
           <RadioGroup
             value={generationType}
             onChange={handleGenerationTypeChange}
@@ -541,6 +475,49 @@ function Select({
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           {intl.formatMessage({ id: 'courseworkGenerator.generationType.currentDescription' })}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  }
+                  sx={{ m: 0, width: '100%' }}
+                />
+              </Paper>
+
+              <Paper
+                sx={{
+                  p: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  flex: 1,
+                }}
+              >
+                <FormControlLabel
+                  value="upload"
+                  control={<Radio />}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <UploadFileIcon color="secondary" />
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                            {intl.formatMessage({ id: 'courseworkGenerator.generationType.upload' })}
+                          </Typography>
+                          <Tooltip
+                            title={intl.formatMessage({ id: 'courseworkGenerator.generationType.uploadWarning' })}
+                            placement="top"
+                            arrow
+                          >
+                            <InfoIcon
+                              sx={{
+                                color: 'warning.main',
+                                fontSize: 16,
+                                cursor: 'help'
+                              }}
+                            />
+                          </Tooltip>
+                        </Box>
+                        <Typography variant="body2" color="text.secondary">
+                          {intl.formatMessage({ id: 'courseworkGenerator.generationType.uploadDescription' })}
                         </Typography>
                       </Box>
                     </Box>
@@ -748,21 +725,33 @@ function Select({
 
                                 {/* PDF Actions */}
                                 {isPdf && attachment.fileurl && (
-                                  <Tooltip title={jsonLoading ? "Parsing PDF..." : "Parse to AI-Ready JSON"}>
-                                    <span>
+                                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                    <Tooltip title="Preview PDF">
                                       <IconButton
                                         size="small"
-                                        onClick={() => handlePdfParseJson(attachment, assignmentId)}
+                                        onClick={() => handlePdfPreviewDialog(attachment, assignmentId)}
                                         disabled={pdfLoading || jsonLoading}
                                       >
-                                        {jsonLoading ? (
-                                          <CircularProgress size={16} />
-                                        ) : (
-                                          <DataObjectIcon fontSize="small" />
-                                        )}
+                                        <VisibilityIcon fontSize="small" />
                                       </IconButton>
-                                    </span>
-                                  </Tooltip>
+                                    </Tooltip>
+
+                                    <Tooltip title={jsonLoading ? "Parsing PDF..." : "Parse to AI-Ready JSON"}>
+                                      <span>
+                                        <IconButton
+                                          size="small"
+                                          onClick={() => handlePdfParseJson(attachment, assignmentId)}
+                                          disabled={pdfLoading || jsonLoading}
+                                        >
+                                          {jsonLoading ? (
+                                            <CircularProgress size={16} />
+                                          ) : (
+                                            <DataObjectIcon fontSize="small" />
+                                          )}
+                                        </IconButton>
+                                      </span>
+                                    </Tooltip>
+                                  </Box>
                                 )}
 
                                 <Typography variant="caption" color="text.secondary">
@@ -785,46 +774,30 @@ function Select({
           </Stack>
         </Box>
       )}
+        </Box>
 
-
-      {/* Action Buttons */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-        {/* Highlight Current PDF Button */}
-        <Button
-          variant="outlined"
-          disabled={!selectedPdfPath || highlightLoading}
-          onClick={handleHighlightCurrentPdf}
-          startIcon={highlightLoading ? <CircularProgress size={20} /> : <HighlightIcon />}
-        >
-          {highlightLoading ? 'Highlighting...' : 'Highlight PDF'}
-        </Button>
-
-        {/* Generate Button */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {/* Action Button - Fixed at bottom */}
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          pt: 2,
+          mt: 2,
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          flexShrink: 0 // Prevent shrinking
+        }}>
           <Button
             variant="contained"
             disabled={
-              generationType !== 'current' ||
-              selectedCoursework.length === 0 ||
+              (generationType === 'current' && selectedCoursework.length === 0) ||
+              generationType === 'new' ||
               isGenerating
             }
             onClick={onProceedToGenerate}
+            size="large"
           >
             {intl.formatMessage({ id: 'courseworkGenerator.proceedToGenerate' })}
           </Button>
-          <Tooltip
-            title={intl.formatMessage({ id: 'courseworkGenerator.pdfFormatNotice' })}
-            placement="top"
-            arrow
-          >
-            <InfoIcon
-              sx={{
-                color: 'info.main',
-                fontSize: 20,
-                cursor: 'help'
-              }}
-            />
-          </Tooltip>
         </Box>
       </Box>
 
@@ -836,6 +809,15 @@ function Select({
         jsonData={pdfJsonData}
         loading={jsonLoading}
         error={jsonError}
+      />
+
+      {/* PDF Preview Dialog */}
+      <PDFDialog
+        open={pdfDialogOpen}
+        onClose={handleClosePdfDialog}
+        studentName={previewPdfData?.studentName}
+        filename={previewPdfData?.filename}
+        filePath={previewPdfData?.filePath || ''}
       />
 
 

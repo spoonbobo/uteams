@@ -813,7 +813,10 @@
       "current": "Based on Current Assignments",
       "currentDescription": "Generate coursework based on existing assignments and materials from this course",
       "new": "Create New Coursework",
-      "newDescription": "Generate completely new coursework questions and materials"
+      "newDescription": "Generate completely new coursework questions and materials",
+      "upload": "Upload Custom Document",
+      "uploadDescription": "Generate coursework based on your own uploaded documents",
+      "uploadWarning": "Generating custom assignment may not fit your course need"
     },
     "comingSoon": "Coming Soon",
     "noDescription": "No description available",
@@ -842,7 +845,7 @@
     },
     "generateCoursework": "Generate Coursework",
     "generating": "Generating...",
-    "proceedToGenerate": "Generate",
+    "proceedToGenerate": "Proceed to Generate",
     "pdfFormatNotice": "Please note: If generating PDF coursework, we only provide new coursework through DOCX format."
   },
   "dashboard": {

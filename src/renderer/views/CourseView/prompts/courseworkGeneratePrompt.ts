@@ -11,7 +11,7 @@ export interface QuestionVariant {
   questionId: string; // ID of the original question being varied
   originalQuestion: string; // For string search later (not included in prompt)
   variantQuestion: string;  // The generated variant
-  difficulty: 'same'; // Always same difficulty for variants
+  page: number; // Page number where the original question was found
   variantType: 'rephrase' | 'parameter_change' | 'context_change' | 'approach_change';
   explanation?: string; // Why this variant was created
   sourcePageIndex?: number; // Which page the original question came from
@@ -40,7 +40,7 @@ ${specialInstructions}
 ` : ''}
 
 ## Your Task:
-**CRITICAL**: Complete this task in MAXIMUM 3 STEPS. Work efficiently and output all results in one comprehensive response.
+**CRITICAL**: Complete this task in MAXIMUM 3 STEPS/TODOS. Work efficiently and output all results in one comprehensive response.
 
 ### Step 1: Content Analysis (1 step only)
 - **Scan all assignment content** to identify every question, problem, and exercise
@@ -79,7 +79,7 @@ Return a JSON array of question variants with original question text for element
     "questionId": "q1",
     "originalQuestion": "Calculate the derivative of f(x) = 2x^2 + x - 3",
     "variantQuestion": "Calculate the derivative of $f(x) = 3x^2 + 2x - 1$ using the power rule.",
-    "difficulty": "same",
+    "page": 1,
     "variantType": "parameter_change",
     "explanation": "Changed coefficients while maintaining the same differentiation concept"
   },
@@ -88,14 +88,16 @@ Return a JSON array of question variants with original question text for element
     "questionId": "q1",
     "originalQuestion": "Calculate the derivative of f(x) = 2x^2 + x - 3",
     "variantQuestion": "Find $\\frac{d}{dx}[2x^3 - 5x + 7]$ and evaluate at $x = 1$.",
-    "difficulty": "same",
+    "page": 1,
     "variantType": "approach_change",
     "explanation": "Same differentiation concept but asks for evaluation at a point"
   }
 ]
 \`\`\`
 
-**Important**: Include the exact original question text as it appears in the content for accurate element index matching during post-processing.
+**Important**:
+- Include the exact original question text as it appears in the content for accurate element index matching during post-processing.
+- Set the "page" field to the page number where the original question was found (1-indexed, matching the "Page X Content" headers above).
 
 ## Verification Requirements:
 Before finalizing your response, verify that you have:
@@ -219,8 +221,8 @@ export function validateQuestionVariants(variants: any[]): { isValid: boolean; e
       errors.push(`Variant ${index + 1} is missing or has invalid variantQuestion`);
     }
 
-    if (variant.difficulty !== 'same') {
-      errors.push(`Variant ${index + 1} must have difficulty 'same' (variants should maintain original difficulty)`);
+    if (typeof variant.page !== 'number' || variant.page < 1) {
+      errors.push(`Variant ${index + 1} must have a valid page number (positive integer)`);
     }
 
     if (!['rephrase', 'parameter_change', 'context_change', 'approach_change'].includes(variant.variantType)) {

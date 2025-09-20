@@ -206,6 +206,62 @@ export function setupFileIOHandlers() {
     }
   });
 
+  // Save prompt to AppData for debugging
+  ipcMain.handle('fileio:save-prompt-debug', async (event, args: {
+    sessionId: string;
+    prompt: string;
+    metadata?: Record<string, any>;
+  }) => {
+    console.log('[FileIO] Saving prompt for debugging:', args.sessionId);
+
+    try {
+      const appDataPath = app.getPath('userData');
+      const appName = app?.getName?.() || 'ezzzbet';
+      const debugPath = path.join(appDataPath, `${appName}-data`, 'debug', 'prompts');
+
+      // Ensure directory exists
+      if (!fs.existsSync(debugPath)) {
+        fs.mkdirSync(debugPath, { recursive: true });
+      }
+
+      // Create filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `prompt_${args.sessionId}_${timestamp}.txt`;
+      const filePath = path.join(debugPath, filename);
+
+      // Prepare content with metadata
+      let content = '';
+      if (args.metadata) {
+        content += `=== PROMPT DEBUG INFO ===\n`;
+        content += `Session ID: ${args.sessionId}\n`;
+        content += `Timestamp: ${new Date().toISOString()}\n`;
+        Object.entries(args.metadata).forEach(([key, value]) => {
+          content += `${key}: ${JSON.stringify(value)}\n`;
+        });
+        content += `\n=== PROMPT CONTENT ===\n`;
+      }
+      content += args.prompt;
+
+      // Write file
+      fs.writeFileSync(filePath, content, 'utf8');
+
+      console.log('[FileIO] Prompt saved for debugging:', filePath);
+
+      return {
+        success: true,
+        filePath,
+        filename,
+        debugPath
+      };
+    } catch (error: any) {
+      console.error('[FileIO] Error saving prompt for debugging:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to save prompt for debugging'
+      };
+    }
+  });
+
   // Read file as base64 data URL for images
   ipcMain.handle('fileio:read-as-data-url', async (event, args: { filepath: string }) => {
     try {

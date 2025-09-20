@@ -39,7 +39,18 @@ interface SidebarProps {}
 
 // Helper function to get the first letter of course name
 const getCourseInitial = (name: string) => {
-  return name.charAt(0).toUpperCase();
+  // Handle edge cases: empty, undefined, or whitespace-only names
+  if (!name || typeof name !== 'string') {
+    return '?';
+  }
+
+  // Trim whitespace and get first non-whitespace character
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return '?';
+  }
+
+  return trimmed.charAt(0).toUpperCase();
 };
 
 // Helper to format date
@@ -91,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
           width: currentWidth,
           boxSizing: 'border-box',
           backgroundColor: theme.palette.background.paper,
-          borderRight: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+          borderRight: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
           boxShadow:
             theme.palette.mode === 'dark'
               ? 'none'
@@ -114,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
           width: 24,
           height: 48,
           backgroundColor: theme.palette.background.paper,
-          border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+          border: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
           borderLeft: 'none',
           borderRadius: '0 8px 8px 0',
           cursor: 'pointer',
@@ -128,7 +139,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
             ? '0 2px 8px rgba(0,0,0,0.4)'
             : '0 2px 8px rgba(0,0,0,0.1)',
           '&:hover': {
-            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+            backgroundColor: alpha(theme.palette.primary.main, 0.08),
             boxShadow: theme.palette.mode === 'dark'
               ? '0 4px 12px rgba(0,0,0,0.6)'
               : '0 4px 12px rgba(0,0,0,0.15)',
@@ -166,7 +177,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
           display: 'flex',
           alignItems: 'center',
           px: !sidebarCollapsed ? 1.5 : 1,
-          borderBottom: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+          borderBottom: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
           justifyContent: !sidebarCollapsed ? 'flex-start' : 'center',
         }}
       >
@@ -182,10 +193,10 @@ export const Sidebar: React.FC<SidebarProps> = () => {
             minWidth: !sidebarCollapsed ? 'auto' : 40,
             backgroundColor:
               currentContext === 'home'
-                ? alpha(theme.palette.primary.main, 0.08)
+                ? alpha(theme.palette.primary.main, 0.15)
                 : 'transparent',
             '&:hover': {
-              backgroundColor: alpha(theme.palette.primary.main, 0.04),
+              backgroundColor: alpha(theme.palette.primary.main, 0.15),
             },
             justifyContent: !sidebarCollapsed ? 'flex-start' : 'center',
           }}
@@ -210,7 +221,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
         </ListItemButton>
       </Box>
 
-      <Divider sx={{ mx: !sidebarCollapsed ? 1.5 : 0.5 }} />
+      <Divider sx={{ mx: !sidebarCollapsed ? 1.5 : 0.5, opacity: 0.15 }} />
 
       {/* Courses List */}
       <Box
@@ -253,7 +264,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                     color: 'text.secondary',
                     '&:hover': {
                       color: 'primary.main',
-                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                      backgroundColor: alpha(theme.palette.primary.main, 0.15),
                     },
                     '&:disabled': {
                       color: 'text.disabled',
@@ -295,7 +306,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                     color: 'text.secondary',
                     '&:hover': {
                       color: 'primary.main',
-                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                      backgroundColor: alpha(theme.palette.primary.main, 0.15),
                     },
                     '&:disabled': {
                       color: 'text.disabled',
@@ -354,17 +365,22 @@ export const Sidebar: React.FC<SidebarProps> = () => {
               currentContext === 'course-session' &&
               courseSessionContext?.sessionId === (course.shortname || course.id);
 
+            // Debug logging for course data (only in development)
+            if (process.env.NODE_ENV === 'development' && (!course.fullname || !course.fullname.trim())) {
+              console.warn('[Sidebar] Course with empty or missing fullname:', course);
+            }
+
             return (
               <Tooltip
                 key={course.id}
                 title={
                   <Box>
                     <Typography variant="caption" fontWeight={600}>
-                      {course.fullname}
+                      {course.fullname || course.shortname || `Course ${course.id}`}
                     </Typography>
                     <br />
                     <Typography variant="caption">
-                      {course.shortname}
+                      {course.shortname || course.id}
                     </Typography>
                     {course.startdate && (
                       <>
@@ -391,12 +407,12 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     backgroundColor: isActive
-                      ? alpha(theme.palette.primary.main, 0.08)
+                      ? alpha(theme.palette.primary.main, 0.15)
                       : 'transparent',
                     '&:hover': {
                       backgroundColor: isActive
                         ? alpha(theme.palette.primary.main, 0.12)
-                        : alpha(theme.palette.primary.main, 0.04),
+                        : alpha(theme.palette.primary.main, 0.08),
                     },
                     display: 'flex',
                     alignItems: 'center',
@@ -408,12 +424,12 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                       width: 24,
                       height: 24,
                       borderRadius: '50%',
-                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                      backgroundColor: alpha(theme.palette.primary.main, 0.2),
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       mr: !sidebarCollapsed ? 1.5 : 0,
-                      border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
                     }}
                   >
                     <Typography
@@ -425,7 +441,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                         lineHeight: 1,
                       }}
                     >
-                        {getCourseInitial(course.fullname)}
+                        {getCourseInitial(course.fullname || course.shortname || course.id)}
                     </Typography>
                   </Box>
                   {!sidebarCollapsed && (
@@ -449,7 +465,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                             mr: 1,
                           }}
                         >
-                          {course.fullname}
+                          {course.fullname || course.shortname || `Course ${course.id}`}
                         </Typography>
                         <Typography
                           variant="caption"
@@ -480,7 +496,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
         )}
       </Box>
 
-      <Divider sx={{ mx: !sidebarCollapsed ? 1.5 : 0.5 }} />
+      <Divider sx={{ mx: !sidebarCollapsed ? 1.5 : 0.5, opacity: 0.15 }} />
 
       {/* Theme toggle and actions */}
       <Box sx={{ p: !sidebarCollapsed ? 1.5 : 0.5 }}>
@@ -535,14 +551,14 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                 sx={{
                   backgroundColor:
                     currentContext === 'work'
-                      ? alpha(theme.palette.primary.main, 0.08)
+                      ? alpha(theme.palette.primary.main, 0.15)
                       : 'transparent',
                   color:
                     currentContext === 'work'
                       ? 'primary.main'
                       : 'text.secondary',
                   '&:hover': {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                    backgroundColor: alpha(theme.palette.primary.main, 0.15),
                   },
                 }}
               >
@@ -572,7 +588,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
               sx={{
                 width: 36,
                 height: 36,
-                backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                backgroundColor: alpha(theme.palette.primary.main, 0.15),
                 color: 'primary.main',
                 border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -613,14 +629,14 @@ export const Sidebar: React.FC<SidebarProps> = () => {
             sx={{
               backgroundColor:
                 currentContext === 'settings'
-                  ? alpha(theme.palette.primary.main, 0.08)
+                  ? alpha(theme.palette.primary.main, 0.15)
                   : 'transparent',
               color:
                 currentContext === 'settings'
                   ? 'primary.main'
                   : 'text.secondary',
               '&:hover': {
-                backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                backgroundColor: alpha(theme.palette.primary.main, 0.15),
               },
             }}
           >

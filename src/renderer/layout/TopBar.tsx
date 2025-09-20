@@ -126,7 +126,7 @@ function TopBar() {
       sx={{
         px: 2,
         py: 1.5,
-        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
         backgroundColor: theme.palette.background.paper,
         display: 'flex',
         alignItems: 'center',
@@ -148,7 +148,7 @@ function TopBar() {
               ? alpha(theme.palette.primary.main, 0.08)
               : 'transparent',
             '&:hover': {
-              backgroundColor: alpha(theme.palette.primary.main, 0.04),
+              backgroundColor: alpha(theme.palette.primary.main, 0.08),
             },
           }}
         >
@@ -165,7 +165,7 @@ function TopBar() {
               ? alpha(theme.palette.primary.main, 0.08)
               : 'transparent',
             '&:hover': {
-              backgroundColor: alpha(theme.palette.primary.main, 0.04),
+              backgroundColor: alpha(theme.palette.primary.main, 0.08),
             },
           }}
         >
@@ -258,10 +258,10 @@ function TopBar() {
                 borderRadius: 1,
                 transition: 'all 0.2s ease',
                 '&:hover': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                  backgroundColor: alpha(theme.palette.primary.main, 0.15),
                 },
                 '&.Mui-selected': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                  backgroundColor: alpha(theme.palette.primary.main, 0.15),
                   color: theme.palette.primary.main,
                 },
               },

@@ -2,10 +2,10 @@
 export { StudentSubmissionsPanel } from './StudentSubmissionsPanel';
 
 // Export all decomposed components
-export { SubmissionsTableHeader } from './SubmissionsTableHeader';
+export { default as SubmissionsTableHeader } from './SubmissionsTableHeader';
 export { CategoryHeader } from './CategoryHeader';
 export { StudentRow } from './StudentRow';
-export { useFilePreviewHandler } from './FilePreviewHandler';
+export { default as useFilePreviewHandler } from './FilePreviewHandler';
 
 // Export hooks
 export {

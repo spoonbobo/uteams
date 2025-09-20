@@ -20,7 +20,7 @@ interface GenerationRecord {
   examType: string;
   examInstructions: string;
   generatedAt: number;
-  rawResponse: string;
+  resultSummary: string;
   parsedResult?: any;
   status: 'completed' | 'failed' | 'aborted';
   error?: string;
@@ -38,6 +38,10 @@ interface CourseworkGeneratorState {
   selectedPdfFilename: string | null;
   pdfLoading: boolean;
   pdfError: string | null;
+
+  // Generation progress tracking (similar to grading store)
+  generationInProgress: Set<string>; // Set of courseId-sessionId combinations currently generating
+  activeGenerationCourse: string | null; // The course whose generation process should be displayed
 
   // Assignment selections by courseId
   courseSelections: Record<string, CourseAssignmentSelection>;
@@ -72,6 +76,15 @@ interface CourseworkGeneratorState {
   clearGenerationRecords: (courseId: string) => void;
   clearAllGenerationRecords: () => void;
 
+  // Generation progress actions (similar to grading store)
+  startGeneration: (courseId: string) => void;
+  finishGeneration: (courseId: string) => void;
+  setGenerationError: (courseId: string, errorMessage?: string) => void;
+  abortGeneration: (courseId: string) => void;
+  isGenerationInProgress: (courseId: string) => boolean;
+  clearAllGenerationProgress: () => void;
+  setActiveGenerationCourse: (courseId: string | null) => void;
+
   // Legacy methods for backward compatibility
   setPreviewPdf: (courseId: string, filePath: string | null, filename: string | null) => void;
   getPreviewPdf: (courseId: string) => { filePath: string | null; filename: string | null };
@@ -86,6 +99,8 @@ export const useCourseworkGeneratorStore = create<CourseworkGeneratorState>()(
       selectedPdfFilename: null,
       pdfLoading: false,
       pdfError: null,
+      generationInProgress: new Set<string>(),
+      activeGenerationCourse: null,
       courseSelections: {},
 
       // Actions
@@ -399,12 +414,134 @@ export const useCourseworkGeneratorStore = create<CourseworkGeneratorState>()(
           courseSelections: remainingSelections
         };
       }),
+
+      // Generation progress actions (similar to grading store)
+      startGeneration: (courseId: string) => {
+        console.log(`[CourseworkStore] 🚀 Starting generation for course: ${courseId}`);
+        set(state => ({
+          generationInProgress: new Set(state.generationInProgress).add(courseId),
+          activeGenerationCourse: courseId // Set as active when starting
+        }));
+        console.log(`[CourseworkStore] Courses currently generating:`, Array.from(get().generationInProgress));
+        console.log(`[CourseworkStore] Active generation course:`, courseId);
+      },
+
+      finishGeneration: (courseId: string) => {
+        console.log(`[CourseworkStore] ✅ Finishing generation for course: ${courseId}`);
+        set(state => {
+          const newSet = new Set(state.generationInProgress);
+          newSet.delete(courseId);
+          // Clear active course if it was this one
+          const newActiveCourse = state.activeGenerationCourse === courseId ? null : state.activeGenerationCourse;
+          return {
+            generationInProgress: newSet,
+            activeGenerationCourse: newActiveCourse
+          };
+        });
+        console.log(`[CourseworkStore] Courses still generating:`, Array.from(get().generationInProgress));
+      },
+
+      setGenerationError: (courseId: string, errorMessage?: string) => {
+        console.log(`[CourseworkStore] ❌ Generation error for course: ${courseId}`, errorMessage ? `Error: ${errorMessage}` : '');
+
+        // Update the latest generation record with error status
+        const latestRecord = get().getLatestGenerationRecord(courseId);
+        if (latestRecord) {
+          get().updateGenerationRecord(courseId, latestRecord.id, {
+            status: 'failed',
+            error: errorMessage || 'Unknown generation error occurred'
+          });
+        }
+
+        set(state => {
+          const newSet = new Set(state.generationInProgress);
+          newSet.delete(courseId);
+          // Clear active course if it was this one
+          const newActiveCourse = state.activeGenerationCourse === courseId ? null : state.activeGenerationCourse;
+          return {
+            generationInProgress: newSet,
+            activeGenerationCourse: newActiveCourse
+          };
+        });
+        console.log(`[CourseworkStore] Courses still generating:`, Array.from(get().generationInProgress));
+      },
+
+      abortGeneration: (courseId: string) => {
+        console.log(`[CourseworkStore] 🛑 Aborting generation for course: ${courseId}`);
+
+        // Update the latest generation record with aborted status
+        const latestRecord = get().getLatestGenerationRecord(courseId);
+        if (latestRecord) {
+          get().updateGenerationRecord(courseId, latestRecord.id, {
+            status: 'aborted'
+          });
+        }
+
+        // Send abort request to backend
+        const sessionId = `coursework-generation-${courseId}`;
+        window.electron.ipcRenderer.invoke('chat:agent:abort', {
+          sessionId,
+          reason: 'User stopped generation'
+        }).then(result => {
+          console.log(`[CourseworkStore] Abort request result:`, result);
+        }).catch(error => {
+          console.error(`[CourseworkStore] Failed to abort session:`, error);
+        });
+
+        set(state => {
+          const newSet = new Set(state.generationInProgress);
+          newSet.delete(courseId);
+          // Clear active course if it was this one
+          const newActiveCourse = state.activeGenerationCourse === courseId ? null : state.activeGenerationCourse;
+          return {
+            generationInProgress: newSet,
+            activeGenerationCourse: newActiveCourse
+          };
+        });
+        console.log(`[CourseworkStore] Courses still generating after abort:`, Array.from(get().generationInProgress));
+      },
+
+      isGenerationInProgress: (courseId: string): boolean => {
+        return get().generationInProgress.has(courseId);
+      },
+
+      clearAllGenerationProgress: () => {
+        console.log(`[CourseworkStore] Clearing all generation progress`);
+        set({
+          generationInProgress: new Set<string>(),
+          activeGenerationCourse: null
+        });
+      },
+
+      setActiveGenerationCourse: (courseId: string | null) => {
+        console.log(`[CourseworkStore] Setting active generation course:`, courseId);
+        set({ activeGenerationCourse: courseId });
+      },
     }),
     {
       name: 'coursework-generator-store',
       partialize: (state) => ({
-        courseSelections: state.courseSelections
-      })
+        courseSelections: state.courseSelections,
+        // Persist generation progress state so it survives context changes
+        generationInProgress: Array.from(state.generationInProgress), // Convert Set to Array for serialization
+        activeGenerationCourse: state.activeGenerationCourse,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Restore generation progress state from persistence
+          // Convert generationInProgress array back to Set
+          if (state.generationInProgress && Array.isArray(state.generationInProgress)) {
+            state.generationInProgress = new Set(state.generationInProgress);
+          } else {
+            // Ensure it's initialized as an empty Set if not found
+            state.generationInProgress = new Set<string>();
+          }
+
+          if (!state.activeGenerationCourse) {
+            state.activeGenerationCourse = null;
+          }
+        }
+      },
     }
   )
 );

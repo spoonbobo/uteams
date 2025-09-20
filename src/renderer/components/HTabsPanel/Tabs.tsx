@@ -37,6 +37,7 @@ export function HTabsPanel({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const isScrollingProgrammatically = useRef(false);
+  const isRenderingHeavyContent = useRef(false);
 
   // Use external selectedTab if provided, otherwise use internal state
   const selectedTab =
@@ -59,20 +60,47 @@ export function HTabsPanel({
         behavior: 'smooth',
       });
 
-      // Clear the flag after scroll completes
-      setTimeout(() => {
+      // Clear the flag after scroll completes with a more reliable mechanism
+      const clearFlag = () => {
         isScrollingProgrammatically.current = false;
-      }, 500); // Give enough time for smooth scroll to complete
+      };
+
+      // Use both timeout and scroll end detection for better reliability
+      const timeoutId = setTimeout(clearFlag, 800); // Increased timeout for safety
+
+      // Also clear flag when scroll animation actually completes
+      const handleScrollEnd = () => {
+        const currentScrollLeft = container.scrollLeft;
+        const expectedScrollLeft = index * container.clientWidth;
+
+        // If we're close to the target position, clear the flag
+        if (Math.abs(currentScrollLeft - expectedScrollLeft) < 5) {
+          clearTimeout(timeoutId);
+          clearFlag();
+          container.removeEventListener('scroll', handleScrollEnd);
+        }
+      };
+
+      // Add temporary scroll listener to detect when animation completes
+      container.addEventListener('scroll', handleScrollEnd, { passive: true });
     }
   };
 
   // Handle tab change and scroll to section
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    // Set flag to prevent interference during tab switching
+    isRenderingHeavyContent.current = true;
+
     if (externalSelectedTab === undefined) {
       setInternalSelectedTab(newValue);
     }
     onTabChange?.(newValue);
     scrollToSection(newValue);
+
+    // Clear the heavy rendering flag after a delay to allow content to stabilize
+    setTimeout(() => {
+      isRenderingHeavyContent.current = false;
+    }, 1000);
   };
 
   // Sync scroll position when external selectedTab changes
@@ -93,21 +121,32 @@ export function HTabsPanel({
   // Handle scroll to update active tab
   useEffect(() => {
     const handleScroll = () => {
-      // Don't update tabs during programmatic scrolling
-      if (isScrollingProgrammatically.current || !scrollContainerRef.current)
+      // Don't update tabs during programmatic scrolling or heavy rendering
+      if (
+        isScrollingProgrammatically.current ||
+        isRenderingHeavyContent.current ||
+        !scrollContainerRef.current
+      )
         return;
 
       const container = scrollContainerRef.current;
       const { scrollLeft, clientWidth: containerWidth } = container;
 
       // Calculate which section we're closest to based on scroll position
-      const currentIndex = Math.round(scrollLeft / containerWidth);
+      // Use a more precise calculation to avoid incorrect tab switching
+      const scrollProgress = scrollLeft / containerWidth;
+      const currentIndex = Math.round(scrollProgress);
       const clampedIndex = Math.max(
         0,
         Math.min(sections.length - 1, currentIndex),
       );
 
-      if (clampedIndex !== selectedTab) {
+      // Only update if we're significantly close to the target position
+      // This prevents premature tab switching during smooth scroll animations
+      const threshold = 0.1; // 10% threshold
+      const distanceFromTarget = Math.abs(scrollProgress - currentIndex);
+
+      if (clampedIndex !== selectedTab && distanceFromTarget < threshold) {
         if (externalSelectedTab === undefined) {
           setInternalSelectedTab(clampedIndex);
         }
@@ -117,7 +156,8 @@ export function HTabsPanel({
 
     const container = scrollContainerRef.current;
     if (container) {
-      container.addEventListener('scroll', handleScroll);
+      // Use passive listener for better performance
+      container.addEventListener('scroll', handleScroll, { passive: true });
       return () => container.removeEventListener('scroll', handleScroll);
     }
     return undefined;
@@ -243,6 +283,12 @@ export function HTabsPanel({
             sectionRefs.current[index] = el;
           };
 
+          // Lazy load content: only render the current tab and adjacent tabs
+          // This prevents heavy computations in non-visible tabs during scroll animations
+          const isCurrentTab = index === selectedTab;
+          const isAdjacentTab = Math.abs(index - selectedTab) <= 1;
+          const shouldRenderContent = isCurrentTab || isAdjacentTab;
+
           return (
             <Box
               key={section.id}
@@ -271,7 +317,21 @@ export function HTabsPanel({
                   msOverflowStyle: 'none', // Hide scrollbar for IE/Edge
                 }}
               >
-                {section.component}
+                {shouldRenderContent ? (
+                  section.component
+                ) : (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      height: '200px',
+                      color: 'text.secondary',
+                    }}
+                  >
+                    Loading...
+                  </Box>
+                )}
               </Box>
             </Box>
           );

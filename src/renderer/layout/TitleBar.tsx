@@ -122,7 +122,7 @@ export default function TitleBar() {
         minHeight: 32,
         maxHeight: 32,
         backgroundColor: theme.palette.background.paper,
-        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
         position: 'relative',
         zIndex: 1300,
         flexShrink: 0, // Prevent shrinking
@@ -173,7 +173,7 @@ export default function TitleBar() {
             alignItems: 'center',
             height: '100%',
             '&:hover': {
-              backgroundColor: alpha(theme.palette.action.hover, 0.08),
+              backgroundColor: alpha(theme.palette.action.hover, 0.15),
             },
           }}
         >
@@ -218,7 +218,7 @@ export default function TitleBar() {
             width: 46,
             height: 32,
             '&:hover': {
-              backgroundColor: alpha(theme.palette.action.hover, 0.08),
+              backgroundColor: alpha(theme.palette.action.hover, 0.15),
             },
           }}
         >
@@ -233,7 +233,7 @@ export default function TitleBar() {
             width: 46,
             height: 32,
             '&:hover': {
-              backgroundColor: alpha(theme.palette.action.hover, 0.08),
+              backgroundColor: alpha(theme.palette.action.hover, 0.15),
             },
           }}
         >
